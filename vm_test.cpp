@@ -29,13 +29,22 @@ value_t printfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
   return {0};
 }
 
+value_t printsfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
+  std::cout << "PRINT: ";
+  for (; argc > 0; --argc, ++argv) {
+    std::cout << (const char *)vm.get_block(argv->ui32, VM_MEM_READABLE) << ' ';
+  }
+  std::cout << std::endl;
+  return {0};
+}
+
 
 int main(int argc, char const *argv[])
 {
-  source_t source(std::ifstream("out.bc"));
   vm_state_t vm(2048);
-  vm.set_source(source);
+  vm.set_source(source_t(std::ifstream("out.bc")));
   vm.bind_callback("print", printfn);
+  vm.bind_callback("prints", printsfn);
   float fv = vm.function("main")(2.010101);
   std::clog << "Returned: " << fv << std::endl;
 

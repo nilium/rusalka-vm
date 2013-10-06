@@ -17,6 +17,8 @@
   along with Rusalka VM.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+defdata woop "wooperton"
+
 // main
 .main
     push 0x10
@@ -26,6 +28,8 @@
     fadd 3 4 3
     push 0x8
     call ^print 0x8
+    load 24 ~woop
+    call ^prints 0x1000000
 
     load 4 0
 
