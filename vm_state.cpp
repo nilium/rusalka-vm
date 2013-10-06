@@ -246,6 +246,30 @@ uint32_t vm_state_t::alloc(uint32_t size) {
 }
 
 
+uint32_t vm_state_t::duplicate_block(uint32_t block_id) {
+  memblock_map_t::const_iterator iter = _blocks.find(block_id);
+  if (iter != _blocks.cend()) {
+    const auto entry = iter->second;
+    if (entry.flags & VM_MEM_READABLE) {
+      uint32_t new_block_id = alloc(entry.size);
+      void *new_block = get_block(new_block_id, VM_MEM_WRITABLE);
+      memcpy(new_block, entry.block, entry.size);
+      return new_block_id;
+    }
+  }
+  return 0;
+}
+
+
+uint32_t vm_state_t::block_size(uint32_t block_id) const {
+  memblock_map_t::const_iterator iter = _blocks.find(block_id);
+  if (iter != _blocks.cend()) {
+    return iter->second.size;
+  }
+  return 0;
+}
+
+
 void vm_state_t::free(uint32_t block_id) {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
@@ -666,7 +690,12 @@ void vm_state_t::exec(const op_t &op) {
     uint8_t *block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32, VM_MEM_NO_PERMISSIONS)) + op.argv[3].ui32;
     memmove(block_out, block_in, op.argv[4].ui32);
   } break;
-  /* case MEMDUPE: {} break;*/
+  case MEMDUP: {
+    reg(op.argv[0].i32).ui32 = duplicate_block(reg(op.argv[1].i32).ui32);
+  } break;
+  case MEMLEN: {
+    reg(op.argv[0].i32).ui32 = block_size(reg(op.argv[1].i32).ui32);
+  } break;
   case LOGAND: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 && reg(op.argv[2].i32).ui32;
   } break;

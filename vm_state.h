@@ -214,6 +214,8 @@ private:
 public:
   uint32_t alloc(uint32_t size);
   void free(uint32_t block_id);
+  uint32_t block_size(uint32_t block_id) const;
+  uint32_t duplicate_block(uint32_t block_id);
   void *get_block(uint32_t block_id, uint32_t permissions);
   const void *get_block(uint32_t block_id, uint32_t permissions) const;
 
