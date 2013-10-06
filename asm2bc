@@ -1,0 +1,242 @@
+#!/usr/bin/env ruby -w
+=begin
+Copyright (c) 2013 Noel Raymond Cower.
+
+This file is part of Rusalka VM.
+
+Rusalka VM is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Rusalka VM is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Rusalka VM.  If not, see <http://www.gnu.org/licenses/>.
+=end
+
+
+require './lexer.rb'
+require 'digest'
+
+module Op
+  RegisterArg = Struct.new(:argtype, :kind)
+  OPS = {}
+  OP_PACKS = {}
+
+  module Loading
+
+    def self.reg(type, kind) ; RegisterArg.new(type, kind) ; end
+    def self.method_missing(name, *args) ; name ; end
+    def self.const_missing(name) ; name ; end
+
+    define_singleton_method(:VM_LICENSE) { |*args| }
+
+    define_singleton_method(:INSTRUCTION) {
+      |codename, asm_name, code, num_args, *args|
+      ::Op.const_set(codename, code)
+      ::Op::OPS[asm_name.downcase] = ::Op.const_get(codename)
+      ::Op::OP_PACKS[asm_name.downcase] = args.map { |arg|
+        case arg
+        when RegisterArg then 'l'
+        when :f32 then 'L'
+        when :ui32 then 'L'
+        when :i32 then 'l'
+        when :value then 'L'
+        else raise 'invalid argument type'
+        end
+      }.join('')
+    }
+
+    self.module_eval(File.open('vm_instructions.h') { |io| io.read }, 'vm_instructions.h')
+  end
+end
+
+Instruction = Struct.new(:name, :args)
+class Label
+  attr_reader :name, :mangled, :kind
+  def initialize(context, name, kind)
+    @name = name
+    @kind = case kind
+            when :dot, :exported then :exported
+            when :at, :local then :local
+            when :caret, :imported then :imported
+            else raise "invalid label kind: #{kind}"
+            end
+    @mangled = mangle_sym(context, name, @kind)
+  end
+
+  def to_s
+    inspect
+  end
+
+  def inspect
+    "#{name}:#{mangled}<#{kind}>"
+  end
+
+  def hash
+    mangled.hash
+  end
+
+  def eql?(other)
+    other.kind_of?(Label) && mangled == other.mangled
+  end
+end
+
+
+labels = {}
+instructions = []
+
+def pack_int(i)
+  [i].pack('L')
+end
+
+def file_contents(file)
+  File.open(file, 'r') { |io| io.read }
+end
+
+def pack_float(num)
+  [num.to_f].pack('f').unpack('L')[0]
+end
+
+def read_instructions(tokens)
+end
+
+def lex(source)
+  lexer = Lexer.new
+  lexer.skip_comments = true
+  lexer.skip_newlines = false
+  lexer.run(source).tokens
+end
+
+def mangle_sym(context, sym, kind)
+  case kind
+  when :local, :at then :"#{context}__#{sym}__"
+  when :exported, :dot then :"__#{sym}__"
+  when :imported, :caret then sym
+  else raise "invalid symbol kind"
+  end
+end
+
+def parse_argument(context, reader)
+  reader.read_token(kinds: [:dot, :at, :caret, :float_lit, :float_exp_lit, :hex_lit, :bin_lit, :integer_lit, :integer_exp_lit, :minus], fail: "invalid argument") { |t|
+    case t.kind
+    when :dot, :at, :caret
+      reader.read_token(:id, fail: "expected label name") { |l| Label.new(context, l.value.to_sym, t.kind) }
+    when :integer_lit, :integer_exp_lit, :bin_lit, :hex_lit then t.to_i
+    when :float_lit, :float_exp_lit then t.to_f
+    when :minus then
+      -parse_argument(context, reader)
+    end
+  }
+end
+
+def parse(context, tokens, instructions, labels)
+  reader = TokenReader.new(tokens)
+  reader.skip_whitespace_on_read = false
+
+  until reader.eof?
+    case
+    when reader.read_token(kinds: [:dot, :at], fail: false) { |li|
+      reader.read_token(:id, fail: "expected label name") { |t|
+        label = Label.new(context, t.value.to_sym, li.kind)
+        raise "label #{li.value}#{label.name} already defined" if labels.include?(label)
+        labels[label] = instructions.length
+        # puts "label: #{label.mangled}@#{instructions.length}"
+        true
+      }
+    }
+
+    when reader.read_token(:id, fail: false) { |instr_token|
+      instr_name = instr_token.value.to_sym
+      # puts "parsing #{instr_name}"
+      if Op::OPS.include?(instr_name)
+        args = Op::OP_PACKS[instr_name].length.times.map { parse_argument(context, reader) }
+        instructions << Instruction.new(instr_name, args)
+        true
+      else
+        raise "#{instr_token.position} unrecognized instruction: #{instr_name}"
+      end
+    }
+    end
+
+    reader.read_token(:newline, fail: "expected newline") if !reader.eof?
+  end
+end
+
+hasher = Digest::SHA256.new
+ARGV[1..-1].each { |file|
+  contents = file_contents(file)
+  tokens = lex(contents)
+  ctx_digest = Digest.hexencode(hasher.digest(contents))
+  parse(ctx_digest, tokens, instructions, labels)
+}
+
+exported_label = -1
+instructions.each { |instr|
+  instr.args = instr.args.map { |a|
+    case a
+    when Label
+      if labels.include?(a)
+        labels[a]
+      elsif a.kind == :imported
+        loc = exported_label
+        exported_label -= 1
+        labels[a] = loc
+        loc
+      else
+        raise "No matching label for #{a}"
+      end
+    when Float then pack_float(a)
+    else a
+    end
+  }
+}
+
+def write_label_table(io, head, table)
+  return if table.nil?
+  io.write head
+  data = ""
+  data << pack_int(table.size)
+  table.each { |k, v|
+    data << pack_int(v)
+    data << pack_int(k.name.length)
+    data << k.name.to_s
+  }
+  io.write pack_int(data.bytesize)
+  io.write data
+end
+
+def write_code(io, instructions)
+  io.write "CODE"
+  data = pack_int(instructions.length)
+  instructions.each { |instr|
+    data << [Op::OPS[instr.name]].pack('L')
+    data << instr.args.pack(Op::OP_PACKS[instr.name])
+  }
+
+  io.write pack_int(data.bytesize)
+  io.write data
+end
+
+def write_data(labels, instructions, io)
+  lgroups = labels.group_by { |k, v| k.kind }
+  exports = lgroups[:exported]
+  imports = lgroups[:imported]
+
+  write_label_table(io, "IMPT", imports)
+  write_label_table(io, "EXPT", exports)
+
+  write_code(io, instructions)
+end
+
+if (ARGV[0] == '-')
+  write_data(labels, instructions, STDOUT)
+else
+  File.open(ARGV[0], 'w') { |io|
+    write_data(labels, instructions, io)
+  }
+end
