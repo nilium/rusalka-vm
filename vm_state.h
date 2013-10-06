@@ -77,17 +77,34 @@ class vm_state_t;
 typedef value_t (vm_callback_t)(vm_state_t &vm, int32_t argc, const value_t *argv);
 
 
+enum memblock_flags_t : uint32_t {
+  VM_MEM_NO_PERMISSIONS = 0x0,
+  VM_MEM_READABLE = 0x1,
+  VM_MEM_WRITABLE = 0x2,
+  VM_MEM_READ_WRITE = VM_MEM_READABLE | VM_MEM_WRITABLE,
+  VM_MEM_SOURCE_DATA = 0x4 | VM_MEM_READABLE,
+};
+
+
 class vm_state_t {
   enum {
     REGISTER_COUNT = 32,
     REGISTER_SIZE = sizeof(value_t)
   };
 
+  struct memblock_t {
+    uint32_t size;
+    uint32_t flags;
+    void *block;
+  };
+
+  using memblock_map_t = std::map<uint32_t, memblock_t>;
+
   // std::array<value_t, REGISTER_COUNT> _registers;
   value_t _registers[REGISTER_COUNT];
   std::vector<value_t> _stack;
   std::vector<vm_callback_t *> _callbacks;
-  std::map<uint32_t, void *> _blocks;
+  memblock_map_t _blocks;
   uint32_t _block_counter;
   uint32_t _sequence;
   uint32_t _trap = 0;
@@ -149,7 +166,12 @@ public:
   vm_state_t(size_t stackSize);
   ~vm_state_t();
 
-  void set_source(const source_t &source);
+  /**
+    Sets the VM's source object. Must be called before running the VM and must
+    not be called afterward. The VM takes ownership of the source data -- the
+    object is moved and the original object is invalid.
+  */
+  void set_source(source_t &&source);
 
 private:
   void exec(const op_t &op);
@@ -192,8 +214,8 @@ private:
 public:
   uint32_t alloc(uint32_t size);
   void free(uint32_t block_id);
-  void *get_block(uint32_t block_id);
-  const void *get_block(uint32_t block_id) const;
+  void *get_block(uint32_t block_id, uint32_t permissions);
+  const void *get_block(uint32_t block_id, uint32_t permissions) const;
 
   void dump_registers(size_t count = REGISTER_COUNT) const;
   void dump_stack(size_t until = SIZE_MAX) const;

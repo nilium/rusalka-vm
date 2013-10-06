@@ -150,7 +150,11 @@ vm_state_t::vm_state_t(size_t stackSize)
 
 
 vm_state_t::~vm_state_t() {
-  for (auto kvpair : _blocks) ::free(kvpair.second);
+  for (auto kvpair : _blocks) {
+    if (!(kvpair.second.flags & VM_MEM_SOURCE_DATA)) {
+      ::free(kvpair.second.block);
+    }
+  }
 }
 
 
@@ -176,10 +180,19 @@ int32_t vm_state_t::fetch() {
 }
 
 
-void vm_state_t::set_source(const source_t &source) {
-  _source = source;
+void vm_state_t::set_source(source_t &&source) {
+  _source = std::move(source);
   _callbacks.clear();
   _callbacks.resize(_source.imports_table().size(), NULL);
+  for (auto kvpair : _source.data_table()) {
+    _block_counter = std::max(kvpair.first, _block_counter + 1);
+    memblock_t block = {
+      kvpair.second->size,
+      VM_MEM_SOURCE_DATA,
+      kvpair.second->data
+    };
+    _blocks.emplace(kvpair.first, block);
+  }
 }
 
 
@@ -223,23 +236,44 @@ uint32_t vm_state_t::unused_block_id() {
 
 uint32_t vm_state_t::alloc(uint32_t size) {
   const uint32_t block_id = unused_block_id();
-  _blocks.emplace(block_id, malloc(static_cast<size_t>(size)));
+  memblock_t block = {
+    size,
+    VM_MEM_WRITABLE | VM_MEM_READABLE,
+    malloc(static_cast<size_t>(size))
+  };
+  _blocks.emplace(block_id, block);
   return block_id;
 }
 
 
 void vm_state_t::free(uint32_t block_id) {
-  ::free(_blocks.at(block_id));
+  memblock_map_t::const_iterator iter = _blocks.find(block_id);
+  if (iter != _blocks.cend()) {
+    if (!(iter->second.flags & VM_MEM_SOURCE_DATA)) {
+      ::free(iter->second.block);
+      _blocks.erase(iter);
+    } else {
+      std::abort();
+    }
+  }
 }
 
 
-void *vm_state_t::get_block(uint32_t block_id) {
-  return _blocks.at(block_id);
+void *vm_state_t::get_block(uint32_t block_id, uint32_t permissions) {
+  auto block = _blocks.at(block_id);
+  if (permissions != VM_MEM_NO_PERMISSIONS && !(block.flags & permissions)) {
+    std::abort();
+  }
+  return block.block;
 }
 
 
-const void *vm_state_t::get_block(uint32_t block_id) const {
-  return _blocks.at(block_id);
+const void *vm_state_t::get_block(uint32_t block_id, uint32_t permissions) const {
+  auto block = _blocks.at(block_id);
+  if (permissions != VM_MEM_NO_PERMISSIONS && !(block.flags & permissions)) {
+    std::abort();
+  }
+  return block.block;
 }
 
 
@@ -575,63 +609,64 @@ void vm_state_t::exec(const op_t &op) {
     free(reg(op.argv[0].i32).ui32);
   } break;
   case PEEK8: {
-    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32);
+    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = block[reg(op.argv[2].i32).ui32];
   } break;
   case PEEK16: {
-    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32);
+    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = *(const uint16_t *)(block + reg(op.argv[2].i32).ui32);
   } break;
   case PEEK32: {
-    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32);
+    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = *(const uint32_t *)(block + reg(op.argv[2].i32).ui32);
   } break;
   case POKE8: {
-    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32);
+    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     block[reg(op.argv[1].i32).ui32] = (uint8_t)(reg(op.argv[2].i32).ui32 & 0xFF);
   } break;
   case POKE16: {
-    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32);
+    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     *(uint16_t *)(block + reg(op.argv[1].i32).ui32) = (uint16_t)reg(op.argv[2].i32).ui32 & 0xFFFF;
   } break;
   case POKE32: {
-    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32);
+    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     *(uint32_t *)(block + reg(op.argv[1].i32).ui32) = (uint32_t)reg(op.argv[2].i32).ui32;
   } break;
   case PEEK8_L: {
-    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32);
+    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = block[op.argv[2].ui32];
   } break;
   case PEEK16_L: {
-    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32);
+    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = *(const uint16_t *)(block + op.argv[2].ui32);
   } break;
   case PEEK32_L: {
-    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32);
+    const uint8_t *block = (const uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = *(const uint32_t *)(block + op.argv[2].ui32);
   } break;
   case POKE8_L: {
-    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32);
+    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     block[op.argv[1].ui32] = (uint8_t)(reg(op.argv[2].i32).ui32 & 0xFF);
   } break;
   case POKE16_L: {
-    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32);
+    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     *(uint16_t *)(block + op.argv[1].ui32) = (uint16_t)reg(op.argv[2].i32).ui32 & 0xFFFF;
   } break;
   case POKE32_L: {
-    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32);
+    uint8_t *block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     *(uint32_t *)(block + op.argv[1].ui32) = (uint32_t)reg(op.argv[2].i32).ui32;
   } break;
   case MEMMOVE: {
-    uint8_t *block_out = ((uint8_t *)get_block(reg(op.argv[0].i32).ui32)) + reg(op.argv[1].i32).ui32;
-    uint8_t *block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32)) + reg(op.argv[3].i32).ui32;
+    uint8_t *block_out = ((uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE)) + reg(op.argv[1].i32).ui32;
+    uint8_t *block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32, VM_MEM_NO_PERMISSIONS)) + reg(op.argv[3].i32).ui32;
     memmove(block_out, block_in, reg(op.argv[4].i32).ui32);
   } break;
   case MEMMOVE_L: {
-    uint8_t *block_out = ((uint8_t *)get_block(reg(op.argv[0].i32).ui32)) + op.argv[1].ui32;
-    uint8_t *block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32)) + op.argv[3].ui32;
+    uint8_t *block_out = ((uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE)) + op.argv[1].ui32;
+    uint8_t *block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32, VM_MEM_NO_PERMISSIONS)) + op.argv[3].ui32;
     memmove(block_out, block_in, op.argv[4].ui32);
   } break;
+  /* case MEMDUPE: {} break;*/
   case LOGAND: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 && reg(op.argv[2].i32).ui32;
   } break;

@@ -25,6 +25,7 @@
 static const std::string SCRIPT_IMPORTS_TITLE { "IMPT" };
 static const std::string SCRIPT_EXPORTS_TITLE { "EXPT" };
 static const std::string SCRIPT_CODE_TITLE { "CODE" };
+static const std::string SCRIPT_DATA_TITLE { "DATA" };
 
 
 std::pair<bool, int32_t> source_t::exported_function(const char *name) const {
@@ -42,13 +43,13 @@ std::pair<bool, int32_t> source_t::imported_function(const char *name) const {
 
 
 void source_t::read_label_table(std::istream &input, label_table_t &table) {
-  int32_t label_count = 0;
+  uint32_t label_count = 0;
   std::string name;
 
   input.read((char *)&label_count, sizeof(label_count));
   for (; label_count; --label_count) {
     int32_t label_location = 0;
-    int32_t label_length = 0;
+    uint32_t label_length = 0;
 
     input.read((char *)&label_location, sizeof(label_location));
     input.read((char *)&label_length, sizeof(label_length));
@@ -60,10 +61,51 @@ void source_t::read_label_table(std::istream &input, label_table_t &table) {
   }
 }
 
+
+void source_t::read_data_table(std::istream &input, data_table_t &table) {
+  uint32_t data_count = 0;
+
+  input.read((char *)&data_count, sizeof(data_count));
+  for (; data_count; --data_count) {
+
+    uint32_t data_id = 0;
+    uint32_t data_size = 0;
+
+    input.read((char *)&data_id, sizeof(data_id));
+    input.read((char *)&data_size, sizeof(data_size));
+
+    data_entry_t *entry = (data_entry_t *)malloc(sizeof(*entry) + data_size + 1);
+    new(entry) data_entry_t;
+    entry->size = data_size + 1;
+
+    input.read((char *)entry->data, data_size);
+    entry->data[data_size] = 0;
+
+    table.emplace(data_id, entry);
+  }
+}
+
+source_t::source_t(source_t &&other)
+: _ops(std::move(other._ops))
+, _imports(std::move(other._imports))
+, _exports(std::move(other._exports))
+, _data(std::move(other._data))
+{
+  // nop
+}
+
+source_t &source_t::operator = (source_t &&other) {
+  _ops = std::move(other._ops);
+  _exports = std::move(other._exports);
+  _imports = std::move(other._imports);
+  _data = std::move(other._data);
+  return *this;
+}
+
 source_t::source_t(std::istream &&input) {
   // std::array<char, 256> chunk;
   size_t ops_offset = 0;
-  int32_t chunk_size;
+  uint32_t chunk_size;
   char chunk_title[5];
   chunk_title[4] = '\0';
 
@@ -75,6 +117,8 @@ source_t::source_t(std::istream &&input) {
       read_label_table(input, _imports);
     } else if (SCRIPT_EXPORTS_TITLE == chunk_title) {
       read_label_table(input, _exports);
+    } else if (SCRIPT_DATA_TITLE == chunk_title) {
+      read_data_table(input, _data);
     } else if (SCRIPT_CODE_TITLE == chunk_title) {
       _ops.reserve(chunk_size);
       int32_t num_ops = 0;
@@ -117,6 +161,13 @@ source_t::source_t(std::istream &&input) {
   //   _table.push_back(op);
   //   code += g_opcode_argc[op->opcode] + 1;
   // }
+}
+
+source_t::~source_t() {
+  for (const auto kvpair : _data) {
+    kvpair.second->~data_entry_t();
+    ::free(kvpair.second);
+  }
 }
 
 const op_t &source_t::fetch_op(int32_t index) const {
