@@ -1,0 +1,3 @@
+#!/bin/sh
+
+c++ -std=c++11 -stdlib=libc++ -c vm_*.cpp -O4 -fno-exceptions && c++ --std=c++11 -stdlib=libc++ vm_*.o -o vm_test -lc++ -O4
