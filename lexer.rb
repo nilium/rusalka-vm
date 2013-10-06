@@ -1009,7 +1009,7 @@ class Lexer
       else
         break if current == opening_char
 
-        if current == "\\'"
+        if current == "\\"
           escape = true
           next
         end
