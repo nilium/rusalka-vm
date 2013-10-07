@@ -112,6 +112,7 @@ class vm_state_t {
   uint32_t unused_block_id();
 
   source_t _source;
+  uint32_t _source_size;
 
   #ifdef VM_USE_DATA_ACCESS_MACROS
   #define reg(X) _registers[X]

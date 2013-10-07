@@ -175,13 +175,14 @@ int32_t vm_state_t::fetch() {
     op_t op = ops[vm.ip()++];
     */
   const int32_t result = ip()++;
-  if (result < 0 || result >= _source.size()) ++_sequence;
+  _trap += (result < 0) || (result >= _source_size);
   return result;
 }
 
 
 void vm_state_t::set_source(source_t &&source) {
   _source = std::move(source);
+  _source_size = (uint32_t)_source.size();
   _callbacks.clear();
   _callbacks.resize(_source.imports_table().size(), NULL);
   for (auto kvpair : _source.data_table()) {
