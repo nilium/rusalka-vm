@@ -318,286 +318,322 @@ void vm_state_t::exec(const op_t &op) {
 
   switch (op.opcode) {
   case NOP: break;
-  case ADD_F32:
+  case ADD_F32: {
     reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 + reg(op.argv[2].i32).f32;
-  break;
-  case ADD_I32:
+  } break;
+  case ADD_I32: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 + reg(op.argv[2].i32).i32;
-  break;
-  case ADD_UI32:
+  } break;
+  case ADD_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 + reg(op.argv[2].i32).ui32;
-  break;
-  case ADD_F32_L:
+  } break;
+  case ADD_F32_L: {
     reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 + op.argv[2].f32;
-  break;
-  case ADD_I32_L:
+  } break;
+  case ADD_I32_L: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 + op.argv[2].i32;
-  break;
-  case ADD_UI32_L:
+  } break;
+  case ADD_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 + op.argv[2].ui32;
-  break;
-  case SUB_F32:
+  } break;
+  case SUB_F32: {
     reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 - reg(op.argv[2].i32).f32;
-  break;
-  case SUB_I32:
+  } break;
+  case SUB_I32: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 - reg(op.argv[2].i32).i32;
-  break;
-  case SUB_UI32:
+  } break;
+  case SUB_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 - reg(op.argv[2].i32).ui32;
-  break;
-  case SUB_F32_L:
+  } break;
+  case SUB_F32_L: {
     reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 - op.argv[2].f32;
-  break;
-  case SUB_I32_L:
+  } break;
+  case SUB_I32_L: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 - op.argv[2].i32;
-  break;
-  case SUB_UI32_L:
+  } break;
+  case SUB_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 - op.argv[2].ui32;
-  break;
-  case DIV_F32:
+  } break;
+  case DIV_F32: {
     reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 / reg(op.argv[2].i32).f32;
-  break;
-  case DIV_I32:
+  } break;
+  case DIV_I32: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 / reg(op.argv[2].i32).i32;
-  break;
-  case DIV_UI32:
+  } break;
+  case DIV_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 / reg(op.argv[2].i32).ui32;
-  break;
-  case DIV_F32_L:
+  } break;
+  case DIV_F32_L: {
     reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 / op.argv[2].f32;
-  break;
-  case DIV_I32_L:
+  } break;
+  case DIV_I32_L: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 / op.argv[2].i32;
-  break;
-  case DIV_UI32_L:
+  } break;
+  case DIV_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 / op.argv[2].ui32;
-  break;
-  case MUL_F32:
+  } break;
+  case MUL_F32: {
     reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 * reg(op.argv[2].i32).f32;
-  break;
-  case MUL_I32:
+  } break;
+  case MUL_I32: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 * reg(op.argv[2].i32).i32;
-  break;
-  case MUL_UI32:
+  } break;
+  case MUL_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 * reg(op.argv[2].i32).ui32;
-  break;
-  case MUL_F32_L:
+  } break;
+  case MUL_F32_L: {
     reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 * op.argv[2].f32;
-  break;
-  case MUL_I32_L:
+  } break;
+  case MUL_I32_L: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 * op.argv[2].i32;
-  break;
-  case MUL_UI32_L:
+  } break;
+  case MUL_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 * op.argv[2].ui32;
-  break;
-  case MOD_F32:
+  } break;
+  case MOD_F32: {
     reg(op.argv[0].i32).f32 = std::fmod(reg(op.argv[1].i32).f32, reg(op.argv[2].i32).f32);
-  break;
-  case MOD_I32:
+  } break;
+  case MOD_I32: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 % reg(op.argv[2].i32).i32;
-  break;
-  case MOD_UI32:
+  } break;
+  case MOD_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 % reg(op.argv[2].i32).ui32;
-  break;
-  case MOD_F32_L:
+  } break;
+  case MOD_F32_L: {
     reg(op.argv[0].i32).f32 = std::fmod(reg(op.argv[1].i32).f32, op.argv[2].f32);
-  break;
-  case MOD_I32_L:
+  } break;
+  case MOD_I32_L: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 % op.argv[2].i32;
-  break;
-  case MOD_UI32_L:
+  } break;
+  case MOD_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 % op.argv[2].ui32;
-  break;
-  case NEG_F32:
+  } break;
+  case NEG_F32: {
     reg(op.argv[0].i32).f32 = -reg(op.argv[1].i32).f32;
-  break;
-  case NEG_I32:
+  } break;
+  case NEG_I32: {
     reg(op.argv[0].i32).i32 = -reg(op.argv[1].i32).i32;
-  break;
-  case NOT_UI32:
+  } break;
+  case NOT_UI32: {
     reg(op.argv[0].i32).ui32 = ~(reg(op.argv[1].i32).ui32);
-  break;
-  case OR_UI32:
+  } break;
+  case OR_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 | reg(op.argv[2].i32).ui32;
-  break;
-  case XOR_UI32:
+  } break;
+  case XOR_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 ^ reg(op.argv[2].i32).ui32;
-  break;
-  case AND_UI32:
+  } break;
+  case AND_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 & reg(op.argv[2].i32).ui32;
-  break;
-  case SHR_I32:
+  } break;
+  case SHR_I32: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 >> reg(op.argv[2].i32).ui32;
-  break;
-  case SHR_UI32:
+  } break;
+  case SHR_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 >> reg(op.argv[2].i32).ui32;
-  break;
-  case SHL_I32:
+  } break;
+  case SHL_I32: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 << reg(op.argv[2].i32).ui32;
-  break;
-  case SHL_UI32:
+  } break;
+  case SHL_UI32: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 << reg(op.argv[2].i32).ui32;
-  break;
-  case OR_UI32_L:
+  } break;
+  case OR_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 | op.argv[2].ui32;
-  break;
-  case XOR_UI32_L:
+  } break;
+  case XOR_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 ^ op.argv[2].ui32;
-  break;
-  case AND_UI32_L:
+  } break;
+  case AND_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 & op.argv[2].ui32;
-  break;
-  case SHR_I32_L:
+  } break;
+  case SHR_I32_L: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 >> op.argv[2].ui32;
-  break;
-  case SHR_UI32_L:
+  } break;
+  case SHR_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 >> op.argv[2].ui32;
-  break;
-  case SHL_I32_L:
+  } break;
+  case SHL_I32_L: {
     reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 << op.argv[2].ui32;
-  break;
-  case SHL_UI32_L:
+  } break;
+  case SHL_UI32_L: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 << op.argv[2].ui32;
-  break;
-  case ITOUI:
+  } break;
+  case ITOUI: {
     reg(op.argv[0].i32).ui32 = (uint32_t)reg(op.argv[1].i32).i32;
-  break;
-  case ITOF:
+  } break;
+  case ITOF: {
     reg(op.argv[0].i32).f32 = static_cast<float>(reg(op.argv[1].i32).i32);
-  break;
-  case FTOUI:
+  } break;
+  case FTOUI: {
     reg(op.argv[0].i32).ui32 = static_cast<uint32_t>(reg(op.argv[1].i32).f32);
-  break;
-  case FTOI:
+  } break;
+  case FTOI: {
     reg(op.argv[0].i32).i32 = static_cast<int32_t>(reg(op.argv[1].i32).f32);
-  break;
-  case UITOF:
+  } break;
+  case UITOF: {
     reg(op.argv[0].i32).f32 = static_cast<float>(reg(op.argv[1].i32).ui32);
-  break;
-  case UITOI:
+  } break;
+  case UITOI: {
     reg(op.argv[0].i32).i32 = static_cast<int32_t>(reg(op.argv[1].i32).ui32);
-  break;
-  case CMP_F32:
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).f32 > reg(op.argv[2].i32).f32) - (reg(op.argv[1].i32).f32 < reg(op.argv[2].i32).f32);
-  break;
-  case CMP_I32:
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).i32 > reg(op.argv[2].i32).i32) - (reg(op.argv[1].i32).i32 < reg(op.argv[2].i32).i32);
-  break;
-  case CMP_UI32:
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).ui32 > reg(op.argv[2].i32).ui32) - (reg(op.argv[1].i32).ui32 < reg(op.argv[2].i32).ui32);
-  break;
-  case CMP_F32_L:
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).f32 > op.argv[2].f32) - (reg(op.argv[1].i32).f32 < op.argv[2].f32);
-  break;
-  case CMP_I32_L:
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).i32 > op.argv[2].i32) - (reg(op.argv[1].i32).i32 < op.argv[2].i32);
-  break;
-  case CMP_UI32_L:
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).ui32 > op.argv[2].ui32) - (reg(op.argv[1].i32).ui32 < op.argv[2].ui32);
-  break;
-  case RCMP_F32:
+  } break;
+  case CMP_F32: {
+    if ((reg(op.argv[1].i32).f32 > reg(op.argv[2].i32).f32))
+      reg(op.argv[0].i32).i32 = 1;
+    else if (reg(op.argv[1].i32).f32 < reg(op.argv[2].i32).f32)
+      reg(op.argv[0].i32).i32 = -1;
+    else reg(op.argv[0].i32).i32 = 0;
+  } break;
+  case CMP_I32: {
+    if ((reg(op.argv[1].i32).i32 > reg(op.argv[2].i32).i32))
+      reg(op.argv[0].i32).i32 = 1;
+    else if (reg(op.argv[1].i32).i32 < reg(op.argv[2].i32).i32)
+      reg(op.argv[0].i32).i32 = -1;
+    else reg(op.argv[0].i32).i32 = 0;
+  } break;
+  case CMP_UI32: {
+    if ((reg(op.argv[1].i32).ui32 > reg(op.argv[2].i32).ui32))
+      reg(op.argv[0].i32).i32 = 1;
+    else if (reg(op.argv[1].i32).ui32 < reg(op.argv[2].i32).ui32)
+      reg(op.argv[0].i32).i32 = -1;
+    else reg(op.argv[0].i32).i32 = 0;
+  } break;
+  case CMP_F32_L: {
+    if ((reg(op.argv[1].i32).f32 > op.argv[2].f32))
+      reg(op.argv[0].i32).i32 = 1;
+    else if (reg(op.argv[1].i32).f32 < op.argv[2].f32)
+      reg(op.argv[0].i32).i32 = -1;
+    else reg(op.argv[0].i32).i32 = 0;
+  } break;
+  case CMP_I32_L: {
+    if ((reg(op.argv[1].i32).i32 > op.argv[2].i32))
+      reg(op.argv[0].i32).i32 = 1;
+    else if (reg(op.argv[1].i32).i32 < op.argv[2].i32)
+      reg(op.argv[0].i32).i32 = -1;
+    else reg(op.argv[0].i32).i32 = 0;
+  } break;
+  case CMP_UI32_L: {
+    if ((reg(op.argv[1].i32).ui32 > op.argv[2].ui32))
+      reg(op.argv[0].i32).i32 = 1;
+    else if (reg(op.argv[1].i32).ui32 < op.argv[2].ui32)
+      reg(op.argv[0].i32).i32 = -1;
+    else reg(op.argv[0].i32).i32 = 0;
+  } break;
+  case RCMP_F32: {
     reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).f32 < reg(op.argv[2].i32).f32) - (reg(op.argv[1].i32).f32 > reg(op.argv[2].i32).f32);
-  break;
-  case RCMP_I32:
+  } break;
+  case RCMP_I32: {
     reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).i32 < reg(op.argv[2].i32).i32) - (reg(op.argv[1].i32).i32 > reg(op.argv[2].i32).i32);
-  break;
-  case RCMP_UI32:
+  } break;
+  case RCMP_UI32: {
     reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).ui32 < reg(op.argv[2].i32).ui32) - (reg(op.argv[1].i32).ui32 > reg(op.argv[2].i32).ui32);
-  break;
-  case RCMP_F32_L:
+  } break;
+  case RCMP_F32_L: {
     reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).f32 < op.argv[2].f32) - (reg(op.argv[1].i32).f32 > op.argv[2].f32);
-  break;
-  case RCMP_I32_L:
+  } break;
+  case RCMP_I32_L: {
     reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).i32 < op.argv[2].i32) - (reg(op.argv[1].i32).i32 > op.argv[2].i32);
-  break;
-  case RCMP_UI32_L:
+  } break;
+  case RCMP_UI32_L: {
     reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).ui32 < op.argv[2].ui32) - (reg(op.argv[1].i32).ui32 > op.argv[2].ui32);
-  break;
-  case JNZ:
-    mask = cndmask[reg(op.argv[0].i32).i32 != 0];
-    ip() = (reg(op.argv[1].i32).i32 & mask) | (ip() & ~mask);
-  break;
-  case JEZ:
-    mask = cndmask[reg(op.argv[0].i32).i32 == 0];
-    ip() = (reg(op.argv[1].i32).i32 & mask) | (ip() & ~mask);
-  break;
-  case JGTE:
-    mask = cndmask[reg(op.argv[0].i32).i32 >= 0];
-    ip() = (reg(op.argv[1].i32).i32 & mask) | (ip() & ~mask);
-  break;
-  case JLTE:
-    mask = cndmask[reg(op.argv[0].i32).i32 <= 0];
-    ip() = (reg(op.argv[1].i32).i32 & mask) | (ip() & ~mask);
-  break;
-  case JLT:
-    mask = cndmask[reg(op.argv[0].i32).i32 < 0];
-    ip() = (reg(op.argv[1].i32).i32 & mask) | (ip() & ~mask);
-  break;
-  case JGT:
-    mask = cndmask[reg(op.argv[0].i32).i32 > 0];
-    ip() = (reg(op.argv[1].i32).i32 & mask) | (ip() & ~mask);
-  break;
-  case JUMP:
+  } break;
+  case JNZ: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 != 0];
+    if (reg(op.argv[0].i32).i32 != 0)
+      ip() = reg(op.argv[1].i32).i32;
+  } break;
+  case JEZ: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 == 0];
+    if (reg(op.argv[0].i32).i32 == 0)
+      ip() = reg(op.argv[1].i32).i32;
+  } break;
+  case JGTE: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 >= 0];
+    if (reg(op.argv[0].i32).i32 >= 0)
+      ip() = reg(op.argv[1].i32).i32;
+  } break;
+  case JLTE: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 <= 0];
+    if (reg(op.argv[0].i32).i32 <= 0)
+      ip() = reg(op.argv[1].i32).i32;
+  } break;
+  case JLT: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 < 0];
+    if (reg(op.argv[0].i32).i32 < 0)
+      ip() = reg(op.argv[1].i32).i32;
+  } break;
+  case JGT: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 > 0];
+    if (reg(op.argv[0].i32).i32 > 0)
+      ip() = reg(op.argv[1].i32).i32;
+  } break;
+  case JUMP: {
     ip() = reg(op.argv[1].i32).i32;
-  break;
-  case JNZ_L:
-    mask = cndmask[reg(op.argv[0].i32).i32 != 0];
-    ip() = (op.argv[1].i32 & mask) | (ip() & ~mask);
-  break;
-  case JEZ_L:
-    mask = cndmask[reg(op.argv[0].i32).i32 == 0];
-    ip() = (op.argv[1].i32 & mask) | (ip() & ~mask);
-  break;
-  case JGTE_L:
-    mask = cndmask[reg(op.argv[0].i32).i32 >= 0];
-    ip() = (op.argv[1].i32 & mask) | (ip() & ~mask);
-  break;
-  case JLTE_L:
-    mask = cndmask[reg(op.argv[0].i32).i32 <= 0];
-    ip() = (op.argv[1].i32 & mask) | (ip() & ~mask);
-  break;
-  case JLT_L:
-    mask = cndmask[reg(op.argv[0].i32).i32 < 0];
-    ip() = (op.argv[1].i32 & mask) | (ip() & ~mask);
-  break;
-  case JGT_L:
-    mask = cndmask[reg(op.argv[0].i32).i32 > 0];
-    ip() = (op.argv[1].i32 & mask) | (ip() & ~mask);
-  break;
-  case JUMP_L:
+  } break;
+  case JNZ_L: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 != 0];
+    if (reg(op.argv[0].i32).i32 != 0)
+      ip() = op.argv[1].i32;
+  } break;
+  case JEZ_L: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 == 0];
+    if (reg(op.argv[0].i32).i32 == 0)
+      ip() = op.argv[1].i32;
+  } break;
+  case JGTE_L: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 >= 0];
+    if (reg(op.argv[0].i32).i32 >= 0)
+      ip() = op.argv[1].i32;
+  } break;
+  case JLTE_L: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 <= 0];
+    if (reg(op.argv[0].i32).i32 <= 0)
+      ip() = op.argv[1].i32;
+  } break;
+  case JLT_L: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 < 0];
+    if (reg(op.argv[0].i32).i32 < 0)
+      ip() = op.argv[1].i32;
+  } break;
+  case JGT_L: {
+    // mask = cndmask[reg(op.argv[0].i32).i32 > 0];
+    if (reg(op.argv[0].i32).i32 > 0)
+      ip() = op.argv[1].i32;
+  } break;
+  case JUMP_L: {
     ip() = op.argv[0].i32;
-  break;
-  case STORE:
+  } break;
+  case STORE: {
     stack(reg(op.argv[0].i32).i32).ui32 = reg(op.argv[1].i32).ui32;
-  break;
-  case STORE_L:
+  } break;
+  case STORE_L: {
     stack(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32;
-  break;
-  case GET:
+  } break;
+  case GET: {
     reg(op.argv[0].i32).ui32 = stack(op.argv[1].i32).ui32;
-  break;
-  case GET_L:
+  } break;
+  case GET_L: {
     reg(op.argv[0].i32).ui32 = stack(reg(op.argv[1].i32).i32).ui32;
-  break;
-  case PUSH:
+  } break;
+  case PUSH: {
     push(op.argv[0].ui32);
-  break;
-  case POP:
+  } break;
+  case POP: {
     pop(op.argv[0].ui32, true);
-  break;
-  case LOAD:
+  } break;
+  case LOAD: {
     reg(op.argv[0].i32).ui32 = op.argv[1].ui32;
-  break;
-  case MOVE:
+  } break;
+  case MOVE: {
     reg(op.argv[0].i32) = reg(op.argv[1].i32);
-  break;
-  case CALL:
+  } break;
+  case CALL: {
     exec_call(op.argv[0].i32, op.argv[1].ui32);
-  break;
-  case CALL_D:
+  } break;
+  case CALL_D: {
     exec_call(reg(op.argv[0].i32).i32, reg(op.argv[1].i32).ui32);
-  break;
-  case RETURN:
+  } break;
+  case RETURN: {
     value = reg(op.argv[0].i32);
     #ifdef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
     pop(esp(), true);
@@ -605,94 +641,94 @@ void vm_state_t::exec(const op_t &op) {
     pop(CALL_STACK_MASK, true);
     rp() = value;
     --_sequence;
-  break;
-  case ALLOC:
+  } break;
+  case ALLOC: {
     reg(op.argv[0].i32).ui32 = alloc(reg(op.argv[1].i32).ui32);
-  break;
-  case ALLOC_L:
+  } break;
+  case ALLOC_L: {
     reg(op.argv[0].i32).ui32 = alloc(reg(op.argv[1].i32).ui32);
-  break;
-  case FREE:
+  } break;
+  case FREE: {
     free(reg(op.argv[0].i32).ui32);
-  break;
-  case PEEK8:
+  } break;
+  case PEEK8: {
     block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = block[reg(op.argv[2].i32).ui32];
-  break;
-  case PEEK16:
+  } break;
+  case PEEK16: {
     block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = *(const uint16_t *)(block + reg(op.argv[2].i32).ui32);
-  break;
-  case PEEK32:
+  } break;
+  case PEEK32: {
     block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = *(const uint32_t *)(block + reg(op.argv[2].i32).ui32);
-  break;
-  case POKE8:
+  } break;
+  case POKE8: {
     block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     block[reg(op.argv[1].i32).ui32] = (uint8_t)(reg(op.argv[2].i32).ui32 & 0xFF);
-  break;
-  case POKE16:
+  } break;
+  case POKE16: {
     block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     *(uint16_t *)(block + reg(op.argv[1].i32).ui32) = (uint16_t)reg(op.argv[2].i32).ui32 & 0xFFFF;
-  break;
-  case POKE32:
+  } break;
+  case POKE32: {
     block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     *(uint32_t *)(block + reg(op.argv[1].i32).ui32) = (uint32_t)reg(op.argv[2].i32).ui32;
-  break;
-  case PEEK8_L:
+  } break;
+  case PEEK8_L: {
     block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = block[op.argv[2].ui32];
-  break;
-  case PEEK16_L:
+  } break;
+  case PEEK16_L: {
     block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = *(const uint16_t *)(block + op.argv[2].ui32);
-  break;
-  case PEEK32_L:
+  } break;
+  case PEEK32_L: {
     block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
     reg(op.argv[0].i32).ui32 = *(const uint32_t *)(block + op.argv[2].ui32);
-  break;
-  case POKE8_L:
+  } break;
+  case POKE8_L: {
     block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     block[op.argv[1].ui32] = (uint8_t)(reg(op.argv[2].i32).ui32 & 0xFF);
-  break;
-  case POKE16_L:
+  } break;
+  case POKE16_L: {
     block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     *(uint16_t *)(block + op.argv[1].ui32) = (uint16_t)reg(op.argv[2].i32).ui32 & 0xFFFF;
-  break;
-  case POKE32_L:
+  } break;
+  case POKE32_L: {
     block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
     *(uint32_t *)(block + op.argv[1].ui32) = (uint32_t)reg(op.argv[2].i32).ui32;
-  break;
-  case MEMMOVE:
+  } break;
+  case MEMMOVE: {
     block = ((uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE)) + reg(op.argv[1].i32).ui32;
     block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32, VM_MEM_NO_PERMISSIONS)) + reg(op.argv[3].i32).ui32;
     memmove(block, block_in, reg(op.argv[4].i32).ui32);
-  break;
-  case MEMMOVE_L:
+  } break;
+  case MEMMOVE_L: {
     block = ((uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE)) + op.argv[1].ui32;
     block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32, VM_MEM_NO_PERMISSIONS)) + op.argv[3].ui32;
     memmove(block, block_in, op.argv[4].ui32);
-  break;
-  case MEMDUP:
+  } break;
+  case MEMDUP: {
     reg(op.argv[0].i32).ui32 = duplicate_block(reg(op.argv[1].i32).ui32);
-  break;
-  case MEMLEN:
+  } break;
+  case MEMLEN: {
     reg(op.argv[0].i32).ui32 = block_size(reg(op.argv[1].i32).ui32);
-  break;
-  case LOGAND:
+  } break;
+  case LOGAND: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 && reg(op.argv[2].i32).ui32;
-  break;
-  case LOGOR:
+  } break;
+  case LOGOR: {
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 || reg(op.argv[2].i32).ui32;
-  break;
-  case TRAP:
+  } break;
+  case TRAP: {
     _trap = 1;
-  break;
-  case SWAP:
+  } break;
+  case SWAP: {
     value = reg(op.argv[0].i32);
     reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32;
     reg(op.argv[1].i32).ui32 = value;
-  break;
+  } break;
   case OP_COUNT: ;
     // throw std::runtime_error("invalid opcode");
   }
