@@ -216,8 +216,13 @@ bool vm_state_t::run() {
   _trap = 0;
   const uint32_t term_sequence = _sequence++;
   int32_t opidx = fetch();
-  for (; term_sequence < _sequence && !_trap; opidx = fetch()) {
-    exec(_source.fetch_op(opidx));
+  RUN_JMP_NEXT:
+  switch ((term_sequence < _sequence) & (!_trap)) {
+    case 1:
+      exec(_source._ops[opidx]);
+      opidx = fetch();
+      goto RUN_JMP_NEXT;
+    case 0:;
   }
   return _trap == 0;
 }
