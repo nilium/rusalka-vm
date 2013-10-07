@@ -29,13 +29,16 @@ module Op
 
   module Loading
 
-    def self.reg(type, kind) ; RegisterArg.new(type, kind) ; end
     def self.method_missing(name, *args) ; name ; end
     def self.const_missing(name) ; name ; end
 
     define_singleton_method(:VM_LICENSE) { |*args| }
 
-    define_singleton_method(:INSTRUCTION) {
+    define_singleton_method(:VM_REG) { |type, kind| RegisterArg.new(type, kind) }
+
+    define_singleton_method(:VM_LIT) { |type| type }
+
+    define_singleton_method(:VM_INSTRUCTION) {
       |codename, asm_name, code, num_args, *args|
       ::Op.const_set(codename, code)
       ::Op::OPS[asm_name.downcase] = ::Op.const_get(codename)

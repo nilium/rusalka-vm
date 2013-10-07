@@ -56,6 +56,13 @@
 #endif
 
 
+vm_state_t::instruction_fn_t *vm_state_t::_instruction_fns[OP_COUNT] = {
+  #define VM_INSTRUCTION(OPCODE, ASM_NAME, CODE, ARGS, ARG_INFO... ) vm_state_t::EXEC_##OPCODE,
+  #include "vm_instructions.h"
+  #undef VM_INSTRUCTION
+};
+
+
 static constexpr uint32_t cndmask[2] = { 0x0u, ~0x0u };
 
 
@@ -309,6 +316,7 @@ void vm_state_t::exec(const op_t &op) {
   std::clog << std::endl;
   #endif
 
+#if 0
   switch (op.opcode) {
   case NOP: break;
   case ADD_F32: {
@@ -714,6 +722,9 @@ void vm_state_t::exec(const op_t &op) {
     // throw std::runtime_error("invalid opcode");
   }
   }
+#endif
+
+  _instruction_fns[op.opcode](*this, op.argv);
 
   #ifdef LOG_STATE_CHANGES
   dump_registers();
@@ -833,3 +844,5 @@ void vm_state_t::dump_stack(size_t until) const {
     std::clog << "stack[" << index << "]  " << stackval << std::endl;
   }
 }
+
+#include "vm_instructions.cpp.inl"

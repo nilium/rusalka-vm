@@ -211,6 +211,13 @@ private:
 
   void exec_call(int32_t instr, uint32_t args_mask);
 
+  typedef void (instruction_fn_t)(vm_state_t &vm, const value_t argv[]);
+  static instruction_fn_t *_instruction_fns[OP_COUNT];
+
+  #define VM_INSTRUCTION(OPCODE, ASM_NAME, CODE, ARGS, ARG_INFO... ) static void EXEC_##OPCODE(vm_state_t &vm, const value_t argv[]);
+  #include "vm_instructions.h"
+  #undef VM_INSTRUCTION
+
 public:
   uint32_t alloc(uint32_t size);
   void free(uint32_t block_id);
