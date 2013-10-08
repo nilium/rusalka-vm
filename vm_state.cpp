@@ -773,13 +773,18 @@ value_t vm_state_t::call_function_nt(int32_t pointer, uint32_t num_args) {
 
 void vm_state_t::exec_call(int32_t pointer, uint32_t args_mask) {
   ++_sequence;
+  const uint32_t ordered_args_mask = arg_bits(args_mask);
   push(CALL_STACK_MASK);
   esp() = args_mask;
-  push(esp());
-  #ifdef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
-  pop(arg_bits(esp()), false);
+  #ifndef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
+  if (args_mask != ordered_args_mask) {
+  #endif
+    push(esp());
+  #ifndef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
+    pop(arg_bits(esp()), true);
+  }
   #else
-  pop(arg_bits(esp()), true);
+  pop(), false);
   #endif
   if ((ip() = pointer) < 0) {
     vm_callback_t *callback = _callbacks[-(ip() + 1)];
