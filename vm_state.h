@@ -60,9 +60,12 @@
 
 /**
   If defined, all registers are preserved on call and restored on return.
-  This disables VM_PRESERVE_CALL_ARGUMENT_REGISTERS.
+  This disables VM_PRESERVE_CALL_ARGUMENT_REGISTERS. Otherwise, only registers
+  0 through 12 are preserved, with the exception of the return register (3) as
+  it's considered nonvolatile. Registers 13 through 31 are nonvolatile and must
+  be preserved by the callee if used.
 */
-#define VM_PRESERVE_PRESERVE_ALL_REGISTERS_ON_CALL
+// #define VM_PRESERVE_PRESERVE_ALL_REGISTERS_ON_CALL
 
 /**
   If defined, replaces methods like reg(), stack(), etc. with macros.

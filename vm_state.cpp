@@ -51,8 +51,8 @@
 #undef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
 #endif
 #else
-// Only preserve ip, ebp, and esp. rp shouldn't be preserved.
-#define CALL_STACK_MASK (0x7)
+// Only preserve registers 0 through 12. rp shouldn't be preserved.
+#define CALL_STACK_MASK (0xFF7)
 #endif
 
 
