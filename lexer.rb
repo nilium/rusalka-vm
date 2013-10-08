@@ -284,6 +284,14 @@ class Token
     }
   end
 
+  def length
+    if string?
+      value.length + 2
+    else
+      value.length
+    end
+  end
+
   alias_method :to_h, :to_hash
 
 end # class Token
