@@ -345,6 +345,12 @@ class TokenReader
   #   If provided, compares the token's value and the provided value. If the
   #   two are not equal, the read fails.
   #
+  # +distance+::
+  #   A hash of {:lines, :columns} that, if provided, specifies the maximum
+  #   distance in lines and/or columns that the next token may be. If nil, no
+  #   check is done. If :lines or :columns is nil or undefined, then each
+  #   respective distance is ignored.
+  #
   # +skip_whitespace+::
   #   Overrides the value of skip_whitespace_on_read.
   #
@@ -357,12 +363,15 @@ class TokenReader
                  kinds: nil,
                  hash: nil,
                  value: nil,
+                 distance: nil,
                  skip_whitespace: nil,
                  fail: [RuntimeError, "Failed to read token."],
                  &block)
 
     skip_whitespace = self.skip_whitespace_on_read if skip_whitespace.nil?
     self.skip_whitespace_tokens() if skip_whitespace
+
+    previous = @current
 
     @current = begin
       peeked = @token_enum.peek
@@ -373,6 +382,17 @@ class TokenReader
             when value && peeked.value != value then         nil
             else @token_enum.next
             end
+
+      if tok && distance && previous
+        dlines = distance[:lines]
+        dcols = distance[:columns]
+        tok = case
+              when dlines && dlines < ((tok.position.line) - (previous.position.line + previous.length)) then nil
+              when dcols && dcols < ((tok.position.column) - (previous.position.column + previous.length)) then nil
+              else tok
+              end
+      end
+
       if fail && tok.nil?
         case fail
         when Array then raise(*fail)
