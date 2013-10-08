@@ -21,33 +21,32 @@ defdata woop "wooperton"
 
 // main
 .main
-    push 0x10
-    load 24 -1.23456
-    call .fabs 0x1000000
-    pop 0x10
-    fadd 3 4 3
-    push 0x8
-    call ^print 0x8
-    load 24 ~woop
-    call ^prints 0x1000000
+    push [argv[0]]
+    load $1 -1.23456
+    call .fabs [$1]
+    fadd argv[0] argv[0] rp
+    call ^print [argv[0]]
+    load $20 ~woop
+    call ^prints [$20]
 
-    load 4 0
+    push [$0]
+    load $0 0
 
 @loop
-    cmpl 6 4 0xFFFFFFF
-    jgtel 6 @loop_done
+    cmpl $2 $0 0xFFFFFFF
+    jgtel $2 @loop_done
 
     // itof 5 4
     // faddl 5 5 0.5
     // call ^print 0x20
-    addl 4 4 1
+    addl $0 $0 1
     jumpl @loop
 
 @loop_done
-    pop 0x8
-    return 3
+    pop [$0]
+    return $0
 
 // fabs(f)
 .fabs
-    uandl 4 4 0x7FFFFFFF
-    return 4
+    uandl argv[0] argv[0] 0x7FFFFFFF
+    return argv[0]
