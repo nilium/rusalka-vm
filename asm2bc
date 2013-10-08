@@ -126,29 +126,65 @@ def mangle_sym(context, sym, kind)
   end
 end
 
-ARG_TOKENS = [
-  :double_string_lit,
-  :single_string_lit,
-  :dot,
-  :at,
-  :caret,
-  :tilde,
-  :float_lit,
-  :float_exp_lit,
-  :hex_lit,
-  :bin_lit,
-  :integer_lit,
-  :integer_exp_lit,
-  :minus
-]
+FIRST_ARGUMENT_REGISTER = 4
 
-def parse_argument(context, reader)
-  reader.read_token(kinds: ARG_TOKENS, fail: "invalid argument") { |t|
+POS_INT_LITS = [:integer_lit, :integer_exp_lit, :hex_lit, :bin_lit]
+INT_LITS = [:minus] | POS_INT_LITS
+FLOAT_LITS = [:float_lit, :float_exp_lit, :minus]
+NUMERIC_LITS = FLOAT_LITS | INT_LITS
+BITFIELD_LIT_TOKENS = [:bracket_open] | POS_INT_LITS
+REGISTER_LITS = [:id, :dollar] | POS_INT_LITS
+LABEL_LITS = [:caret, :dot, :at]
+STRING_LITS = [:double_string_lit, :single_string_lit, :tilde]
+
+
+ARG_TOKENS =
+  INT_LITS |
+  FLOAT_LITS |
+  BITFIELD_LIT_TOKENS |
+  REGISTER_LITS |
+  LABEL_LITS |
+  STRING_LITS
+
+def parse_argument(context, reader, only_tokens: ARG_TOKENS, negated_lits: NUMERIC_LITS, fail: "invalid argument", distance: nil)
+  reader.read_token(kinds: only_tokens, fail: fail, distance: distance) { |t|
     case t.kind
     when :dot, :at, :caret
-      reader.read_token(:id, fail: "expected label name") { |l|
+      reader.read_token(:id, fail: "expected label name", distance: {columns: 0}) { |l|
         Label.new(context, l.value.to_sym, t.kind)
       }
+
+    when :bracket_open
+      bits = []
+
+      until reader.read_token(:bracket_close, fail: false) { |*| true } do
+        bitnum = parse_argument(context, reader, only_tokens: REGISTER_LITS, fail: "invalid bitset argument")
+        raise "invalid bitnum: #{bitnum} (#{bitnum.class})" unless bitnum.kind_of?(Fixnum)
+        warn "redundant bitnum already specified: #{bitnum}" if bits[bitnum]
+        bits << bitnum
+      end
+
+      bits.reduce(0x0) { |a, e|
+        raise "invalid bit: #{e}" if e > 31 || e < 0
+        a | (0x1 << e)
+      }
+
+    when :id
+      case t.value.to_sym
+      when :ip then 0
+      when :ebp then 1
+      when :esp then 2
+      when :rp then 3
+      when :argv
+        reader.read_token(:bracket_open, distance: {columns: 0}, fail: "expected opening bracket")
+        reg = parse_argument(context, reader, only_tokens: POS_INT_LITS, fail: "expected argument register number")
+        reader.read_token(:bracket_close, fail: "expected closing bracket")
+        reg + FIRST_ARGUMENT_REGISTER
+      else raise "invalid register name #{t.value}"
+      end
+
+    when :dollar
+      FIRST_ARGUMENT_REGISTER + parse_argument(context, reader, only_tokens: POS_INT_LITS, distance: {columns: 0})
 
     when :integer_lit, :integer_exp_lit, :bin_lit, :hex_lit
       t.to_i
@@ -160,12 +196,12 @@ def parse_argument(context, reader)
       StringLit.new(:literal, t.value)
 
     when :tilde
-      reader.read_token(:id, fail: "expected data identifier") { |id|
+      reader.read_token(:id, fail: "expected data identifier", distance: {columns: 0}) { |id|
         StringLit.new(:reference, id.value.to_sym)
       }
 
     when :minus
-      -parse_argument(context, reader)
+      -parse_argument(context, reader, only_tokens: negated_lits, negated_lits: negated_lits, distance: {columns: 0})
     end
   }
 end
