@@ -349,7 +349,9 @@ class TokenReader
   #   A hash of {:lines, :columns} that, if provided, specifies the maximum
   #   distance in lines and/or columns that the next token may be. If nil, no
   #   check is done. If :lines or :columns is nil or undefined, then each
-  #   respective distance is ignored.
+  #   respective distance is ignored. If a :chars key is set, it will also do
+  #   a simple check to see if the token is simply within X characters of the
+  #   last token. Typically, you will want a line- or column-specific check.
   #
   # +skip_whitespace+::
   #   Overrides the value of skip_whitespace_on_read.
@@ -386,9 +388,11 @@ class TokenReader
       if tok && distance && previous
         dlines = distance[:lines]
         dcols = distance[:columns]
+        dchars = distance[:chars]
         tok = case
               when dlines && dlines < ((tok.position.line) - (previous.position.line + previous.length)) then nil
               when dcols && dcols < ((tok.position.column) - (previous.position.column + previous.length)) then nil
+              when dchars && dchars < (tok.from - previous.to) then nil
               else tok
               end
       end
