@@ -478,7 +478,12 @@ void vm_state_t::exec(const op_t &op) {
   } break;
 
   // CMP OUT, LHS, RHS, LITFLAG
-  // Compares LHS and RHS.
+  // Compares LHS and RHS as doubles.
+  //
+  // Litflags:
+  // 0x1 - LHS is a literal value.
+  // 0x2 - RHS is a literal value.
+  //
   // Result stored in OUT depends on the result of comparing the two:
   // if LHS == RHS using vm_fequals => 0.0
   // if LHS > RHS, 1.0
