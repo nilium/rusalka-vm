@@ -347,82 +347,86 @@ void vm_state_t::exec(const op_t &op) {
   // Does nothing.
   case NOP: break;
 
-  // For all math and bitwise instructions, litflag only applies to the RHS
-  // input _with the exception of bitwise operators_. If set, RHS input for
-  // these instructions is a literal value, rather than something read from a
-  // register. See vm_state_t::deref for the implementation.
+  // For all math and bitwise instructions, litflag applies to both LHS and RHS
+  // input. See vm_state_t::deref for how the test works.
+  //
+  // For arithmetic/bitwise instructions, the litflags are:
+  // 0x1 - LHS is a literal value.
+  // 0x2 - RHS is a literal value.
+  //
+  // For unary instructions, there are no litflags.
 
   // ADD OUT, LHS, RHS, LITFLAG
   // Addition (fp64).
   case ADD: {
-    reg(op[0]).set(reg(op[1]).f64() + deref(op[2], op[3]).f64());
+    reg(op[0]).set(deref(op[1], op[3], 0x1).f64() + deref(op[2], op[3], 0x2).f64());
   } break;
 
   // SUB OUT, LHS, RHS, LITFLAG
   // Subtraction (fp64).
   case SUB: {
-    reg(op[0]).set(reg(op[1]).f64() - deref(op[2], op[3]).f64());
+    reg(op[0]).set(deref(op[1], op[3], 0x1).f64() - deref(op[2], op[3], 0x2).f64());
   } break;
 
   // DIV OUT, LHS, RHS, LITFLAG
   // Floating point division.
   case DIV: {
-    reg(op[0]).set(reg(op[1]).f64() / deref(op[2], op[3]).f64());
+    reg(op[0]).set(deref(op[1], op[3], 0x1).f64() / deref(op[2], op[3], 0x2).f64());
   } break;
 
   // IDIV OUT, LHS, RHS, LITFLAG
   // Integer division (64-bit signed -- rationale: 64-bit is used as the result
   // will never be out of range of a 64-bit float).
   case IDIV: {
-    reg(op[0]).set(reg(op[1]).i64() / deref(op[2], op[3]).i64());
+    reg(op[0]).set(deref(op[1], op[3], 0x1).i64() / deref(op[2], op[3], 0x2).i64());
   } break;
 
   // MUL OUT, LHS, RHS, LITFLAG
   // Multiplication (fp64).
   case MUL: {
-    reg(op[0]).set(reg(op[1]).f64() * deref(op[2], op[3]).f64());
+    reg(op[0]).set(deref(op[1], op[3], 0x1).f64() * deref(op[2], op[3], 0x2).f64());
   } break;
 
   // MOD OUT, LHS, RHS, LITFLAG
   // Floating point modulo.
   case MOD: {
-    reg(op[0]).set(std::fmod(reg(op[1]).f64(), deref(op[2], op[3]).f64()));
+    reg(op[0]).set(std::fmod(deref(op[1], op[3], 0x1).f64(), deref(op[2], op[3], 0x2).f64()));
   } break;
 
   // IMOD OUT, LHS, RHS, LITFLAG
   // Signed integer modulo (32-bit).
   case IMOD: {
-    reg(op[0]).set(reg(op[1]).i32() % deref(op[2], op[3]).i32());
+    reg(op[0]).set(deref(op[1], op[3], 0x1).i32() % deref(op[2], op[3], 0x2).i32());
   } break;
 
   // NEG OUT, IN
   // Negation (fp64).
   case NEG: {
-    reg(op[0]).set(-reg(op[0]).f64());
+    reg(op[0]).set(-reg(op[1]).f64());
   } break;
 
   // NOT OUT, IN
   // Bitwise not (unsigned 32-bit).
   case NOT: {
-    reg(op[0]).set(~(reg(op[0]).ui32()));
+    reg(op[0]).set(~(reg(op[1]).ui32()));
   } break;
 
   // OR OUT, LHS, RHS, LITFLAG
   // Bitwise or (unsigned 32-bit).
   case OR: {
-    reg(op[0]).set(reg(op[0]).ui32() | deref(op[2], op[3]).ui32());
+    reg(op[0]).set(deref(op[1], op[2], 0x1).ui32() | deref(op[2], op[3], 0x2).ui32());
   } break;
 
   // AND OUT, LHS, RHS, LITFLAG
   // Bitwise and (unsigned 32-bit).
   case AND: {
-    reg(op[0]).set(reg(op[0]).ui32() & deref(op[2], op[3]).ui32());
+    reg(op[0]).set(deref(op[1], op[2], 0x1).ui32() & deref(op[2], op[3], 0x2).ui32());
   } break;
 
   // XOR OUT, LHS, RHS, LITFLAG
   // Bitwise xor (unsigned 32-bit).
   case XOR: {
-    reg(op[0]).set(reg(op[0]).ui32() ^ deref(op[2], op[3]).ui32());
+    reg(op[0]).set(deref(op[1], op[2], 0x1).ui32() ^ deref(op[2], op[3], 0x2).ui32());
   } break;
 
   // ARITHSHIFT OUT, LHS, RHS, LITFLAG
@@ -454,27 +458,27 @@ void vm_state_t::exec(const op_t &op) {
   // FLOOR OUT, IN
   // Nearest integral value <= IN.
   case FLOOR: {
-    reg(op[0]).set(std::floor(reg(op[0]).f64()));
+    reg(op[0]).set(std::floor(reg(op[1]).f64()));
   } break;
 
   // CEIL OUT, IN
   // Nearest integral value >= IN.
   case CEIL: {
-    reg(op[0]).set(std::ceil(reg(op[0]).f64()));
+    reg(op[0]).set(std::ceil(reg(op[1]).f64()));
   } break;
 
   // ROUND OUT, IN
   // Nearest integral value using FE_TONEAREST.
   case ROUND: {
     std::fesetround(FE_TONEAREST);
-    reg(op[0]).set(std::round(reg(op[0]).f64()));
+    reg(op[0]).set(std::round(reg(op[1]).f64()));
   } break;
 
   // RINT OUT, IN
   // Nearest integral value using FE_TOWARDZERO.
   case RINT: {
     std::fesetround(FE_TOWARDZERO);
-    reg(op[0]).set(std::round(reg(op[0]).f64()));
+    reg(op[0]).set(std::round(reg(op[1]).f64()));
   } break;
 
   // CMP OUT, LHS, RHS, LITFLAG
