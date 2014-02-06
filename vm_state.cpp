@@ -17,12 +17,24 @@
   along with Rusalka VM.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cfenv>
 #include <cmath>
 #include <iostream>
 #include <iomanip>
 
 #define VM_KEEP_DATA_MACROS
 #include "vm_state.h"
+
+
+#define VM_FCMP_EPSILON (1.0e-12)
+
+
+static
+bool
+vm_fequals(double lhs, double rhs)
+{
+  return std::abs(lhs - rhs) < VM_FCMP_EPSILON;
+}
 
 
 /*
@@ -71,18 +83,24 @@ static constexpr uint32_t arg_masks[32] = {
 };
 
 
-static constexpr uint32_t byte_bit_counts[256] = {
-  0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3,
-  3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4,
-  3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4,
-  4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5,
-  3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 1, 2,
-  2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5,
-  4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5,
-  5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
-  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5,
-  5, 6, 5, 6, 6, 7, 4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
-};
+template <typename T>
+static
+T
+byte_bit_counts(int32_t idx) {
+  static constexpr T bits_array[256] = {
+    0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3,
+    3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4,
+    3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4,
+    4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5,
+    3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 1, 2,
+    2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5,
+    4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5,
+    5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5,
+    5, 6, 5, 6, 6, 7, 4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
+  };
+  return bits_array[idx];
+}
 
 
 #if 0
@@ -102,7 +120,10 @@ inline static uint32_t count_bits_in_byte(uint8_t num8) {
 #endif
 
 
-static constexpr uint32_t count_bits(uint32_t num) {
+template <typename T>
+static
+T
+count_bits(uint32_t num) {
   #if 0
   return
     count_bits_in_byte(num & 0xFF) +
@@ -112,10 +133,10 @@ static constexpr uint32_t count_bits(uint32_t num) {
   #endif
 
   return
-    byte_bit_counts[num & 0xFF] +
-    byte_bit_counts[(num >> 8)  & 0xFF] +
-    byte_bit_counts[(num >> 16) & 0xFF] +
-    byte_bit_counts[(num >> 24) & 0xFF];
+    byte_bit_counts<T>(num & 0xFF) +
+    byte_bit_counts<T>((num >> 8)  & 0xFF) +
+    byte_bit_counts<T>((num >> 16) & 0xFF) +
+    byte_bit_counts<T>((num >> 24) & 0xFF);
 }
 
 
@@ -143,7 +164,7 @@ vm_state_t::vm_state_t(size_t stackSize)
   , _sequence(0)
 {
   for (int32_t index = 0; index < REGISTER_COUNT; ++index)
-    _registers[index].ui32 = 0;
+    _registers[index].set(0);
 
   _stack.reserve(stackSize);
 }
@@ -174,9 +195,10 @@ int32_t vm_state_t::fetch() {
   while (vm.ip() < ops.size() && vm.ip() >= 0) {
     op_t op = ops[vm.ip()++];
     */
-  const int32_t result = ip()++;
-  _trap += (result < 0) || (result >= _source_size);
-  return result;
+  const int32_t next_instr = ip() + 1;
+  ip(next_instr);
+  _trap += (next_instr < 0) || (next_instr >= _source_size);
+  return next_instr;
 }
 
 
@@ -207,14 +229,14 @@ void vm_state_t::bind_callback(const char *name, vm_callback_t *function) {
 
 
 bool vm_state_t::run(int32_t from_ip) {
-  ip() = from_ip;
+  ip(from_ip);
   return run();
 }
 
 
 bool vm_state_t::run() {
   _trap = 0;
-  const uint32_t term_sequence = _sequence++;
+  const int32_t term_sequence = _sequence++;
   int32_t opidx = fetch();
   for (; term_sequence < _sequence && !_trap; opidx = fetch()) {
     exec(_source.fetch_op(opidx));
@@ -223,7 +245,7 @@ bool vm_state_t::run() {
 }
 
 
-uint32_t vm_state_t::unused_block_id() {
+int32_t vm_state_t::unused_block_id() {
   auto end = _blocks.end();
   const auto current = _block_counter;
   while (_blocks.find(_block_counter) != end) {
@@ -235,8 +257,8 @@ uint32_t vm_state_t::unused_block_id() {
 }
 
 
-uint32_t vm_state_t::alloc(uint32_t size) {
-  const uint32_t block_id = unused_block_id();
+int32_t vm_state_t::alloc(int32_t size) {
+  const int32_t block_id = unused_block_id();
   memblock_t block = {
     size,
     VM_MEM_WRITABLE | VM_MEM_READABLE,
@@ -247,12 +269,12 @@ uint32_t vm_state_t::alloc(uint32_t size) {
 }
 
 
-uint32_t vm_state_t::duplicate_block(uint32_t block_id) {
+int32_t vm_state_t::duplicate_block(int32_t block_id) {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
     const auto entry = iter->second;
     if (entry.flags & VM_MEM_READABLE) {
-      uint32_t new_block_id = alloc(entry.size);
+      int32_t new_block_id = alloc(entry.size);
       void *new_block = get_block(new_block_id, VM_MEM_WRITABLE);
       memcpy(new_block, entry.block, entry.size);
       return new_block_id;
@@ -262,7 +284,7 @@ uint32_t vm_state_t::duplicate_block(uint32_t block_id) {
 }
 
 
-uint32_t vm_state_t::block_size(uint32_t block_id) const {
+int32_t vm_state_t::block_size(int32_t block_id) const {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
     return iter->second.size;
@@ -271,7 +293,7 @@ uint32_t vm_state_t::block_size(uint32_t block_id) const {
 }
 
 
-void vm_state_t::free(uint32_t block_id) {
+void vm_state_t::free(int32_t block_id) {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
     if (!(iter->second.flags & VM_MEM_SOURCE_DATA)) {
@@ -284,7 +306,7 @@ void vm_state_t::free(uint32_t block_id) {
 }
 
 
-void *vm_state_t::get_block(uint32_t block_id, uint32_t permissions) {
+void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) {
   auto block = _blocks.at(block_id);
   if (permissions != VM_MEM_NO_PERMISSIONS && !(block.flags & permissions)) {
     std::abort();
@@ -293,442 +315,422 @@ void *vm_state_t::get_block(uint32_t block_id, uint32_t permissions) {
 }
 
 
-const void *vm_state_t::get_block(uint32_t block_id, uint32_t permissions) const {
+const void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) const {
   auto block = _blocks.at(block_id);
   if (permissions != VM_MEM_NO_PERMISSIONS && !(block.flags & permissions)) {
     std::abort();
   }
   return block.block;
+}
+
+
+value_t vm_state_t::deref(value_t input, value_t flag, uint32_t mask) const {
+  return (flag.ui32() & mask) ? input : reg(input.i32());
 }
 
 
 void vm_state_t::exec(const op_t &op) {
   int32_t mask;
   value_t value;
-  uint8_t *block;
-  uint8_t *block_in;
+  int8_t *block;
+  int8_t *block_in;
 
   #ifdef LOG_OP_INFO
   std::clog << op.opcode;
   int32_t argidx = 0;
-  for (; argidx < g_opcode_argc[op.opcode]; ++argidx) std::clog << ' ' << op.argv[argidx];
+  for (; argidx < g_opcode_argc[op.opcode]; ++argidx) std::clog << ' ' << op[argidx];
   std::clog << std::endl;
   #endif
 
-
   switch (op.opcode) {
+  // NOP
+  // Does nothing.
   case NOP: break;
-  case ADD_F32: {
-    reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 + reg(op.argv[2].i32).f32;
-  } break;
-  case ADD_I32: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 + reg(op.argv[2].i32).i32;
-  } break;
-  case ADD_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 + reg(op.argv[2].i32).ui32;
-  } break;
-  case ADD_F32_L: {
-    reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 + op.argv[2].f32;
-  } break;
-  case ADD_I32_L: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 + op.argv[2].i32;
-  } break;
-  case ADD_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 + op.argv[2].ui32;
-  } break;
-  case SUB_F32: {
-    reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 - reg(op.argv[2].i32).f32;
-  } break;
-  case SUB_I32: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 - reg(op.argv[2].i32).i32;
-  } break;
-  case SUB_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 - reg(op.argv[2].i32).ui32;
-  } break;
-  case SUB_F32_L: {
-    reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 - op.argv[2].f32;
-  } break;
-  case SUB_I32_L: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 - op.argv[2].i32;
-  } break;
-  case SUB_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 - op.argv[2].ui32;
-  } break;
-  case DIV_F32: {
-    reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 / reg(op.argv[2].i32).f32;
-  } break;
-  case DIV_I32: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 / reg(op.argv[2].i32).i32;
-  } break;
-  case DIV_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 / reg(op.argv[2].i32).ui32;
-  } break;
-  case DIV_F32_L: {
-    reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 / op.argv[2].f32;
-  } break;
-  case DIV_I32_L: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 / op.argv[2].i32;
-  } break;
-  case DIV_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 / op.argv[2].ui32;
-  } break;
-  case MUL_F32: {
-    reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 * reg(op.argv[2].i32).f32;
-  } break;
-  case MUL_I32: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 * reg(op.argv[2].i32).i32;
-  } break;
-  case MUL_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 * reg(op.argv[2].i32).ui32;
-  } break;
-  case MUL_F32_L: {
-    reg(op.argv[0].i32).f32 = reg(op.argv[1].i32).f32 * op.argv[2].f32;
-  } break;
-  case MUL_I32_L: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 * op.argv[2].i32;
-  } break;
-  case MUL_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 * op.argv[2].ui32;
-  } break;
-  case MOD_F32: {
-    reg(op.argv[0].i32).f32 = std::fmod(reg(op.argv[1].i32).f32, reg(op.argv[2].i32).f32);
-  } break;
-  case MOD_I32: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 % reg(op.argv[2].i32).i32;
-  } break;
-  case MOD_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 % reg(op.argv[2].i32).ui32;
-  } break;
-  case MOD_F32_L: {
-    reg(op.argv[0].i32).f32 = std::fmod(reg(op.argv[1].i32).f32, op.argv[2].f32);
-  } break;
-  case MOD_I32_L: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 % op.argv[2].i32;
-  } break;
-  case MOD_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 % op.argv[2].ui32;
-  } break;
-  case NEG_F32: {
-    reg(op.argv[0].i32).f32 = -reg(op.argv[1].i32).f32;
-  } break;
-  case NEG_I32: {
-    reg(op.argv[0].i32).i32 = -reg(op.argv[1].i32).i32;
-  } break;
-  case NOT_UI32: {
-    reg(op.argv[0].i32).ui32 = ~(reg(op.argv[1].i32).ui32);
-  } break;
-  case OR_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 | reg(op.argv[2].i32).ui32;
-  } break;
-  case XOR_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 ^ reg(op.argv[2].i32).ui32;
-  } break;
-  case AND_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 & reg(op.argv[2].i32).ui32;
-  } break;
-  case SHR_I32: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 >> reg(op.argv[2].i32).ui32;
-  } break;
-  case SHR_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 >> reg(op.argv[2].i32).ui32;
-  } break;
-  case SHL_I32: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 << reg(op.argv[2].i32).ui32;
-  } break;
-  case SHL_UI32: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 << reg(op.argv[2].i32).ui32;
-  } break;
-  case OR_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 | op.argv[2].ui32;
-  } break;
-  case XOR_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 ^ op.argv[2].ui32;
-  } break;
-  case AND_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 & op.argv[2].ui32;
-  } break;
-  case SHR_I32_L: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 >> op.argv[2].ui32;
-  } break;
-  case SHR_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 >> op.argv[2].ui32;
-  } break;
-  case SHL_I32_L: {
-    reg(op.argv[0].i32).i32 = reg(op.argv[1].i32).i32 << op.argv[2].ui32;
-  } break;
-  case SHL_UI32_L: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 << op.argv[2].ui32;
-  } break;
-  case ITOUI: {
-    reg(op.argv[0].i32).ui32 = (uint32_t)reg(op.argv[1].i32).i32;
-  } break;
-  case ITOF: {
-    reg(op.argv[0].i32).f32 = static_cast<float>(reg(op.argv[1].i32).i32);
-  } break;
-  case FTOUI: {
-    reg(op.argv[0].i32).ui32 = static_cast<uint32_t>(reg(op.argv[1].i32).f32);
-  } break;
-  case FTOI: {
-    reg(op.argv[0].i32).i32 = static_cast<int32_t>(reg(op.argv[1].i32).f32);
-  } break;
-  case UITOF: {
-    reg(op.argv[0].i32).f32 = static_cast<float>(reg(op.argv[1].i32).ui32);
-  } break;
-  case UITOI: {
-    reg(op.argv[0].i32).i32 = static_cast<int32_t>(reg(op.argv[1].i32).ui32);
-  } break;
-  case CMP_F32: {
-    if ((reg(op.argv[1].i32).f32 > reg(op.argv[2].i32).f32))
-      reg(op.argv[0].i32).i32 = 1;
-    else if (reg(op.argv[1].i32).f32 < reg(op.argv[2].i32).f32)
-      reg(op.argv[0].i32).i32 = -1;
-    else reg(op.argv[0].i32).i32 = 0;
-  } break;
-  case CMP_I32: {
-    if ((reg(op.argv[1].i32).i32 > reg(op.argv[2].i32).i32))
-      reg(op.argv[0].i32).i32 = 1;
-    else if (reg(op.argv[1].i32).i32 < reg(op.argv[2].i32).i32)
-      reg(op.argv[0].i32).i32 = -1;
-    else reg(op.argv[0].i32).i32 = 0;
-  } break;
-  case CMP_UI32: {
-    if ((reg(op.argv[1].i32).ui32 > reg(op.argv[2].i32).ui32))
-      reg(op.argv[0].i32).i32 = 1;
-    else if (reg(op.argv[1].i32).ui32 < reg(op.argv[2].i32).ui32)
-      reg(op.argv[0].i32).i32 = -1;
-    else reg(op.argv[0].i32).i32 = 0;
-  } break;
-  case CMP_F32_L: {
-    if ((reg(op.argv[1].i32).f32 > op.argv[2].f32))
-      reg(op.argv[0].i32).i32 = 1;
-    else if (reg(op.argv[1].i32).f32 < op.argv[2].f32)
-      reg(op.argv[0].i32).i32 = -1;
-    else reg(op.argv[0].i32).i32 = 0;
-  } break;
-  case CMP_I32_L: {
-    if ((reg(op.argv[1].i32).i32 > op.argv[2].i32))
-      reg(op.argv[0].i32).i32 = 1;
-    else if (reg(op.argv[1].i32).i32 < op.argv[2].i32)
-      reg(op.argv[0].i32).i32 = -1;
-    else reg(op.argv[0].i32).i32 = 0;
-  } break;
-  case CMP_UI32_L: {
-    if ((reg(op.argv[1].i32).ui32 > op.argv[2].ui32))
-      reg(op.argv[0].i32).i32 = 1;
-    else if (reg(op.argv[1].i32).ui32 < op.argv[2].ui32)
-      reg(op.argv[0].i32).i32 = -1;
-    else reg(op.argv[0].i32).i32 = 0;
-  } break;
-  case RCMP_F32: {
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).f32 < reg(op.argv[2].i32).f32) - (reg(op.argv[1].i32).f32 > reg(op.argv[2].i32).f32);
-  } break;
-  case RCMP_I32: {
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).i32 < reg(op.argv[2].i32).i32) - (reg(op.argv[1].i32).i32 > reg(op.argv[2].i32).i32);
-  } break;
-  case RCMP_UI32: {
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).ui32 < reg(op.argv[2].i32).ui32) - (reg(op.argv[1].i32).ui32 > reg(op.argv[2].i32).ui32);
-  } break;
-  case RCMP_F32_L: {
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).f32 < op.argv[2].f32) - (reg(op.argv[1].i32).f32 > op.argv[2].f32);
-  } break;
-  case RCMP_I32_L: {
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).i32 < op.argv[2].i32) - (reg(op.argv[1].i32).i32 > op.argv[2].i32);
-  } break;
-  case RCMP_UI32_L: {
-    reg(op.argv[0].i32).i32 = (reg(op.argv[1].i32).ui32 < op.argv[2].ui32) - (reg(op.argv[1].i32).ui32 > op.argv[2].ui32);
-  } break;
-  case JNZ: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 != 0];
-    if (reg(op.argv[0].i32).i32 != 0)
-      ip() = reg(op.argv[1].i32).i32;
-  } break;
-  case JEZ: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 == 0];
-    if (reg(op.argv[0].i32).i32 == 0)
-      ip() = reg(op.argv[1].i32).i32;
-  } break;
+
+  // For all math and bitwise instructions, litflag only applies to the RHS
+  // input _with the exception of bitwise operators_. If set, RHS input for
+  // these instructions is a literal value, rather than something read from a
+  // register. See vm_state_t::deref for the implementation.
+
+  // ADD OUT, LHS, RHS, LITFLAG
+  // Addition (fp64).
+  case ADD: {
+    reg(op[0]).set(reg(op[1]).f64() + deref(op[2], op[3]).f64());
+  } break;
+
+  // SUB OUT, LHS, RHS, LITFLAG
+  // Subtraction (fp64).
+  case SUB: {
+    reg(op[0]).set(reg(op[1]).f64() - deref(op[2], op[3]).f64());
+  } break;
+
+  // DIV OUT, LHS, RHS, LITFLAG
+  // Floating point division.
+  case DIV: {
+    reg(op[0]).set(reg(op[1]).f64() / deref(op[2], op[3]).f64());
+  } break;
+
+  // IDIV OUT, LHS, RHS, LITFLAG
+  // Integer division (64-bit signed -- rationale: 64-bit is used as the result
+  // will never be out of range of a 64-bit float).
+  case IDIV: {
+    reg(op[0]).set(reg(op[1]).i64() / deref(op[2], op[3]).i64());
+  } break;
+
+  // MUL OUT, LHS, RHS, LITFLAG
+  // Multiplication (fp64).
+  case MUL: {
+    reg(op[0]).set(reg(op[1]).f64() * deref(op[2], op[3]).f64());
+  } break;
+
+  // MOD OUT, LHS, RHS, LITFLAG
+  // Floating point modulo.
+  case MOD: {
+    reg(op[0]).set(std::fmod(reg(op[1]).f64(), deref(op[2], op[3]).f64()));
+  } break;
+
+  // IMOD OUT, LHS, RHS, LITFLAG
+  // Signed integer modulo (32-bit).
+  case IMOD: {
+    reg(op[0]).set(reg(op[1]).i32() % deref(op[2], op[3]).i32());
+  } break;
+
+  // NEG OUT, IN
+  // Negation (fp64).
+  case NEG: {
+    reg(op[0]).set(-reg(op[0]).f64());
+  } break;
+
+  // NOT OUT, IN
+  // Bitwise not (unsigned 32-bit).
+  case NOT: {
+    reg(op[0]).set(~(reg(op[0]).ui32()));
+  } break;
+
+  // OR OUT, LHS, RHS, LITFLAG
+  // Bitwise or (unsigned 32-bit).
+  case OR: {
+    reg(op[0]).set(reg(op[0]).ui32() | deref(op[2], op[3]).ui32());
+  } break;
+
+  // AND OUT, LHS, RHS, LITFLAG
+  // Bitwise and (unsigned 32-bit).
+  case AND: {
+    reg(op[0]).set(reg(op[0]).ui32() & deref(op[2], op[3]).ui32());
+  } break;
+
+  // XOR OUT, LHS, RHS, LITFLAG
+  // Bitwise xor (unsigned 32-bit).
+  case XOR: {
+    reg(op[0]).set(reg(op[0]).ui32() ^ deref(op[2], op[3]).ui32());
+  } break;
+
+  // ARITHSHIFT OUT, LHS, RHS, LITFLAG
+  // Arithmetic shift. Signed 32-bit.
+  // RHS > 0  -> Left shift.
+  // RHS < 0  -> Right shift.
+  // RHS == 0 -> Cast to signed 32-bit int.
+  case ARITHSHIFT: {
+    const int32_t input = deref(op[1], op[3], 0x1).i32();
+    const int32_t shift = deref(op[2], op[3], 0x2).i32();
+    if (shift > 0) reg(op[0]).set(input << shift);
+    else if (shift < 0) reg(op[0]).set(input >> (-shift));
+    else reg(op[0]).set(input);
+  } break;
+
+  // BITSHIFT OUT, LHS, RHS, LITFLAG
+  // Bitwise shift. Signed 32-bit.
+  // RHS > 0  -> Left shift.
+  // RHS < 0  -> Right shift.
+  // RHS == 0 -> Cast to unsigned 32-bit int.
+  case BITSHIFT: {
+    const uint32_t input = deref(op[1], op[3], 0x1).ui32();
+    const int32_t shift = deref(op[2], op[3]).i32();
+    if (shift > 0) reg(op[0]).set(input << shift);
+    else if (shift < 0) reg(op[0]).set(input >> (-shift));
+    else reg(op[0]).set(input);
+  } break;
+
+  // FLOOR OUT, IN
+  // Nearest integral value <= IN.
+  case FLOOR: {
+    reg(op[0]).set(std::floor(reg(op[0]).f64()));
+  } break;
+
+  // CEIL OUT, IN
+  // Nearest integral value >= IN.
+  case CEIL: {
+    reg(op[0]).set(std::ceil(reg(op[0]).f64()));
+  } break;
+
+  // ROUND OUT, IN
+  // Nearest integral value using FE_TONEAREST.
+  case ROUND: {
+    std::fesetround(FE_TONEAREST);
+    reg(op[0]).set(std::round(reg(op[0]).f64()));
+  } break;
+
+  // RINT OUT, IN
+  // Nearest integral value using FE_TOWARDZERO.
+  case RINT: {
+    std::fesetround(FE_TOWARDZERO);
+    reg(op[0]).set(std::round(reg(op[0]).f64()));
+  } break;
+
+  // CMP OUT, LHS, RHS, LITFLAG
+  // Compares LHS and RHS.
+  // Result stored in OUT depends on the result of comparing the two:
+  // if LHS == RHS using vm_fequals => 0.0
+  // if LHS > RHS, 1.0
+  // Otherwise, LHS < RHS, -1.0
+  //
+  // The results of CMP are such that they are exactly the 64-bit floating
+  // point values above, therefore making them ideal for use with the
+  // conditional jumps below.
+  case CMP: {
+    const double lhs = deref(op[1], op[3], 0x1).f64();
+    const double rhs = deref(op[2], op[3], 0x2).f64();
+    if (vm_fequals(rhs, lhs)) reg(op[0]).set(0.0);
+    else if (lhs > rhs) reg(op[0]).set(1.0);
+    else reg(op[0]).set(-1.0);
+  } break;
+
+  // Jumps for comparisons. If LITFLAG is set, the POINTER for all jumps is
+  // a literal value. All jump pointers are 32-bit signed integers.
+  //
+  // For all jumps and calls, negative pointers are addresses of host
+  // functions and causes the VM to call into them, if bound.
+  //
+  // All comparisons are expected to be the result of a CMP instruction, though
+  // this is not necessarily required. However, it is useful, as the CMP
+  // instruction produces exact 64-bit numbers that simplify the checks, as
+  // any slightly non-zero value will pass JNE and fail JEQ. JLT and JGT both
+  // check for any number greater than or equal to the VM_FCMP_EPSILON (in the
+  // case of JLT, this is reversed and it is anything less than
+  // or equal to -VM_FCMP_EPSILON).
+
+  // JNE COMPARE, POINTER, LITFLAG
+  // Jump if the value at COMPARE is non-zero.
+  case JNE: {
+    if (reg(op[0]).f64() != 0.0)
+      ip(deref(op[1], op[2]));
+  } break;
+
+  // JEQ COMPARE, POINTER, LITFLAG
+  case JEQ: {
+    if (reg(op[0]).f64() == 0.0)
+      ip(deref(op[1], op[2]));
+  } break;
+
+  // JGTE COMPARE, POINTER, LITFLAG
   case JGTE: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 >= 0];
-    if (reg(op.argv[0].i32).i32 >= 0)
-      ip() = reg(op.argv[1].i32).i32;
+    if (reg(op[0]).f64() >= 0.0)
+      ip(deref(op[1], op[2]));
   } break;
+
+  // JLTE COMPARE, POINTER, LITFLAG
   case JLTE: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 <= 0];
-    if (reg(op.argv[0].i32).i32 <= 0)
-      ip() = reg(op.argv[1].i32).i32;
+    if (reg(op[0]).f64() <= 0.0)
+      ip(deref(op[1], op[2]));
   } break;
+
+  // JLT COMPARE, POINTER, LITFLAG
   case JLT: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 < 0];
-    if (reg(op.argv[0].i32).i32 < 0)
-      ip() = reg(op.argv[1].i32).i32;
+    if (reg(op[0]).f64() <= -VM_FCMP_EPSILON)
+      ip(deref(op[1], op[2]));
   } break;
+
+  // JGT COMPARE, POINTER, LITFLAG
   case JGT: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 > 0];
-    if (reg(op.argv[0].i32).i32 > 0)
-      ip() = reg(op.argv[1].i32).i32;
+    if (reg(op[0]).f64() >= VM_FCMP_EPSILON)
+      ip(deref(op[1], op[2]));
   } break;
+
+  // JUMP POINTER, LITFLAG
+  // Unconditional jump.
   case JUMP: {
-    ip() = reg(op.argv[1].i32).i32;
+    ip(deref(op[1], op[2]));
   } break;
-  case JNZ_L: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 != 0];
-    if (reg(op.argv[0].i32).i32 != 0)
-      ip() = op.argv[1].i32;
-  } break;
-  case JEZ_L: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 == 0];
-    if (reg(op.argv[0].i32).i32 == 0)
-      ip() = op.argv[1].i32;
-  } break;
-  case JGTE_L: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 >= 0];
-    if (reg(op.argv[0].i32).i32 >= 0)
-      ip() = op.argv[1].i32;
-  } break;
-  case JLTE_L: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 <= 0];
-    if (reg(op.argv[0].i32).i32 <= 0)
-      ip() = op.argv[1].i32;
-  } break;
-  case JLT_L: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 < 0];
-    if (reg(op.argv[0].i32).i32 < 0)
-      ip() = op.argv[1].i32;
-  } break;
-  case JGT_L: {
-    // mask = cndmask[reg(op.argv[0].i32).i32 > 0];
-    if (reg(op.argv[0].i32).i32 > 0)
-      ip() = op.argv[1].i32;
-  } break;
-  case JUMP_L: {
-    ip() = op.argv[0].i32;
-  } break;
+
+  // STORE ADDRESS, IN, LITFLAG
+  // Stores the value at IN at the given relative address on the stack.
+  // Litflags:
+  // 0x1 - ADDRESS is a literal 32-bit signed int.
+  // 0x2 - IN is a literal value.
   case STORE: {
-    stack(reg(op.argv[0].i32).i32).ui32 = reg(op.argv[1].i32).ui32;
+    stack(deref(op[0], op[2])) = reg(op[1]);
   } break;
-  case STORE_L: {
-    stack(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32;
-  } break;
+
+  // GET OUT, ADDRESS, LITFLAG
+  // Retrieves a value from the stack at the relative address given. If LITFLAG
+  // is set, the address is a literal signed integer (may be negative to
+  // ascend the stack). The value on the stack is written to OUT.
   case GET: {
-    reg(op.argv[0].i32).ui32 = stack(op.argv[1].i32).ui32;
+    reg(op[0]) = stack(deref(op[1], op[2]));
   } break;
-  case GET_L: {
-    reg(op.argv[0].i32).ui32 = stack(reg(op.argv[1].i32).i32).ui32;
-  } break;
+
+  // PUSH MASK, LITFLAG
+  // Pushes as many values to the stack as are bits set in MASK. Each bit in the
+  // mask corresponds to registers 0 through 31. If LITFLAG is set, the mask is
+  // a literal 32-bit uint.
   case PUSH: {
-    push(op.argv[0].ui32);
+    push(deref(op[0], op[1]));
   } break;
+
+  // POP MASK, LITFLAG
+  // Pops as many values off the stack as are bits set in MASK and assigns them
+  // to the registers corresponding to the bits in MASK. If LITFLAG is set,
+  // MASK is a literal 32-bit uint.
   case POP: {
-    pop(op.argv[0].ui32, true);
+    pop(deref(op[0], op[1]), true);
   } break;
+
+  // LOAD OUT, IN, LITFLAG
+  // Copies the value of IN to OUT. If LITFLAG is set, the IN argument is a
+  // literal value.
   case LOAD: {
-    reg(op.argv[0].i32).ui32 = op.argv[1].ui32;
+    reg(op[0]) = deref(op[1], op[2]);
   } break;
-  case MOVE: {
-    reg(op.argv[0].i32) = reg(op.argv[1].i32);
-  } break;
+
+  // CALL POINTER, ARGSMASK, LITFLAG
+  // Executes a call to the function at the given pointer with the given
+  // arguments mask. The args mask is a 32-bit bitmask of which registers to
+  // use for arguments to the function called. If the function pointer is a
+  // negative value, the address is that of a host function.
+  // Litflags:
+  // 0x1 - POINTER is a literal address.
+  // 0x2 - ARGSMASK is a literal 32-bit uint.
   case CALL: {
-    exec_call(op.argv[0].i32, op.argv[1].ui32);
+    exec_call(deref(op[0], op[2], 0x1), deref(op[1], op[2], 0x2));
   } break;
-  case CALL_D: {
-    exec_call(reg(op.argv[0].i32).i32, reg(op.argv[1].i32).ui32);
-  } break;
+
+  // RETURN REG
+  // Copies the value held by register REG and returns from the current call
+  // frame.
   case RETURN: {
-    value = reg(op.argv[0].i32);
+    auto return_reg = op[0].i32();
+    value = reg(return_reg);
     #ifdef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
     pop(esp(), true);
     #endif
     pop(CALL_STACK_MASK, true);
-    rp() = value;
+    if (return_reg != R_RP) {
+      rp() = value;
+    }
     --_sequence;
   } break;
+
+  // ALLOC OUT, SIZE, LITFLAG
+  // Allocates a block of SIZE bytes and writes its ID to the OUT register.
+  // If LITFLAG is set, SIZE is a literal.
   case ALLOC: {
-    reg(op.argv[0].i32).ui32 = alloc(reg(op.argv[1].i32).ui32);
+    reg(op[0]).set(alloc(deref(op[1], op[2])));
   } break;
-  case ALLOC_L: {
-    reg(op.argv[0].i32).ui32 = alloc(reg(op.argv[1].i32).ui32);
-  } break;
+
+  // FREE BLOCKID
+  // Frees the block whose ID is held in the given register and zeroes the
+  // register.
   case FREE: {
-    free(reg(op.argv[0].i32).ui32);
+    free(reg(op[0]));
+    reg(op[0]).set(0.0);
   } break;
+
+  // PEEKN OUT, BLOCKID, OFFSET, LITFLAG
+  // Peeks a signed value of width N from the block at the given OFFSET and
+  // writes the result to OUT. If any LITFLAG is set, the offset is a literal.
   case PEEK8: {
-    block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
-    reg(op.argv[0].i32).ui32 = block[reg(op.argv[2].i32).ui32];
+    block = (int8_t *)get_block(reg(op[1]), VM_MEM_READABLE);
+    reg(op[0]).set(block[deref(op[2], op[3]).i32()]);
   } break;
   case PEEK16: {
-    block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
-    reg(op.argv[0].i32).ui32 = *(const uint16_t *)(block + reg(op.argv[2].i32).ui32);
+    block = (int8_t *)get_block(reg(op[1]), VM_MEM_READABLE);
+    reg(op[0]).set(*(const uint16_t *)(block + deref(op[2], op[3]).i32()));
   } break;
   case PEEK32: {
-    block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
-    reg(op.argv[0].i32).ui32 = *(const uint32_t *)(block + reg(op.argv[2].i32).ui32);
+    block = (int8_t *)get_block(reg(op[1]), VM_MEM_READABLE);
+    reg(op[0]).set(*(const uint32_t *)(block + deref(op[2], op[3]).i32()));
   } break;
+
+  // POKEN BLOCKID, OFFSET, VALUE, LITFLAG
+  // Pokes the given VALUE (reg or lit) into the block at the given OFFSET. The
+  // VALUE is treated as a signed value of width N.
+  // Litflags:
+  // 0x1 - offset
+  // 0x2 - value
   case POKE8: {
-    block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
-    block[reg(op.argv[1].i32).ui32] = (uint8_t)(reg(op.argv[2].i32).ui32 & 0xFF);
+    block = (int8_t *)get_block(reg(op[0]), VM_MEM_WRITABLE);
+    int32_t const offset = deref(op[1], op[3], 0x1);
+    block[offset] = deref(op[2], op[3], 0x2);
   } break;
   case POKE16: {
-    block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
-    *(uint16_t *)(block + reg(op.argv[1].i32).ui32) = (uint16_t)reg(op.argv[2].i32).ui32 & 0xFFFF;
+    block = (int8_t *)get_block(reg(op[0]), VM_MEM_WRITABLE);
+    int32_t const offset = deref(op[1], op[3], 0x1);
+    *(int16_t *)(block + offset) = deref(op[2], op[3], 0x2);
   } break;
   case POKE32: {
-    block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
-    *(uint32_t *)(block + reg(op.argv[1].i32).ui32) = (uint32_t)reg(op.argv[2].i32).ui32;
+    int32_t const offset = deref(op[1], op[3], 0x1);
+    block = (int8_t *)get_block(reg(op[0]).i32(), VM_MEM_WRITABLE);
+    *(int32_t *)(block + offset) = deref(op[2], op[3], 0x2);
   } break;
-  case PEEK8_L: {
-    block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
-    reg(op.argv[0].i32).ui32 = block[op.argv[2].ui32];
-  } break;
-  case PEEK16_L: {
-    block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
-    reg(op.argv[0].i32).ui32 = *(const uint16_t *)(block + op.argv[2].ui32);
-  } break;
-  case PEEK32_L: {
-    block = (uint8_t *)get_block(reg(op.argv[1].i32).ui32, VM_MEM_NO_PERMISSIONS);
-    reg(op.argv[0].i32).ui32 = *(const uint32_t *)(block + op.argv[2].ui32);
-  } break;
-  case POKE8_L: {
-    block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
-    block[op.argv[1].ui32] = (uint8_t)(reg(op.argv[2].i32).ui32 & 0xFF);
-  } break;
-  case POKE16_L: {
-    block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
-    *(uint16_t *)(block + op.argv[1].ui32) = (uint16_t)reg(op.argv[2].i32).ui32 & 0xFFFF;
-  } break;
-  case POKE32_L: {
-    block = (uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE);
-    *(uint32_t *)(block + op.argv[1].ui32) = (uint32_t)reg(op.argv[2].i32).ui32;
-  } break;
+
+  // MEMMOVE BLOCKOUT, OUTOFFSET, BLOCKIN, INOFFSET, SIZE, LITFLAG
+  // Just calls memmove for the blocks at the out/in registers. Offsets and
+  // size may optionally be literals if their argument flags are set in LITFLAG.
+  // Litflags:
+  // 0x1 - out offset
+  // 0x2 - in offset
+  // 0x3 - size
   case MEMMOVE: {
-    block = ((uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE)) + reg(op.argv[1].i32).ui32;
-    block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32, VM_MEM_NO_PERMISSIONS)) + reg(op.argv[3].i32).ui32;
-    memmove(block, block_in, reg(op.argv[4].i32).ui32);
+    // TODO: Bounds check everything.
+    const value_t flags = op[3];
+    block = ((int8_t *)get_block(reg(op[0]), VM_MEM_WRITABLE | VM_MEM_READABLE)) + deref(op[2], flags, 0x1).i32();
+    block_in = ((int8_t *)get_block(reg(op[2]), VM_MEM_NO_PERMISSIONS)) + deref(op[3], flags, 0x2).i32();
+    memmove(block, block_in, deref(op[4], flags, 0x4).i32());
   } break;
-  case MEMMOVE_L: {
-    block = ((uint8_t *)get_block(reg(op.argv[0].i32).ui32, VM_MEM_WRITABLE | VM_MEM_READABLE)) + op.argv[1].ui32;
-    block_in = ((uint8_t *)get_block(reg(op.argv[2].i32).ui32, VM_MEM_NO_PERMISSIONS)) + op.argv[3].ui32;
-    memmove(block, block_in, op.argv[4].ui32);
-  } break;
+
+  // MEMDUP OUT, BLOCKID
+  // Allocates a new block of at least the same length as that pointed to by
+  // the register BLOCKID, copies the original block's data to the new block,
+  // and writes the new block id to OUT.
   case MEMDUP: {
-    reg(op.argv[0].i32).ui32 = duplicate_block(reg(op.argv[1].i32).ui32);
+    reg(op[0]).set(duplicate_block(reg(op[1])));
   } break;
+
+  // MEMLEN OUT, BLOCKID
+  // Writes the length in bytes of the memory block referred to by the contents
+  // of the BLOCKID register to OUT.
   case MEMLEN: {
-    reg(op.argv[0].i32).ui32 = block_size(reg(op.argv[1].i32).ui32);
+    reg(op[0]).set(block_size(reg(op[1])));
   } break;
+
+  // LOGAND OUT, LHS, RHS
+  // Performs a logical `and` (&&) with the contents LHS and RHS registers and
+  // stores the result in OUT.
   case LOGAND: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 && reg(op.argv[2].i32).ui32;
+    reg(op[0]).set(reg(op[1]).f64() && reg(op[2]).f64());
   } break;
+
+  // LOGOR OUT, LHS, RHS
+  // Performs a logical `or` (||) with the contents LHS and RHS registers and
+  // stores the result in OUT.
   case LOGOR: {
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32 || reg(op.argv[2].i32).ui32;
+    reg(op[0]).set(reg(op[1]).f64() || reg(op[2]).f64());
   } break;
+
+  // TRAP
+  // Sets the trap flag and returns to the caller. Next run resets the flag.
   case TRAP: {
     _trap = 1;
   } break;
+
+  // SWAP R0, R1
+  // Swaps contents of registers at R0 and R1.
   case SWAP: {
-    value = reg(op.argv[0].i32);
-    reg(op.argv[0].i32).ui32 = reg(op.argv[1].i32).ui32;
-    reg(op.argv[1].i32).ui32 = value;
+    value = reg(op[0]);
+    reg(op[0]) = reg(op[1]);
+    reg(op[1]) = value;
   } break;
+
   case OP_COUNT: ;
     // throw std::runtime_error("invalid opcode");
   }
@@ -748,22 +750,22 @@ std::pair<bool, int32_t> vm_state_t::find_function_pointer(const char *name) con
 }
 
 
-value_t vm_state_t::call_function_nt(const char *name, uint32_t argc, const value_t *argv) {
+value_t vm_state_t::call_function_nt(const char *name, int32_t argc, const value_t *argv) {
   const auto pointer = find_function_pointer(name);
   // if (!pointer.first) throw std::runtime_error("no such function");
   return call_function_nt(pointer.second, argc, argv);
 }
 
 
-value_t vm_state_t::call_function_nt(int32_t pointer, uint32_t argc, const value_t *argv) {
-  for (uint32_t arg_index = 0; arg_index < argc; ++arg_index)
+value_t vm_state_t::call_function_nt(int32_t pointer, int32_t argc, const value_t *argv) {
+  for (int32_t arg_index = 0; arg_index < argc; ++arg_index)
     reg(4 + arg_index) = argv[arg_index];
   return call_function_nt(pointer, argc);
 }
 
 
-value_t vm_state_t::call_function_nt(int32_t pointer, uint32_t num_args) {
-  const uint32_t last_sequence = _sequence++;
+value_t vm_state_t::call_function_nt(int32_t pointer, int32_t num_args) {
+  const int32_t last_sequence = _sequence++;
   exec_call(pointer, arg_bits_for_count(num_args));
   run(ip());
   _sequence = last_sequence;
@@ -775,7 +777,7 @@ void vm_state_t::exec_call(int32_t pointer, uint32_t args_mask) {
   ++_sequence;
   const uint32_t ordered_args_mask = arg_bits(args_mask);
   push(CALL_STACK_MASK);
-  esp() = args_mask;
+  esp(args_mask);
   #ifndef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
   if (args_mask != ordered_args_mask) {
   #endif
@@ -786,10 +788,12 @@ void vm_state_t::exec_call(int32_t pointer, uint32_t args_mask) {
   #else
   pop(), false);
   #endif
-  if ((ip() = pointer) < 0) {
+
+  ip(pointer);
+  if (pointer < 0) {
     vm_callback_t *callback = _callbacks[-(ip() + 1)];
     // if (callback == NULL) throw std::runtime_error("unbound imported function");
-    rp() = callback(*this, count_bits(args_mask), &reg(4));
+    rp() = callback(*this, count_bits<int32_t>(args_mask), &reg(4));
     #ifdef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
     pop(esp(), true);
     #endif
@@ -807,8 +811,8 @@ void vm_state_t::push(uint32_t bits) {
     int32_t stack_index = 0;
     int32_t reg_index = 0;
     for (; reg_index < REGISTER_COUNT && stack_index < max_stack; ++reg_index)
-      if (reg_bits[reg_index]) stack(stack_index++).ui32 = reg(reg_index).ui32;
-    ebp() += stack_index;
+      if (reg_bits[reg_index]) stack(stack_index++).set(reg(reg_index).ui32());
+    ebp(ebp() + stack_index);
   }
   // std::clog << "POST-PUSH("<<bits<<"): " << ebp() << std::endl;
 }
@@ -822,17 +826,17 @@ void vm_state_t::pop(uint32_t bits, bool shrink) {
     int32_t max_stack = (int32_t)reg_bits.count();
     int32_t stack_index = 0;
     int32_t reg_index = 0;
-    ebp() -= max_stack;
+    ebp(ebp() - max_stack);
     for (; reg_index < REGISTER_COUNT && stack_index < max_stack; ++reg_index) {
       if (reg_bits[reg_index]) {
-        reg(reg_index).ui32 = stack(stack_index++).ui32;
+        reg(reg_index).set(stack(stack_index++).ui32());
       }
     }
 
     if (shrink) {
       _stack.resize(ebp());
     } else {
-      ebp() = off;
+      ebp(off);
     }
   }
   // std::clog << "POST-POP: (" << bits << ", " << shrink << ") " << ebp() << std::endl;

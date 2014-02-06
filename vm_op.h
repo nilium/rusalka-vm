@@ -27,17 +27,21 @@
 
 
 struct op_t {
+  int32_t args;
   opcode_t opcode;
-  value_t argv[5];
+  value_t argv[0];
+
+  value_t operator [] (int32_t index) const { return argv[index]; }
+  value_t &operator [] (int32_t index) { return argv[index]; }
 };
 
-static_assert(sizeof(opcode_t) == sizeof(value_t),
-  "the size of opcode_t must be the same as value_t");
+// static_assert(sizeof(opcode_t) == sizeof(value_t),
+//   "the size of opcode_t must be the same as value_t");
 
 // static_assert(sizeof(op_t) == sizeof(opcode_t),
 //   "the size of op_t must be that of opcode_t");
 
-static_assert(offsetof(op_t, argv) == sizeof(opcode_t),
-  "offset of op_t::argv must be the same as the size of op_t");
+// static_assert(offsetof(op_t, argv) == sizeof(opcode_t),
+//   "offset of op_t::argv must be the same as the size of op_t");
 
 #endif /* end __VM_OP_H__ include guard */

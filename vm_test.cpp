@@ -32,7 +32,7 @@ value_t printfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
 value_t printsfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
   std::cout << "PRINT: ";
   for (; argc > 0; --argc, ++argv) {
-    std::cout << (const char *)vm.get_block(argv->ui32, VM_MEM_READABLE) << ' ';
+    std::cout << (const char *)vm.get_block(argv->i32(), VM_MEM_READABLE) << ' ';
   }
   std::cout << std::endl;
   return {0};

@@ -43,13 +43,13 @@ std::pair<bool, int32_t> source_t::imported_function(const char *name) const {
 
 
 void source_t::read_label_table(std::istream &input, label_table_t &table) {
-  uint32_t label_count = 0;
+  int32_t label_count = 0;
   std::string name;
 
   input.read((char *)&label_count, sizeof(label_count));
   for (; label_count; --label_count) {
     int32_t label_location = 0;
-    uint32_t label_length = 0;
+    int32_t label_length = 0;
 
     input.read((char *)&label_location, sizeof(label_location));
     input.read((char *)&label_length, sizeof(label_length));
@@ -63,13 +63,13 @@ void source_t::read_label_table(std::istream &input, label_table_t &table) {
 
 
 void source_t::read_data_table(std::istream &input, data_table_t &table) {
-  uint32_t data_count = 0;
+  int32_t data_count = 0;
 
   input.read((char *)&data_count, sizeof(data_count));
   for (; data_count; --data_count) {
 
-    uint32_t data_id = 0;
-    uint32_t data_size = 0;
+    int32_t data_id = 0;
+    int32_t data_size = 0;
 
     input.read((char *)&data_id, sizeof(data_id));
     input.read((char *)&data_size, sizeof(data_size));
@@ -105,7 +105,7 @@ source_t &source_t::operator = (source_t &&other) {
 source_t::source_t(std::istream &&input) {
   // std::array<char, 256> chunk;
   size_t ops_offset = 0;
-  uint32_t chunk_size;
+  int32_t chunk_size;
   char chunk_title[5];
   chunk_title[4] = '\0';
 

@@ -67,11 +67,6 @@
 */
 // #define VM_PRESERVE_PRESERVE_ALL_REGISTERS_ON_CALL
 
-/**
-  If defined, replaces methods like reg(), stack(), etc. with macros.
-*/
-// #define VM_USE_DATA_ACCESS_MACROS
-
 
 class vm_source_t;
 class vm_state_t;
@@ -91,78 +86,97 @@ enum memblock_flags_t : uint32_t {
 
 class vm_state_t {
   enum {
-    REGISTER_COUNT = 32,
+    R_IP = 0,
+    R_EBP = 1,
+    R_ESP = 2,
+    R_RP = 3,
+    REGISTER_COUNT = 256,
     REGISTER_SIZE = sizeof(value_t)
   };
 
   struct memblock_t {
-    uint32_t size;
+    int32_t size;
     uint32_t flags;
     void *block;
   };
 
-  using memblock_map_t = std::map<uint32_t, memblock_t>;
+  using memblock_map_t = std::map<int32_t, memblock_t>;
 
   // std::array<value_t, REGISTER_COUNT> _registers;
   value_t _registers[REGISTER_COUNT];
   std::vector<value_t> _stack;
   std::vector<vm_callback_t *> _callbacks;
   memblock_map_t _blocks;
-  uint32_t _block_counter;
-  uint32_t _sequence;
-  uint32_t _trap = 0;
+  int32_t _block_counter;
+  int32_t _sequence;
+  int32_t _trap = 0;
 
-  uint32_t unused_block_id();
+  int32_t unused_block_id();
 
   source_t _source;
-  uint32_t _source_size;
-
-  #ifdef VM_USE_DATA_ACCESS_MACROS
-  #define reg(X) _registers[X]
-  #define ip() _registers[0].i32
-  #define ebp() _registers[1].i32
-  #define esp() _registers[2].ui32
-  #define rp() _registers[3]
-  #define stack(X) _stack[ebp() + X]
-  #endif
+  int32_t _source_size;
 
   template <class T, class... ARGS>
-  uint32_t load_registers(int32_t index, T &&first, ARGS&&... args) {
+  int32_t load_registers(int32_t index, T &&first, ARGS&&... args) {
     reg(index) = value_of(std::forward<T>(first));
     return load_registers(index + 1, std::forward<ARGS>(args)...);
   }
 
   template <class T>
-  uint32_t load_registers(int32_t index, T &&first) {
+  int32_t load_registers(int32_t index, T &&first) {
     reg(index) = value_of(std::forward<T>(first));
     return index + 1;
   }
 
-  uint32_t load_registers(int32_t index) {
+  int32_t load_registers(int32_t index) {
     return index;
   }
 
   static value_t value_of(double d) {
     value_t v;
-    v.f32 = static_cast<float>(d);
+    v.set(d);
     return v;
   }
 
   static value_t value_of(float f) {
     value_t v;
-    v.f32 = f;
+    v.set(f);
     return v;
   }
 
   static value_t value_of(int32_t i) {
     value_t v;
-    v.i32 = i;
+    v.set(i);
     return v;
   }
 
   static value_t value_of(uint32_t u) {
     value_t v;
-    v.ui32 = u;
+    v.set(u);
+    return v;
+  }
+
+  static value_t value_of(int16_t i) {
+    value_t v;
+    v.set(i);
+    return v;
+  }
+
+  static value_t value_of(uint16_t u) {
+    value_t v;
+    v.set(u);
+    return v;
+  }
+
+  static value_t value_of(int8_t i) {
+    value_t v;
+    v.set(i);
+    return v;
+  }
+
+  static value_t value_of(uint8_t u) {
+    value_t v;
+    v.set(u);
     return v;
   }
 
@@ -192,23 +206,22 @@ private:
 
   int32_t fetch();
 
-  #ifndef VM_USE_DATA_ACCESS_MACROS
-  int32_t ip() const { return _registers[0].i32; }
-  int32_t ebp() const { return _registers[1].i32; }
-  uint32_t esp() const { return _registers[2].ui32; }
-  value_t rp() const { return _registers[3]; }
+  int32_t ip() const { return _registers[R_IP].i32(); }
+  int32_t ebp() const { return _registers[R_EBP].i32(); }
+  uint32_t esp() const { return _registers[R_ESP].ui32(); } // mask
+  value_t rp() const { return _registers[R_RP]; }
 
-  int32_t &ip() { return _registers[0].i32; }
-  int32_t &ebp() { return _registers[1].i32; }
-  uint32_t &esp() { return _registers[2].ui32; }
-  value_t &rp() { return _registers[3]; }
+  void ip(int32_t v) { _registers[R_IP].set(v); }
+  void ebp(int32_t v) { _registers[R_EBP].set(v); }
+  void esp(uint32_t v) { _registers[R_ESP].set(v); } // mask
+  void rp(value_t v) { _registers[R_RP] = v; }
+  value_t &rp() { return _registers[R_RP]; }
 
-  value_t &reg(int32_t off) { return _registers[off]; }
   value_t reg(int32_t off) const { return _registers[off]; }
+  value_t &reg(int32_t off) { return _registers[off]; }
 
   value_t stack(int32_t off) const { return _stack[ebp() + off]; }
   value_t &stack(int32_t off) { return _stack[ebp() + off]; }
-  #endif
 
   void push(uint32_t bits);
   void pop(uint32_t bits, bool shrink = true);
@@ -216,12 +229,12 @@ private:
   void exec_call(int32_t instr, uint32_t args_mask);
 
 public:
-  uint32_t alloc(uint32_t size);
-  void free(uint32_t block_id);
-  uint32_t block_size(uint32_t block_id) const;
-  uint32_t duplicate_block(uint32_t block_id);
-  void *get_block(uint32_t block_id, uint32_t permissions);
-  const void *get_block(uint32_t block_id, uint32_t permissions) const;
+  int32_t alloc(int32_t size);
+  void free(int32_t block_id);
+  int32_t block_size(int32_t block_id) const;
+  int32_t duplicate_block(int32_t block_id);
+  void *get_block(int32_t block_id, uint32_t permissions);
+  const void *get_block(int32_t block_id, uint32_t permissions) const;
 
   void dump_registers(size_t count = REGISTER_COUNT) const;
   void dump_stack(size_t until = SIZE_MAX) const;
@@ -239,7 +252,7 @@ public:
 
   template <class... ARGS>
   value_t call_function(int32_t pointer, ARGS&&... args) {
-    const uint32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
+    const int32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
     return call_function_nt(pointer, argc);
   }
 
@@ -252,23 +265,17 @@ public:
 
   value_t call_function_nt(int32_t pointer) { return call_function_nt(pointer, 0); }
 
-  value_t call_function_nt(const char *name, uint32_t argc, const value_t *argv);
-  value_t call_function_nt(int32_t pointer, uint32_t argc, const value_t *argv);
-  value_t call_function_nt(int32_t pointer, uint32_t mask);
+  value_t call_function_nt(const char *name, int32_t argc, const value_t *argv);
+  value_t call_function_nt(int32_t pointer, int32_t argc, const value_t *argv);
+  value_t call_function_nt(int32_t pointer, int32_t argc);
 
-  void set_callback(uint32_t id, vm_callback_t *callback);
+  void set_callback(int32_t id, vm_callback_t *callback);
 
   vm_function_t<vm_state_t> function(const char *name);
   vm_function_t<vm_state_t> function(int32_t pointer);
+
+  value_t deref(value_t input, value_t flag, uint32_t mask = ~0u) const;
 };
 
-#if defined(VM_USE_DATA_ACCESS_MACROS) && !defined(VM_KEEP_DATA_MACROS)
-#undef reg
-#undef stack
-#undef ip
-#undef ebp
-#undef esp
-#undef rp
-#endif
 
 #endif /* end __VM_STATE_H__ include guard */

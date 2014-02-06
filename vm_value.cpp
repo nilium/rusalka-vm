@@ -21,5 +21,5 @@
 
 
 std::ostream &operator << (std::ostream &out, value_t v) {
-  return out << "{ " << v.i32 << " : " << v.ui32 << " : " << v.f32 << " }";
+  return out << "< " << v.f64() << ", " << v.i32() << " >";
 }

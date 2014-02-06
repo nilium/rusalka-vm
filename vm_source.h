@@ -30,12 +30,12 @@
 class source_t {
 public:
   struct data_entry_t {
-    uint32_t size;
+    int32_t size;
     uint8_t data[0];
   };
 
   using label_table_t = std::map<std::string, int32_t>;
-  using data_table_t = std::map<uint32_t, data_entry_t *>;
+  using data_table_t = std::map<int32_t, data_entry_t *>;
 
 private:
   // using op_storage_t = uint8_t;

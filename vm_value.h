@@ -25,15 +25,41 @@
 
 
 union value_t {
-  int32_t i32;
-  uint32_t ui32;
-  float f32;
+  // int64_t i64;
+  double  value;
 
-  operator float() const { return f32; }
-  operator int() const { return (int)i32; }
-  operator long() const { return (long)i32; }
-  operator unsigned int() const { return (unsigned int)ui32; }
-  operator unsigned long() const { return (unsigned long)ui32; }
+  float    f64() const  { return value; }
+  float    f32() const  { return (float)value; }
+  int64_t  i64() const  { return (int64_t)value; }
+  uint64_t ui64() const { return (uint64_t)value; }
+  int32_t  i32() const  { return (int32_t)value; }
+  uint32_t ui32() const { return (uint32_t)value; }
+  int16_t  i16() const  { return (int16_t)value; }
+  uint16_t ui16() const { return (uint16_t)value; }
+  int8_t   i8() const   { return (int8_t)value; }
+  uint8_t  ui8() const  { return (uint8_t)value; }
+
+  void set(double v)   { value = v; }
+  void set(float v)    { value = (double)v; }
+  void set(int64_t v)  { value = (double)v; }
+  void set(uint64_t v) { value = (double)v; }
+  void set(int32_t v)  { value = (double)v; }
+  void set(uint32_t v) { value = (double)v; }
+  void set(int16_t v)  { value = (double)v; }
+  void set(uint16_t v) { value = (double)v; }
+  void set(int8_t v)   { value = (double)v; }
+  void set(uint8_t v)  { value = (double)v; }
+
+  operator double() const   { return value; }
+  operator float() const    { return (float)value; }
+  operator uint64_t() const { return (uint64_t)value; }
+  operator int64_t() const  { return (int64_t)value; }
+  operator uint32_t() const { return (uint32_t)value; }
+  operator int32_t() const  { return (int32_t)value; }
+  operator int16_t() const  { return (int16_t)value; }
+  operator uint16_t() const { return (uint16_t)value; }
+  operator int8_t() const   { return (int8_t)value; }
+  operator uint8_t() const  { return (uint8_t)value; }
 };
 
 std::ostream &operator << (std::ostream &out, value_t v);
