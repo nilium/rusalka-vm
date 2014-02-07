@@ -625,7 +625,7 @@ if ARGV.length < 2
 
     -----------------------------------------------------------------------
 
-    asm2bc (Ruslka VM) Copyright (C) 2014 Noel Cower
+    asm2bc (Rusalka VM) Copyright (C) 2014 Noel Cower
 
     This program comes with ABSOLUTELY NO WARRANTY. This program is free
     software: you can redistribute it and/or modify it under the terms of
