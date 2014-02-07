@@ -1,73 +1,135 @@
 #!/usr/bin/env ruby -w
-=begin
-Copyright (c) 2013 Noel Raymond Cower.
-
-This file is part of Rusalka VM.
-
-Rusalka VM is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Rusalka VM is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Rusalka VM.  If not, see <http://www.gnu.org/licenses/>.
-=end
+###############################################################################
+#  Copyright (c) 2013 Noel Raymond Cower.                                     #
+#                                                                             #
+#  This file is part of Rusalka VM.                                           #
+#                                                                             #
+#  Rusalka VM is free software: you can redistribute it and/or modify         #
+#  it under the terms of the GNU General Public License as published by       #
+#  the Free Software Foundation, either version 3 of the License, or          #
+#  (at your option) any later version.                                        #
+#                                                                             #
+#  Rusalka VM is distributed in the hope that it will be useful,              #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of             #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              #
+#  GNU General Public License for more details.                               #
+#                                                                             #
+#  You should have received a copy of the GNU General Public License          #
+#  along with Rusalka VM.  If not, see <http://www.gnu.org/licenses/>.        #
+###############################################################################
 
 
 require './lexer.rb'
 require 'digest'
 
+
+###############################################################################
+#  Parsing vm_instructions.h                                                  #
+###############################################################################
+
 module Op
+
+  class << self
+    attr_accessor :license
+  end
+
   RegisterArg = Struct.new(:argtype, :kind)
   OPS = {}
+  OP_NAMES = []
   OP_PACKS = {}
+  OP_HAS_LITFLAG = {}
 
   module Loading
 
+    def self.litflag ; :litflag ; end
     def self.reg(type, kind) ; RegisterArg.new(type, kind) ; end
     def self.method_missing(name, *args) ; name ; end
     def self.const_missing(name) ; name ; end
 
-    define_singleton_method(:VM_LICENSE) { |*args| }
+    define_singleton_method(:VM_LICENSE) do |*args|
+      ::Op.license = args.join "\n"
+      nil
+    end
 
-    define_singleton_method(:INSTRUCTION) {
+    define_singleton_method(:INSTRUCTION) do
       |codename, asm_name, code, num_args, *args|
       ::Op.const_set(codename, code)
-      ::Op::OPS[asm_name.downcase] = ::Op.const_get(codename)
-      ::Op::OP_PACKS[asm_name.downcase] = args.map { |arg|
-        case arg
-        when RegisterArg then 'l'
-        when :f32 then 'L'
-        when :ui32 then 'L'
-        when :i32 then 'l'
-        when :value then 'L'
-        else raise 'invalid argument type'
-        end
-      }.join('')
-    }
+      ::Op::OP_NAMES << asm_name.downcase.tap do |name|
+          ::Op::OPS[name] = ::Op.const_get(codename)
+          ::Op::OP_PACKS[name] = 'E' * args.length
+          ::Op::OP_HAS_LITFLAG[name] = args.include?(:litflag)
+        end.to_s
+    end
 
-    self.module_eval(File.open('vm_instructions.h') { |io| io.read }, 'vm_instructions.h')
+    self.module_eval(
+      File.open('vm_instructions.h') { |io| io.read },
+      'vm_instructions.h'
+      )
   end
 end
 
-StringLit = Struct.new(:kind, :value)
+
+###############################################################################
+#  File loading / lexing                                                      #
+###############################################################################
+
+def file_contents(file)
+  File.open(file, 'r') { |io| io.read }
+end
+
+
+def lex(source)
+  lexer = Lexer.new
+  lexer.skip_comments = true
+  lexer.skip_newlines = false
+  lexer.run(source).tokens
+end
+
+
+FIRST_ARGUMENT_REGISTER = 4
+
+POS_INT_LITS = [:integer_lit, :integer_exp_lit, :hex_lit, :bin_lit]
+INT_LITS = [:minus] | POS_INT_LITS
+FLOAT_LITS = [:float_lit, :float_exp_lit, :minus]
+STRING_LITS = [:double_string_lit, :single_string_lit]
+
+
 Instruction = Struct.new(:name, :args)
+DefDataStmt = Struct.new(:name, :string)
+DataRef = Struct.new(:name)
+LabelRef = Struct.new(:label)
+LabelStmt = Struct.new(:label)
+
+
 class Label
   attr_reader :name, :mangled, :kind
-  def initialize(context, name, kind)
+
+  class << self
+    alias_method :[], :new
+
+    def mangle_sym(context, sym, kind)
+      case kind
+      when :local, :at then :"#{context}__#{sym}__"
+      when :export, :dot then :"__#{sym}__"
+      when :import, :caret then sym
+      else raise "invalid symbol kind"
+      end
+    end
+  end
+
+  def initialize(prefix, name, kind)
+    if name.bytesize > 65535
+      raise "Label names may not be greater than 65,535 characters in length"
+    end
+
     @name = name
     @kind = case kind
-            when :dot, :exported then :exported
+            when :dot, :export then :export
             when :at, :local then :local
-            when :caret, :imported then :imported
+            when :caret, :import then :import
             else raise "invalid label kind: #{kind}"
             end
-    @mangled = mangle_sym(context, name, @kind)
+    @mangled = self.class.mangle_sym(prefix, name, @kind)
   end
 
   def to_s
@@ -88,267 +150,511 @@ class Label
 end
 
 
-labels = {}
-instructions = []
+###############################################################################
+#  The Parser                                                                 #
+###############################################################################
 
-def pack_uint(i)
-  [i].pack('L')
-end
+class Parser
 
-def pack_int(i)
-  [i].pack('l')
-end
+  # The prefix is any prefix used for a specific file when mangling local
+  # names. At the moment, it's a SHA256 hash of the file being parsed. Must
+  # be assigned before calling run(...).
+  attr_accessor :prefix
 
-def file_contents(file)
-  File.open(file, 'r') { |io| io.read }
-end
 
-def pack_float(num)
-  [num.to_f].pack('f').unpack('L')[0]
-end
-
-def read_instructions(tokens)
-end
-
-def lex(source)
-  lexer = Lexer.new
-  lexer.skip_comments = true
-  lexer.skip_newlines = false
-  lexer.run(source).tokens
-end
-
-def mangle_sym(context, sym, kind)
-  case kind
-  when :local, :at then :"#{context}__#{sym}__"
-  when :exported, :dot then :"__#{sym}__"
-  when :imported, :caret then sym
-  else raise "invalid symbol kind"
+  def initialize
+    @data            = []
+    @prefix          = nil
+    @instructions    = []
+    @labels          = {}
+    @label_mappings  = {}
+    @string_mappings = {}
+    @data_mappings   = {}
+    @import_count    = 0
   end
-end
 
-FIRST_ARGUMENT_REGISTER = 4
-
-POS_INT_LITS = [:integer_lit, :integer_exp_lit, :hex_lit, :bin_lit]
-INT_LITS = [:minus] | POS_INT_LITS
-FLOAT_LITS = [:float_lit, :float_exp_lit, :minus]
-NUMERIC_LITS = FLOAT_LITS | INT_LITS
-BITFIELD_LIT_TOKENS = [:bracket_open] | POS_INT_LITS
-REGISTER_LITS = [:id, :dollar] | POS_INT_LITS
-LABEL_LITS = [:caret, :dot, :at]
-STRING_LITS = [:double_string_lit, :single_string_lit, :tilde]
-
-
-ARG_TOKENS =
-  INT_LITS |
-  FLOAT_LITS |
-  BITFIELD_LIT_TOKENS |
-  REGISTER_LITS |
-  LABEL_LITS |
-  STRING_LITS
-
-def parse_argument(context, reader, only_tokens: ARG_TOKENS, negated_lits: NUMERIC_LITS, fail: "invalid argument", distance: nil)
-  reader.read_token(kinds: only_tokens, fail: fail, distance: distance) { |t|
-    case t.kind
-    when :dot, :at, :caret
-      reader.read_token(:id, fail: "expected label name", distance: {columns: 0}) { |l|
-        Label.new(context, l.value.to_sym, t.kind)
-      }
-
-    when :bracket_open
-      bits = []
-
-      until reader.read_token(:bracket_close, fail: false) { |*| true } do
-        bitnum = parse_argument(context, reader, only_tokens: REGISTER_LITS, fail: "invalid bitset argument")
-        raise "invalid bitnum: #{bitnum} (#{bitnum.class})" unless bitnum.kind_of?(Fixnum)
-        warn "redundant bitnum already specified: #{bitnum}" if bits[bitnum]
-        bits << bitnum
-      end
-
-      bits.reduce(0x0) { |a, e|
-        raise "invalid bit: #{e}" if e > 31 || e < 0
-        a | (0x1 << e)
-      }
-
-    when :id
-      case t.value.to_sym
-      when :ip then 0
-      when :ebp then 1
-      when :esp then 2
-      when :rp then 3
-      when :argv
-        reader.read_token(:bracket_open, distance: {columns: 0}, fail: "expected opening bracket")
-        reg = parse_argument(context, reader, only_tokens: POS_INT_LITS, fail: "expected argument register number")
-        reader.read_token(:bracket_close, fail: "expected closing bracket")
-        reg + FIRST_ARGUMENT_REGISTER
-      else raise "invalid register name #{t.value}"
-      end
-
-    when :dollar
-      FIRST_ARGUMENT_REGISTER + parse_argument(context, reader, only_tokens: POS_INT_LITS, distance: {columns: 0})
-
-    when :integer_lit, :integer_exp_lit, :bin_lit, :hex_lit
-      t.to_i
-
-    when :float_lit, :float_exp_lit
-      t.to_f
-
-    when :double_string_lit, :single_string_lit
-      StringLit.new(:literal, t.value)
-
-    when :tilde
-      reader.read_token(:id, fail: "expected data identifier", distance: {columns: 0}) { |id|
-        StringLit.new(:reference, id.value.to_sym)
-      }
-
-    when :minus
-      -parse_argument(context, reader, only_tokens: negated_lits, negated_lits: negated_lits, distance: {columns: 0})
+  # Looks up a reference and returns the value.
+  def lookup(ref)
+    case ref
+    when LabelRef
+      # All non-import labels should have assigned instruction values by this
+      # point.
+      @label_mappings[ref.label.mangled] ||=
+        case ref.label.kind
+        when :import then -(@import_count += 1)
+        else error
+        end
+    when DataRef then @string_mappings[ref.name]
+    else ref
     end
-  }
-end
+  end
 
-def parse(context, tokens, instructions, labels, data_blocks, string_mappings)
-  reader = TokenReader.new(tokens)
-  reader.skip_whitespace_on_read = false
 
-  until reader.eof?
-    case
-    when reader.read_token(:id, value: 'defdata', fail: false) { |defstring|
-      reader.read_token(:id, fail: "expected identifier") { |string_ident|
-        reader.read_token(kinds: [:double_string_lit, :single_string_lit], fail: "expected string literal") { |string_lit|
-          data_blocks[string_lit.value] = (block_id = data_blocks.length + 1)
-          string_mappings[string_ident.value.to_sym] = block_id
-          true
-        }
-      }
-    }
+  #############################################################################
+  #  Try-and-fail Reading                                                     #
+  #############################################################################
 
-    when reader.read_token(kinds: [:dot, :at], fail: false) { |li|
-      reader.read_token(:id, fail: "expected label name") { |t|
-        label = Label.new(context, t.value.to_sym, li.kind)
-        raise "label #{li.value}#{label.name} already defined" if labels.include?(label)
-        labels[label] = instructions.length
-        # puts "label: #{label.mangled}@#{instructions.length}"
-        true
-      }
-    }
+  def mark
+    @marks << @index
+    self
+  end
 
-    when reader.read_token(:id, fail: false) { |instr_token|
-      instr_name = instr_token.value.to_sym
-      # puts "parsing #{instr_name}"
-      if Op::OPS.include?(instr_name)
-        args = Op::OP_PACKS[instr_name].length.times.map { parse_argument(context, reader) }
-        instructions << Instruction.new(instr_name, args)
-        true
+  def unmark
+    @marks.pop
+    self
+  end
+
+  def reset
+    if @index == @marks.last
+      @marks.pop
+      return self
+    end
+
+    @input.rewind
+    @current = nil
+    @column = 0
+    @line = 0
+    @index = 0
+
+    # If there's a better way of doing this, I haven't found it.
+    reset_to = @marks.pop
+    (0 ... reset_to).each { read } if reset_to && reset_to > 0
+    self
+  end
+
+  # For testing sequences of tokens, wrap calls in maybe? to reset to the
+  # starting token on failure. Returning a nil value from the block is failure,
+  # otherwise it's considered success.
+  #
+  # If only testing for a single token's acceptance for a value, then an
+  # enclosing `maybe? { ... }` isn't necessary, though won't hurt.
+  def maybe?
+    raise "No block given" unless block_given?
+    mark
+    yield.tap do |result|
+      if !result.nil?
+        unmark
       else
-        raise "#{instr_token.position} unrecognized instruction: #{instr_name}"
+        reset
       end
-    }
     end
-
-    reader.read_token(:newline, fail: "expected newline") if !reader.eof?
   end
+
+
+  #############################################################################
+  #  Parsed Types                                                             #
+  #############################################################################
+
+  # $INTEGER
+  def arg_num
+    maybe? do
+      accept(:dollar) && accept(:integer_lit, distance: 0) do |tok|
+        FIRST_ARGUMENT_REGISTER + tok.to_i
+      end
+    end
+  end
+
+  # String literals
+  def string
+    accept(STRING_LITS) do |tok|
+      @data_mappings[tok.value] ||= @data_mappings.length + 1
+    end
+  end
+
+  # Number literals
+  def number
+    accept(FLOAT_LITS, &:to_f) || accept(INT_LITS, &:to_i)
+  end
+
+  # [ NUMERICS* ]
+  def bitset
+    maybe? do
+      break unless accept :bracket_open
+
+      bits = 0
+      until accept :bracket_close
+        bitnum = (bitwise_not(:numeric) || negative(:numeric) || numeric || error).to_i
+        warn "Repeating bitnums in bitset" if bits[bitnum] != 0
+        bits |= 1 << bitnum
+      end
+
+      bits
+    end
+  end
+
+  # ~ID
+  def data_ref
+    maybe? do
+      accept(:tilde) && accept(:id, distance: 0) { |k| DataRef[k.value.to_sym] }
+    end
+  end
+
+  # Negates the next value read by sym
+  def negative(sym = :value)
+    accept(:minus) do |tok|
+      (peek.position.column == tok.position.column + 1 && -self.send(sym)) || error
+    end
+  end
+
+  # Performs a 32-bit bitwise not on the next value read by sym
+  def bitwise_not(sym = :value)
+    accept(:tilde) do |tok|
+      (peek.position.column == tok.position.column + 1 && ((~self.send(sym)) & 0xFFFFFFFF)) || error
+    end
+  end
+
+  # Numerics
+  def numeric
+    named_register || number || arg_num || bitset
+  end
+
+  # ^NAME
+  def import
+    maybe? do
+      accept(:caret) && accept(:id, distance: 0) do |tok|
+        LabelRef[Label[@prefix, tok.value, :import]].tap do |ref|
+          @labels[ref.label.name] = ref.label
+        end
+      end
+    end
+  end
+
+  # .NAME
+  # @NAME
+  def label_name
+    maybe? do
+      kind = accept(:dot, :at) do |k|
+        case k.kind
+        when :dot then :export
+        when :at then :local
+        end
+      end
+
+      break unless kind
+      name = accept(:id, distance: 0, &:value)
+
+      yield kind, name if kind && name
+    end
+  end
+
+  # label_name
+  def label_ref
+    label_name { |kind, name| LabelRef[Label[@prefix, name, kind]] }
+  end
+
+  # label_name TERM
+  def label
+    label_name do |kind, name|
+      LabelStmt[Label[@prefix, name, kind]].tap do |stmt|
+        @label_mappings[stmt.label.mangled] = @instructions.length
+        @labels[stmt.label.name] = stmt.label
+      end if terminator
+    end
+  end
+
+  # ip
+  # ebp
+  # esp
+  # rp
+  def named_register
+    case accept(:id, content: ['ip', 'ebp', 'esp', 'rp'], &:value)
+    when 'ip'  then 0
+    when 'ebp' then 1
+    when 'esp' then 2
+    when 'rp'  then 3
+    end
+  end
+
+  # Any valid argument to an instruction
+  def value
+    data_ref ||
+    negative ||
+    bitwise_not ||
+    label_ref ||
+    import ||
+    numeric ||
+    string ||
+    error
+  end
+
+  # Reads a line
+  def line
+    while accept(:newline, :semicolon)
+    end
+    label || statement || error unless eof?
+  end
+
+  # EOF | "\n" | ";"
+  def terminator
+    (eof? || accept(:newline, :semicolon))
+  end
+
+  # Data statements
+  # defdata NAME STRING TERM
+  def defdata
+    maybe? do
+      name = accept(:id, content: 'defdata') && accept(:id, &:value)
+      break unless name
+      name = :"#{@prefix}__#{name}"
+      accept(STRING_LITS) do |t|
+        data = t.value
+        stmt = DefDataStmt[name, data] if terminator
+        break unless stmt
+
+        if @string_mappings.include?(name)
+          warn "Data with name '#{name}' already defined"
+        end
+
+        @string_mappings[name] =
+          (@data_mappings[[name, data]] ||= @data_mappings.length + 1)
+
+        stmt
+      end
+    end
+  end
+
+  # Instruction and data statements
+  def statement
+    defdata || instruction
+  end
+
+  # OPNAME VALUE* TERM
+  def instruction
+    maybe? do
+      name = accept(:id, content: Op::OP_NAMES, &:value)
+      break unless name
+      name = name.to_sym
+      optional_flag = Op::OP_HAS_LITFLAG[name]
+      num_args = Op::OP_PACKS[name].length - (optional_flag ? 1 : 0)
+      args = Array.new(num_args) { value }
+
+      done = false
+      if optional_flag
+        if !(done = terminator)
+          args << value
+        else
+          args << 0.0
+        end
+      end
+
+      Instruction[name, args].tap { |k| @instructions << k } if done || terminator
+    end
+  end
+
+
+  #############################################################################
+  #  Warnings / Errors                                                        #
+  #############################################################################
+
+  def error
+    $stderr.puts "Error when trying to read token:"
+    $stderr.puts peek.inspect
+    raise RuntimeError
+  end
+
+  def warn(*msgs)
+    Kernel.warn(*msgs.map { |k| "[#{@line}:#{@column}] #{k}" })
+  end
+
+
+  #############################################################################
+  #  Parser Execution                                                         #
+  #############################################################################
+
+  def run(input)
+    @marks = []
+    @index = 0
+    @input = input
+    @current = nil
+    @line = 0
+    @column = 0
+    __run__
+  ensure
+    @input = nil # don't retain the enumerator
+  end
+
+  def __run__
+    @data << line if line until eof?
+  end
+
+
+  #############################################################################
+  #  Parser Input                                                             #
+  #############################################################################
+
+  def peek
+    @input.peek
+  rescue StopIteration
+    nil
+  end
+
+  def read
+    if @current
+      @line = @current.position.line + @current.value.count("\n")
+      @column =
+        if @current.position.line == @line
+          @current.position.column + @current.value.length
+        else
+          @current.value.length - @current.value.rindex("\n")
+        end
+    end
+    @current = @input.next
+    @index += 1
+    @current
+  rescue StopIteration
+    @current = nil
+    nil
+  end
+
+  def eof?
+    peek.nil?
+  end
+
+  def accept(*tokens, content: nil, distance: nil)
+    tok = peek
+    tokens = tokens.flatten
+    result =
+      case
+      when tok.nil? then nil
+      when !tokens.empty? && !tokens.include?(tok.kind) then nil
+      when content.kind_of?(Regexp) && content.match(tok.value).nil? then nil
+      when content.kind_of?(String) && content != tok.value then nil
+      when content.kind_of?(Array) && !content.include?(tok.value) then nil
+      when case distance
+           when Numeric # columns
+           when Hash
+             lines, columns = [distance[:lines] || 0, distance[:columns] || 0]
+             @line - tok.position.line > lines || @column - tok.position.column > columns
+           when Array
+             lines, columns = distance
+             @line - tok.position.line > lines || @column - tok.position.column > columns
+           else false
+           end
+        nil
+      else read
+      end
+    if result && block_given?
+      yield result
+    else
+      result
+    end
+  end
+
+
+  #############################################################################
+  #  Parser Output                                                            #
+  #############################################################################
+
+  def data_blocks
+    mapped =
+      @data_mappings.map do |data, id|
+        if data.kind_of? Array
+          data = data.last
+        end
+
+        [data, id]
+      end.sort_by!(&:last).map! do |data, id|
+        "#{[id, data.bytesize].pack('l<s<')}#{data}"
+      end.join
+
+    "#{[@data_mappings.length].pack('l<')}#{mapped}"
+  end
+
+  def filtered_labels(*kinds)
+    @labels.to_a.keep_if { |n, l| kinds.include? l.kind }
+  end
+
+  def imports_data
+    label_data filtered_labels :import
+  end
+
+  def exports_data
+    label_data filtered_labels :export
+  end
+
+  def label_data(labels)
+    data =
+      labels.map do |name, label|
+        namedata = name.encode(Encoding::UTF_8)
+
+        if namedata.bytesize > 65535
+          raise "Label may not exceed 65,535 characters in length"
+        end
+
+        packdata = [lookup(LabelRef[label]), namedata.bytesize].pack('l<s<')
+        "#{packdata}#{namedata}"
+      end.join
+
+    "#{[labels.length].pack('l<')}#{data}"
+  end
+
+  def instruction_data
+    data = @instructions.map do |instr|
+        [Op::OPS[instr.name], *instr.args.map { |arg| lookup(arg).to_f }].pack('s<E*')
+      end.join
+
+    "#{[@instructions.length].pack('l<')}#{data}"
+  end
+
+end # Parser
+
+
+def write_chunk(name, data, io)
+  raise "Chunk name must be exactly 4 bytes in size" unless name.bytesize == 4
+
+  io.write(name)
+  io.write([data.bytesize].pack('l<'))
+  io.write(data)
 end
+
+
+def write_data(parser, io)
+  write_chunk('DATA', parser.data_blocks, io)
+  write_chunk('IMPT', parser.imports_data, io)
+  write_chunk('EXPT', parser.exports_data, io)
+  write_chunk('INST', parser.instruction_data, io)
+end
+
+
+# Print help text if the minimum number of arguments aren't provided.
+if ARGV.length < 2
+  puts <<-EOS.gsub(/^    /, '')
+    asm2bc output input...
+     - output may be any file path, or '-' to write to the standard output.
+     - input must be one or more named files.
+
+    -----------------------------------------------------------------------
+
+    asm2bc (Ruslka VM) Copyright (C) 2014 Noel Cower
+
+    This program comes with ABSOLUTELY NO WARRANTY. This program is free
+    software: you can redistribute it and/or modify it under the terms of
+    the GNU General Public License as published by the Free Software
+    Foundation, either version 3 of the License, or (at your option) any
+    later version.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  EOS
+
+  exit 1
+end
+
 
 hasher = Digest::SHA256.new
+parser = Parser.new
+output_file = ARGV.shift
 
-string_mappings = {}
-data_blocks = {}
-
-ARGV[1..-1].each { |file|
-  contents = file_contents(file)
-  tokens = lex(contents)
-  ctx_digest = Digest.hexencode(hasher.digest(contents))
-  parse(ctx_digest, tokens, instructions, labels, data_blocks, string_mappings)
-}
-
-exported_label = -1
-instructions.each { |instr|
-  instr.args = instr.args.map { |a|
-    case a
-    when Label
-      if labels.include?(a)
-        labels[a]
-      elsif a.kind == :imported
-        loc = exported_label
-        exported_label -= 1
-        labels[a] = loc
-        loc
-      else
-        raise "No matching label for #{a}"
-      end
-    when StringLit
-      case a.kind
-      when :literal
-        if data_blocks.include?(a.value)
-          data_blocks[a.value]
-        else
-          block_id = data_blocks.length + 1
-          data_blocks[a.value] = block_id
-          block_id
-        end
-      when :reference
-        string_mappings[a.value]
-      end
-    when Float then pack_float(a)
-    else a
-    end
-  }
-}
-
-def write_label_table(io, head, table)
-  return if table.nil?
-  io.write head
-  data = ""
-  data << pack_uint(table.length)
-  table.each { |k, v|
-    data << pack_int(v)
-    data << pack_uint(k.name.length)
-    data << k.name.to_s
-  }
-  io.write pack_uint(data.bytesize)
-  io.write data
+ARGV.each do |file|
+  contents      = file_contents(file)
+  tokens        = lex(contents)
+  unit_digest   = Digest.hexencode(hasher.digest(contents))
+  parser.prefix = unit_digest
+  parser.run(tokens.each)
 end
 
-def write_data_table(io, head, table)
-  io.write head
-  data = ""
-  data << pack_uint(table.size)
-  table.each { |block, id|
-    data << [id, block.bytesize].pack('LL')
-    data << block
-  }
-  io.write pack_uint(data.bytesize)
-  io.write data
-end
 
-def write_code(io, instructions)
-  io.write "CODE"
-  data = pack_uint(instructions.length)
-  instructions.each { |instr|
-    data << [Op::OPS[instr.name]].pack('L')
-    data << instr.args.pack(Op::OP_PACKS[instr.name])
-  }
-
-  io.write pack_uint(data.bytesize)
-  io.write data
-end
-
-def write_data(io, labels, instructions, data_blocks)
-  lgroups = labels.group_by { |k, v| k.kind }
-  exports = lgroups[:exported]
-  imports = lgroups[:imported]
-
-  write_data_table(io, "DATA", data_blocks)
-  write_label_table(io, "IMPT", imports)
-  write_label_table(io, "EXPT", exports)
-
-  write_code(io, instructions)
-end
-
-if (ARGV[0] == '-')
-  write_data(STDOUT, labels, instructions, data_blocks)
-else
-  File.open(ARGV[0], 'w') { |io|
-    write_data(io, labels, instructions, data_blocks)
-  }
+case output_file
+when '-' then write_data(parser, $stdout)
+else File.open(output_file, 'w') { |io| write_data(parser, io) }
 end
