@@ -25,6 +25,9 @@ require 'securerandom'
 require 'set'
 
 
+BYTECODE_VERSION = 8
+
+
 ###############################################################################
 #  Parsing vm_instructions.h                                                  #
 ###############################################################################
@@ -186,6 +189,14 @@ class Parser
   attr_reader :data_mappings
   attr_reader :data
 
+  # Returns a block selecting for the given kinds
+  def select_kind(*kinds, &block)
+    -> (obj, *args) do
+      kinds.any? do |klass|
+        obj.kind_of?(klass)
+      end && (block.nil? || block[obj])
+    end
+  end
 
   def unique_uuid
     result =
@@ -507,7 +518,7 @@ class Parser
         else
           opargs = Op::OP_ARGS[name]
           offset = opargs.first == :output ? 1 : 0
-          args << args.each_with_index.to_a.select do |arg, index|
+          args << args.each_with_index.select do |arg, index|
             opargs[index] == :input
           end.reduce(0) do |bits, packet; arg, index|
             arg, index = packet
@@ -677,35 +688,95 @@ class Parser
   end
 
   def instruction_data
-    data = @instructions.map do |instr|
+    data =
+      @instructions.map do |instr|
         [Op::OPS[instr.name], *instr.args.map { |arg| lookup(arg).to_f }].pack('s<E*')
       end.join
 
     "#{[@instructions.length].pack('l<')}#{data}"
   end
 
-  def labelref_table
+  RELOCATION_TABLE_MAP = -> (arg, index) { index }
 
+  def relocation_table(&block)
+    raise "No block given" if block.nil?
+    data =
+      @instructions.each_with_index.map do |instr, index|
+        if instr.args.any?(&block)
+          refs = instr.args.each_with_index.select { |obj, index| block[obj] }.map!(&:last)
+          [index, refs.length, *refs].pack('l<*')
+        else
+          nil
+        end
+      end.delete_if(&:nil?)
+
+    "#{[data.length].pack('l<')}#{data.join}"
+  end
+
+  def label_relocation_table
+    relocation_table { |arg| arg.kind_of? LabelRef }
+  end
+
+  def data_relocation_table
+    relocation_table { |arg| arg.kind_of? DataRef }
   end
 
 end # Parser
 
 
+Chunk = Struct.new(:name, :data)
+
+
+def chunk_size(data)
+  # sizeof(name) + sizeof(chunk size) + sizeof(data)
+  8 + data.bytesize
+end
+
+
 def write_chunk(name, data, io)
+  name = name.to_s
   raise "Chunk name must be exactly 4 bytes in size" unless name.bytesize == 4
 
   io.write(name)
-  io.write([data.bytesize].pack('l<'))
+  io.write([8 + data.bytesize].pack('l<'))
   io.write(data)
 end
 
 
 def write_data(parser, io)
-  write_chunk('DATA', parser.data_blocks, io)
-  write_chunk('IMPT', parser.imports_data, io)
-  write_chunk('EXPT', parser.exports_data, io)
-  write_chunk('INST', parser.instruction_data, io)
+  version_data = [BYTECODE_VERSION].pack('l<')
+
+  chunks = [
+    Chunk[:VERS, version_data],
+    Chunk[:OFFS, 0],
+    Chunk[:LREL, parser.label_relocation_table],
+    Chunk[:DREL, parser.data_relocation_table],
+    Chunk[:DATA, parser.data_blocks],
+    Chunk[:IMPT, parser.imports_data],
+    Chunk[:EXPT, parser.exports_data],
+    Chunk[:INST, parser.instruction_data],
+  ]
+
+  # [chunk count] + [[label, offset], ...]
+  chunks[1].data = ([0] + Array.new(chunks.length, [0, 0])).flatten.pack('l<*')
+
+  relative_off = 0
+  offsets = chunks.map do |chunk|
+    size = chunk_size(chunk.data)
+    data = "#{chunk.name}#{[relative_off].pack('l<')}"
+    relative_off += size
+    data
+  end
+
+  chunks[1].data = "#{[offsets.length].pack('l<')}#{offsets.join}"
+
+  chunks.each do |chunk|
+    write_chunk(chunk.name, chunk.data, io)
+  end
+
+  nil
 end
+
 
 flags = Struct.new(:print_instrs).new
 
