@@ -222,7 +222,7 @@ class Parser
       @label_mappings[ref.label.mangled] ||=
         case ref.label.kind
         when :import then -(@import_count += 1)
-        else error
+        else error "Unmatched labelref"
         end
     when DataRef then @string_mappings[ref.lookup]
     else ref
@@ -409,7 +409,10 @@ class Parser
     label_name do |kind, name|
       break unless accept(:colon, distance: 0)
       LabelStmt[Label[@prefix, name, kind]].tap do |stmt|
-        warn "Duplicate label: #{stmt.label.name}" if @label_mappings.include?(stmt.label.mangled)
+        if @label_mappings.include?(stmt.label.mangled)
+          warn "Duplicate label: #{stmt.label.name}"
+        end
+
         @label_mappings[stmt.label.mangled] = @instructions.length
         @labels[stmt.label.mangled] = stmt.label
       end
@@ -522,8 +525,8 @@ class Parser
   #  Warnings / Errors                                                        #
   #############################################################################
 
-  def error
-    $stderr.puts "Error when trying to read token:"
+  def error(*msg)
+    $stderr.puts "Error when trying to read token: #{msg.join ' '}"
     $stderr.puts peek.inspect
     raise RuntimeError
   end
