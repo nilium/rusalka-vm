@@ -752,7 +752,8 @@ parser = Parser.new
 output_file = ARGV.shift
 
 ARGV.each do |file|
-  contents      = file_contents(file)
+  unit_name     = (file == '-') ? 'anonymous' : file
+  contents      = (file == '-') ? $stdin.read() : file_contents(file)
   tokens        = lex(contents)
   unit_digest   = Digest.hexencode(hasher.digest(contents))
   # parser.prefix = unit_digest
