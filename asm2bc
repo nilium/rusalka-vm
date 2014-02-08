@@ -714,6 +714,12 @@ if ARGV.length < 2
      - output may be any file path, or '-' to write to the standard output.
      - input must be one or more named files.
 
+    Options:
+      --print-instrs
+        Writes the instructions asm2bc has read to the standard error. This
+        can be used to debug asm2bc if its output seems to be incorrect --
+        handy for bug testing.
+
     -----------------------------------------------------------------------
 
     asm2bc (Rusalka VM) Copyright (C) 2014 Noel Cower
