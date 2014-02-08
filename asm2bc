@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby -w
+#!/usr/bin/env ruby
 ###############################################################################
 #  Copyright (c) 2013 Noel Raymond Cower.                                     #
 #                                                                             #
@@ -21,6 +21,8 @@
 
 require './lexer.rb'
 require 'digest'
+require 'securerandom'
+require 'set'
 
 
 ###############################################################################
@@ -35,6 +37,7 @@ module Op
 
   RegisterArg = Struct.new(:argtype, :kind)
   OPS = {}
+  OP_ARGS = {}
   OP_NAMES = []
   OP_PACKS = {}
   OP_HAS_LITFLAG = {}
@@ -42,7 +45,6 @@ module Op
   module Loading
 
     def self.litflag ; :litflag ; end
-    def self.reg(type, kind) ; RegisterArg.new(type, kind) ; end
     def self.method_missing(name, *args) ; name ; end
     def self.const_missing(name) ; name ; end
 
@@ -57,6 +59,7 @@ module Op
       ::Op::OP_NAMES << asm_name.downcase.tap do |name|
           ::Op::OPS[name] = ::Op.const_get(codename)
           ::Op::OP_PACKS[name] = 'E' * args.length
+          ::Op::OP_ARGS[name] = args
           ::Op::OP_HAS_LITFLAG[name] = args.include?(:litflag)
         end.to_s
     end
@@ -94,11 +97,20 @@ FLOAT_LITS = [:float_lit, :float_exp_lit, :minus]
 STRING_LITS = [:double_string_lit, :single_string_lit]
 
 
+Unit = Struct.new(:name, :prefix)
 Instruction = Struct.new(:name, :args)
-DefDataStmt = Struct.new(:name, :string)
-DataRef = Struct.new(:name)
+DefDataStmt = Struct.new(:name, :string, :mangled)
+RegisterRef = Struct.new(:index)
+AnonDataStmt = Struct.new(:id, :prefix)
+DataRef = Struct.new(:name, :lookup)
 LabelRef = Struct.new(:label)
 LabelStmt = Struct.new(:label)
+
+
+class RegisterRef
+  def to_i ; index ; end
+  def to_f ; index.to_f ; end
+end
 
 
 class Label
@@ -114,6 +126,14 @@ class Label
       when :import, :caret then sym
       else raise "invalid symbol kind"
       end
+    end
+  end
+
+  def kind_char
+    case kind
+    when :export then '.'
+    when :import then '^'
+    when :local then '@'
     end
   end
 
@@ -160,9 +180,27 @@ class Parser
   # names. At the moment, it's a SHA256 hash of the file being parsed. Must
   # be assigned before calling run(...).
   attr_accessor :prefix
+  attr_reader :instructions
+  attr_reader :labels
+  attr_reader :string_mappings
+  attr_reader :data_mappings
+  attr_reader :data
+
+
+  def unique_uuid
+    result =
+      loop do
+        generated = SecureRandom.uuid
+        next if @uuids.include? generated
+        break generated
+      end.tap { |k| @uuids << k }
+
+    "uuid_#{result.gsub('-', '_')}"
+  end
 
 
   def initialize
+    @uuids           = Set.new
     @data            = []
     @prefix          = nil
     @instructions    = []
@@ -176,6 +214,8 @@ class Parser
   # Looks up a reference and returns the value.
   def lookup(ref)
     case ref
+    when RegisterRef
+      ref.index
     when LabelRef
       # All non-import labels should have assigned instruction values by this
       # point.
@@ -184,7 +224,7 @@ class Parser
         when :import then -(@import_count += 1)
         else error
         end
-    when DataRef then @string_mappings[ref.name]
+    when DataRef then @string_mappings[ref.lookup]
     else ref
     end
   end
@@ -249,20 +289,39 @@ class Parser
   def arg_num
     maybe? do
       accept(:dollar) && accept(:integer_lit, distance: 0) do |tok|
-        FIRST_ARGUMENT_REGISTER + tok.to_i
+        RegisterRef[FIRST_ARGUMENT_REGISTER + tok.to_i]
       end
     end
+  end
+
+  # %INTEGER
+  def register
+    maybe? do
+      accept(:percent) && accept(:integer_lit, distance: 0) do |tok|
+        RegisterRef[tok.to_i]
+      end
+    end || arg_num
   end
 
   # String literals
   def string
     accept(STRING_LITS) do |tok|
-      @data_mappings[tok.value] ||= @data_mappings.length + 1
+      data = tok.value
+      is_dupe = @data_mappings.include?(data)
+      id = @data_mappings[data] ||= @data_mappings.length + 1
+      stmt = AnonDataStmt[id, :"__data_#{unique_uuid}"]
+      @string_mappings[stmt] = id
+      unless is_dupe
+        defstmt = DefDataStmt[stmt.prefix, data, mangle_data_name(stmt.prefix)]
+        unit_idx = @data.index { |obj| obj.kind_of?(Unit) && obj.prefix == @prefix }
+        @data.insert(unit_idx + 1, defstmt)
+      end
+      DataRef[stmt, stmt]
     end
   end
 
   # Number literals
-  def number
+  def number(distance: nil)
     accept(FLOAT_LITS, &:to_f) || accept(INT_LITS, &:to_i)
   end
 
@@ -273,7 +332,7 @@ class Parser
 
       bits = 0
       until accept :bracket_close
-        bitnum = (bitwise_not(:numeric) || negative(:numeric) || numeric || error).to_i
+        bitnum = (bitwise_not(:numeric) || negative(:numeric) || numeric || register || error).to_i
         warn "Repeating bitnums in bitset" if bits[bitnum] != 0
         bits |= 1 << bitnum
       end
@@ -285,7 +344,10 @@ class Parser
   # ~ID
   def data_ref
     maybe? do
-      accept(:tilde) && accept(:id, distance: 0) { |k| DataRef[k.value.to_sym] }
+      accept(:tilde) && accept(:id, distance: 0) do |tok|
+        name = tok.value.to_sym
+        DataRef[name, mangle_data_name(name)]
+      end
     end
   end
 
@@ -305,7 +367,7 @@ class Parser
 
   # Numerics
   def numeric
-    named_register || number || arg_num || bitset
+    named_register || number || bitset
   end
 
   # ^NAME
@@ -345,10 +407,12 @@ class Parser
   # label_name TERM
   def label
     label_name do |kind, name|
+      break unless accept(:colon, distance: 0)
       LabelStmt[Label[@prefix, name, kind]].tap do |stmt|
+        warn "Duplicate label: #{stmt.label.name}" if @label_mappings.include?(stmt.label.mangled)
         @label_mappings[stmt.label.mangled] = @instructions.length
-        @labels[stmt.label.name] = stmt.label
-      end if terminator
+        @labels[stmt.label.mangled] = stmt.label
+      end
     end
   end
 
@@ -358,10 +422,10 @@ class Parser
   # rp
   def named_register
     case accept(:id, content: ['ip', 'ebp', 'esp', 'rp'], &:value)
-    when 'ip'  then 0
-    when 'ebp' then 1
-    when 'esp' then 2
-    when 'rp'  then 3
+    when 'ip'  then RegisterRef[0]
+    when 'ebp' then RegisterRef[1]
+    when 'esp' then RegisterRef[2]
+    when 'rp'  then RegisterRef[3]
     end
   end
 
@@ -370,6 +434,7 @@ class Parser
     data_ref ||
     negative ||
     bitwise_not ||
+    register ||
     label_ref ||
     import ||
     numeric ||
@@ -389,24 +454,28 @@ class Parser
     (eof? || accept(:newline, :semicolon))
   end
 
+  def mangle_data_name(name)
+    :"#{@prefix}__#{name}"
+  end
+
   # Data statements
   # defdata NAME STRING TERM
   def defdata
     maybe? do
       name = accept(:id, content: 'defdata') && accept(:id, &:value)
       break unless name
-      name = :"#{@prefix}__#{name}"
+      mangled = mangle_data_name(name)
       accept(STRING_LITS) do |t|
         data = t.value
-        stmt = DefDataStmt[name, data] if terminator
+        stmt = DefDataStmt[name, data, mangle_data_name(name)] if terminator
         break unless stmt
 
-        if @string_mappings.include?(name)
-          warn "Data with name '#{name}' already defined"
+        if @string_mappings.include?(mangled)
+          warn "Data with name '#{mangled}' already defined"
         end
 
-        @string_mappings[name] =
-          (@data_mappings[[name, data]] ||= @data_mappings.length + 1)
+        @string_mappings[mangled] =
+          (@data_mappings[data] ||= @data_mappings.length + 1)
 
         stmt
       end
@@ -424,7 +493,7 @@ class Parser
       name = accept(:id, content: Op::OP_NAMES, &:value)
       break unless name
       name = name.to_sym
-      optional_flag = Op::OP_HAS_LITFLAG[name]
+      optional_flag = Op::OP_ARGS[name].last == :litflag
       num_args = Op::OP_PACKS[name].length - (optional_flag ? 1 : 0)
       args = Array.new(num_args) { value }
 
@@ -433,7 +502,14 @@ class Parser
         if !(done = terminator)
           args << value
         else
-          args << 0.0
+          opargs = Op::OP_ARGS[name]
+          offset = opargs.first == :output ? 1 : 0
+          args << args.each_with_index.to_a.select do |arg, index|
+            opargs[index] == :input
+          end.reduce(0) do |bits, packet; arg, index|
+            arg, index = packet
+            bits | (arg.kind_of?(RegisterRef) ? 0 : 1 << (index - offset))
+          end
         end
       end
 
@@ -461,7 +537,10 @@ class Parser
   #  Parser Execution                                                         #
   #############################################################################
 
-  def run(input)
+  def run(input, filename = 'anonymous')
+    @prefix = unique_uuid if @prefix.nil? || @prefix.empty?
+    @prefix = "_#{@prefix}" if "0123456789".include?(@prefix[0])
+    @data << Unit[filename, @prefix]
     @marks = []
     @index = 0
     @input = input
@@ -470,11 +549,16 @@ class Parser
     @column = 0
     __run__
   ensure
+    @prefix = nil
     @input = nil # don't retain the enumerator
   end
 
   def __run__
-    @data << line if line until eof?
+    until eof?
+      data = line
+      error unless data
+      @data << data
+    end
   end
 
 
@@ -575,7 +659,7 @@ class Parser
   def label_data(labels)
     data =
       labels.map do |name, label|
-        namedata = name.encode(Encoding::UTF_8)
+        namedata = name.to_s.encode(Encoding::UTF_8)
 
         if namedata.bytesize > 65535
           raise "Label may not exceed 65,535 characters in length"
@@ -594,6 +678,10 @@ class Parser
       end.join
 
     "#{[@instructions.length].pack('l<')}#{data}"
+  end
+
+  def labelref_table
+
   end
 
 end # Parser
@@ -640,6 +728,15 @@ if ARGV.length < 2
   exit 1
 end
 
+flags = Struct.new(:print_instrs).new
+
+loop {
+  case ARGV.first
+  when '--print-instrs' then flags.print_instrs = true
+  else break
+  end
+  ARGV.shift
+}
 
 hasher = Digest::SHA256.new
 parser = Parser.new
@@ -649,10 +746,87 @@ ARGV.each do |file|
   contents      = file_contents(file)
   tokens        = lex(contents)
   unit_digest   = Digest.hexencode(hasher.digest(contents))
-  parser.prefix = unit_digest
-  parser.run(tokens.each)
+  # parser.prefix = unit_digest
+  parser.run(tokens.each, file)
 end
 
+def mul_of(x, n)
+  ([(x.to_f / n).ceil, 1].max * n)
+end
+
+if flags.print_instrs
+
+  max_arg_columns = []
+
+  max_name_len = Op::OPS.map { |k, v| k.length }.max + 1
+  args = parser.instructions.map { |i|
+    i.args.each_with_index.map { |a, j|
+      a =
+        if Op::OP_ARGS[i.name][j] == :litflag && a.kind_of?(Numeric)
+          "0b#{parser.lookup(a).to_i.to_s(2)}"
+        elsif a.kind_of?(LabelRef)
+          "/* #{a.label.kind_char}#{a.label.name} => */ #{parser.lookup(a).to_s}"
+        elsif a.kind_of?(DataRef)
+          "/* ~#{
+            case a.name
+            when AnonDataStmt then a.name.prefix
+            else a.name
+            end
+          } => */ #{parser.lookup(a).inspect.to_s}"
+        elsif a.kind_of?(RegisterRef)
+          case a.index
+          when 0 then 'ip'
+          when 1 then 'ebp'
+          when 2 then 'esp'
+          when 3 then 'rp'
+          else "%#{a.index}"
+          end
+        else
+          parser.lookup(a).to_s
+        end
+
+      max_arg_columns[j] = max_arg_columns.fetch(j, []) << a.length
+
+      a
+    }
+  }
+  max_arg_columns.map! { |k| mul_of(k.max, 4) }
+  args.each { |ap| ap.map!.each_with_index { |s, j| s.rjust(max_arg_columns[j]) } }
+  max_line_no_length = ([parser.instructions.length.to_s.length / 4, 3].max) * 4
+  instr_index = 0
+  parser.data.each_with_index do |datum, index|
+    case datum
+    when Unit
+      $stderr.write "\n\n" if index != 0
+      $stderr.puts "/#{'*' * 99}"
+      $stderr.puts "    Unit: #{datum.name} (#{datum.prefix})"
+      $stderr.puts "#{'*' * 99}/\n\n"
+    when DefDataStmt
+      stmt = datum
+      $stderr.puts "// Data: #{stmt.mangled}"
+      $stderr.puts "defdata  #{stmt.name}  #{stmt.string.inspect}"
+    when Instruction
+      instr = datum
+      $stderr.write "    #{"/* #{instr_index} */".ljust(max_line_no_length)}"
+      $stderr.write "#{instr.name.to_s.ljust(max_name_len)}"
+      $stderr.write " #{args[instr_index].join '  '}" unless args[instr_index].empty?
+      $stderr.write "\n"
+      instr_index += 1
+    when LabelStmt
+      $stderr.write "\n" if index != 0
+      label = datum.label
+      $stderr.puts "// #{label.mangled}"
+      $stderr.write case label.kind
+                    when :export then '.'
+                    when :local then '@'
+                    when :import then '^' # never occurs
+                    end
+      $stderr.write label.name
+      $stderr.write ":\n"
+    else
+    end
+  end
+end
 
 case output_file
 when '-' then write_data(parser, $stdout)
