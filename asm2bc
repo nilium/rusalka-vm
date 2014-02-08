@@ -706,6 +706,15 @@ def write_data(parser, io)
   write_chunk('INST', parser.instruction_data, io)
 end
 
+flags = Struct.new(:print_instrs).new
+
+loop {
+  case ARGV.first
+  when '--print-instrs' then flags.print_instrs = true
+  else break
+  end
+  ARGV.shift
+}
 
 # Print help text if the minimum number of arguments aren't provided.
 if ARGV.length < 2
@@ -736,16 +745,6 @@ if ARGV.length < 2
 
   exit 1
 end
-
-flags = Struct.new(:print_instrs).new
-
-loop {
-  case ARGV.first
-  when '--print-instrs' then flags.print_instrs = true
-  else break
-  end
-  ARGV.shift
-}
 
 hasher = Digest::SHA256.new
 parser = Parser.new
