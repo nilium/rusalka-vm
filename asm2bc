@@ -853,7 +853,7 @@ if flags.print_instrs
         if Op::OP_ARGS[i.name][j] == :litflag && a.kind_of?(Numeric)
           "0b#{parser.lookup(a).to_i.to_s(2)}"
         elsif a.kind_of?(LabelRef)
-          "/* #{a.label.kind_char}#{a.label.name} => */ #{parser.lookup(a).to_s}"
+          "/* #{a.label.kind_char}#{a.label.name}#{' (extern)' if parser.lookup(a, nil).nil?} => */ #{parser.lookup(a).to_s}"
         elsif a.kind_of?(DataRef)
           "/* ~#{
             case a.name
