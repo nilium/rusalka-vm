@@ -720,6 +720,14 @@ class Parser
     relocation_table { |arg| arg.kind_of? DataRef }
   end
 
+  def extern_relocation_table
+    relocation_table do |arg|
+      arg.kind_of?(LabelRef) &&
+      arg.label.kind == :export &&
+      lookup(arg, nil) == nil
+    end
+  end
+
 end # Parser
 
 
