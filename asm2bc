@@ -580,12 +580,13 @@ class Parser
   #############################################################################
 
   def peek
-    @input.peek
+    @input.peek if @input
   rescue StopIteration
     nil
   end
 
   def read
+    raise StopIteration unless @input
     if @current
       @line = @current.position.line + @current.value.count("\n")
       @column =
