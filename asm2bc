@@ -460,7 +460,9 @@ class Parser
   def line
     while accept(:newline, :semicolon)
     end
-    label || statement || error unless eof?
+    unless eof?
+      @data << (label || statement || error)
+    end
   end
 
   # EOF | "\n" | ";"
@@ -568,12 +570,7 @@ class Parser
   end
 
   def __run__
-    until eof?
-      data = line
-      break if eof?
-      error unless data
-      @data << data
-    end
+    line until eof?
   end
 
 
