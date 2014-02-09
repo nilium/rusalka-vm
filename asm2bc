@@ -670,6 +670,22 @@ class Parser
     label_data filtered_labels :export
   end
 
+  # A list of names indicating those referenced but without addresses.
+  def externs_data
+    refs = @instructions.map(&:args)
+    refs.flatten!
+    refs.keep_if { |arg| arg.kind_of?(LabelRef) && lookup(arg, nil).nil? }
+    refs.map!(&:label)
+    refs.uniq!
+
+    refs.map! { |label|
+      namedata = label.mangled.to_s.encode(Encoding::UTF_8)
+      "#{[namedata.bytesize].pack('l<')}#{namedata}"
+    }
+
+    "#{[refs.length].pack('l<')}#{refs.join}"
+  end
+
   def label_data(labels)
     data =
       labels.map do |name, label|
@@ -714,7 +730,7 @@ class Parser
   end
 
   def label_relocation_table
-    relocation_table { |arg| arg.kind_of? LabelRef }
+    relocation_table { |arg| arg.kind_of?(LabelRef) && !lookup(arg, nil).nil? }
   end
 
   def data_relocation_table
@@ -725,7 +741,7 @@ class Parser
     relocation_table do |arg|
       arg.kind_of?(LabelRef) &&
       arg.label.kind == :export &&
-      lookup(arg, nil) == nil
+      lookup(arg, nil).nil?
     end
   end
 
@@ -757,11 +773,13 @@ def write_data(parser, io)
   chunks = [
     Chunk[:VERS, version_data],
     Chunk[:OFFS, 0],
+    Chunk[:EREL, parser.extern_relocation_table],
     Chunk[:LREL, parser.label_relocation_table],
     Chunk[:DREL, parser.data_relocation_table],
     Chunk[:DATA, parser.data_blocks],
     Chunk[:IMPT, parser.imports_data],
     Chunk[:EXPT, parser.exports_data],
+    Chunk[:EXTS, parser.externs_data],
     Chunk[:INST, parser.instruction_data],
   ]
 
