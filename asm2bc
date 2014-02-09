@@ -233,7 +233,7 @@ class Parser
       @label_mappings[ref.label.mangled] ||=
         case ref.label.kind
         when :import then -(@import_count += 1)
-        when :export then no_export
+        when :export then return no_export
         else error "Unmatched labelref"
         end
     when DataRef then @string_mappings[ref.lookup]
