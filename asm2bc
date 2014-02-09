@@ -652,7 +652,7 @@ class Parser
 
         [data, id]
       end.sort_by!(&:last).map! do |data, id|
-        "#{[id, data.bytesize].pack('l<s<')}#{data}"
+        "#{[id, data.bytesize].pack('l<l<')}#{data}"
       end.join
 
     "#{[@data_mappings.length].pack('l<')}#{mapped}"
@@ -679,7 +679,7 @@ class Parser
           raise "Label may not exceed 65,535 characters in length"
         end
 
-        packdata = [lookup(LabelRef[label]), namedata.bytesize].pack('l<s<')
+        packdata = [lookup(LabelRef[label]), namedata.bytesize].pack('l<l<')
         "#{packdata}#{namedata}"
       end.join
 
@@ -689,7 +689,7 @@ class Parser
   def instruction_data
     data =
       @instructions.map do |instr|
-        [Op::OPS[instr.name], *instr.args.map { |arg| lookup(arg).to_f }].pack('s<E*')
+        [Op::OPS[instr.name], *instr.args.map { |arg| lookup(arg).to_f }].pack('l<E*')
       end.join
 
     "#{[@instructions.length].pack('l<')}#{data}"
