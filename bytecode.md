@@ -158,4 +158,6 @@ The instructions table contains `count` instructions. Each instruction is an int
 
 Because each opcode has a fixed number of arguments, there is no operand count provided for each instruction.
 
-All operands are little-endian 64-bit floats, or doubles. When treated as integers, these are considered signed 32-bit integers, as otherwise the last 12 bits of a 64-bit integer would be cut off.
+All operands are little-endian 64-bit floats, or doubles. When treated as integers, these are cast to signed 32-bit integers, as otherwise the last 12 bits of a 64-bit integer would be cut off. They may also be cast to unsigned 32-bit integers for bitwise instructions. For integer division, a special exception to this rule is made where the doubles may be cast to signed 64-bit integers. See the IDIV implementation for the rationale behind that.
+
+My choice to have all operands represented as doubles should probably be discussed elsewhere, but it can be summed up pretty quickly: doubles provide a very reasonable level of accuracy for the most part and can represent integers up to 2<sup>53</sup>. Although this doesn't cover all cases, it has all the accuracy I care about for Rusalka.
