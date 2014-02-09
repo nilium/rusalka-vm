@@ -700,10 +700,11 @@ class Parser
   def relocation_table(&block)
     raise "No block given" if block.nil?
     data =
-      @instructions.each_with_index.map do |instr, index|
+      @instructions.each_with_index.map do |instr, instr_index|
         if instr.args.any?(&block)
           refs = instr.args.each_with_index.select { |obj, index| block[obj] }.map!(&:last)
-          [index, refs.length, *refs].pack('l<*')
+          refs_mask = refs.reduce(0) do |mask, index| mask | (1 << index) end
+          [instr_index, refs_mask].pack('l<L<')
         else
           nil
         end
