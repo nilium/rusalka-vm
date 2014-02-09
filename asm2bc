@@ -524,7 +524,7 @@ class Parser
             opargs[index] == :input
           end.reduce(0) do |bits, packet; arg, index|
             arg, index = packet
-            bits | (arg.kind_of?(RegisterRef) ? 0 : 1 << (index - offset))
+            bits | (arg.kind_of?(RegisterRef) ? 0 : 1 << (((opargs.length - 1) - index) - offset))
           end
         end
       end
