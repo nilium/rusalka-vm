@@ -87,7 +87,7 @@ vm_state_t::vm_state_t(size_t stackSize)
   , _sequence(0)
 {
   for (int32_t index = 0; index < REGISTER_COUNT; ++index) {
-    _registers[index] = 0;
+    _registers[index] = 0.0;
   }
 
   _stack.resize(stackSize);
