@@ -43,6 +43,16 @@ enum memop_typed_t : int32_t
   MEMOP_INT64   = 7,          // Cast to int64_t
   MEMOP_FLOAT32 = 8,          // Cast to float
   MEMOP_FLOAT64 = 9,          // Copied as double (no change)
+  MEMOP_MAX,
+};
+
+
+static int32_t const MEMOP_SIZE[MEMOP_MAX] {
+  1, 1,
+  2, 2,
+  4, 4,
+  8, 8,
+  4, 8,
 };
 
 
@@ -671,21 +681,27 @@ void vm_state_t::exec(const op_t &op) {
   //  0x8 - type
   case PEEK: {
     value_t &out = reg(op[0]);
-    block = (int8_t *)get_block(reg(op[1]), VM_MEM_READABLE);
-    // reg(op[0]).data = *(const uint64_t *)(block + deref(op[2], op[3]).i32());
+    int32_t const block_id = reg(op[1]);
     int32_t const offset = deref(op[2], op[4], 0x4);
-    switch ((memop_typed_t)deref(op[3], op[4], 0x8).i32()) {
-    case MEMOP_UINT8:   out = *(uint8_t const *)(block + offset);  break;
-    case MEMOP_INT8:    out = *(int8_t const *)(block + offset);   break;
-    case MEMOP_UINT16:  out = *(uint16_t const *)(block + offset); break;
-    case MEMOP_INT16:   out = *(int16_t const *)(block + offset);  break;
-    case MEMOP_UINT32:  out = *(uint32_t const *)(block + offset); break;
-    case MEMOP_INT32:   out = *(int32_t const *)(block + offset);  break;
+    memop_typed_t const type = (memop_typed_t)deref(op[3], op[4], 0x8).i32();
+    block = ((int8_t *)get_block(block_id, VM_MEM_READABLE)) + offset;
+
+    if (!(block && check_block_bounds(block_id, offset, MEMOP_SIZE[type]))) {
+      std::abort();
+    }
+
+    switch (type) {
+    case MEMOP_UINT8:   out = *(uint8_t const *)block;  break;
+    case MEMOP_INT8:    out = *(int8_t const *)block;   break;
+    case MEMOP_UINT16:  out = *(uint16_t const *)block; break;
+    case MEMOP_INT16:   out = *(int16_t const *)block;  break;
+    case MEMOP_UINT32:  out = *(uint32_t const *)block; break;
+    case MEMOP_INT32:   out = *(int32_t const *)block;  break;
     // 64-bit integral types are only partially supported at the moment (may change later).
-    case MEMOP_UINT64:  out = *(uint64_t const *)(block + offset); break;
-    case MEMOP_INT64:   out = *(int64_t const *)(block + offset);  break;
-    case MEMOP_FLOAT32: out = *(float const *)(block + offset);    break;
-    case MEMOP_FLOAT64: out = *(double const *)(block + offset);   break;
+    case MEMOP_UINT64:  out = *(uint64_t const *)block; break;
+    case MEMOP_INT64:   out = *(int64_t const *)block;  break;
+    case MEMOP_FLOAT32: out = *(float const *)block;    break;
+    case MEMOP_FLOAT64: out = *(double const *)block;   break;
     default: /* invalid type */ std::abort(); break;
     }
   } break;
@@ -701,10 +717,17 @@ void vm_state_t::exec(const op_t &op) {
   // 0x4 - OFFSET
   // 0x8 - TYPE
   case POKE: {
-    block = (int8_t *)get_block(reg(op[0]), VM_MEM_WRITABLE);
+    int32_t const block_id = reg(op[0]);
     value = deref(op[1], op[4], 0x2);
     int32_t const offset = deref(op[2], op[4], 0x4);
-    switch ((memop_typed_t)deref(op[3], op[4], 0x8).i32()) {
+    memop_typed_t const type = (memop_typed_t)deref(op[3], op[4], 0x8).i32();
+    block = ((int8_t *)get_block(block_id, VM_MEM_WRITABLE)) + offset;
+
+    if (!(block && check_block_bounds(block_id, offset, MEMOP_SIZE[type]))) {
+      std::abort();
+    }
+
+    switch (type) {
     case MEMOP_UINT8:   *(uint8_t *)(block + offset)  = value.ui8();  break;
     case MEMOP_INT8:    *(int8_t *)(block + offset)   = value.i8();   break;
     case MEMOP_UINT16:  *(uint16_t *)(block + offset) = value.ui16(); break;
