@@ -664,8 +664,8 @@ void vm_state_t::exec(const op_t &op) {
   } break;
 
   // PEEK OUT, R(BLOCKID), LR(OFFSET), LR(TYPE), LITFLAG
-  // Peeks a signed value of type TYPE from the block at the given OFFSET and
-  // writes the result to OUT.
+  // Peeks a value of type TYPE from the block at the given OFFSET and writes
+  // the result to OUT.
   // Litflags:
   //  0x4 - offset
   //  0x8 - type
