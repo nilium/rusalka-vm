@@ -191,7 +191,7 @@ vm_state_t::vm_state_t(size_t stackSize)
 vm_state_t::~vm_state_t() {
   for (auto kvpair : _blocks) {
     if (!(kvpair.second.flags & VM_MEM_SOURCE_DATA)) {
-      ::free(kvpair.second.block);
+      std::free(kvpair.second.block);
     }
   }
 }
@@ -274,7 +274,7 @@ int32_t vm_state_t::unused_block_id() {
 }
 
 
-int32_t vm_state_t::realloc(int32_t block_id, int32_t size) {
+int32_t vm_state_t::realloc_block(int32_t block_id, int32_t size) {
   void *src = nullptr;
   if (block_id != 0) {
     memblock_map_t::iterator iter = _blocks.find(block_id);
@@ -311,7 +311,7 @@ int32_t vm_state_t::duplicate_block(int32_t block_id) {
   if (iter != _blocks.cend()) {
     const auto entry = iter->second;
     if (entry.flags & VM_MEM_READABLE) {
-      int32_t new_block_id = alloc(entry.size);
+      int32_t new_block_id = realloc_block(VM_NULL_BLOCK, entry.size);
       void *new_block = get_block(new_block_id, VM_MEM_WRITABLE);
       std::memcpy(new_block, entry.block, entry.size);
       return new_block_id;
@@ -330,11 +330,11 @@ int32_t vm_state_t::block_size(int32_t block_id) const {
 }
 
 
-void vm_state_t::free(int32_t block_id) {
+void vm_state_t::free_block(int32_t block_id) {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
     if (!(iter->second.flags & VM_MEM_SOURCE_DATA)) {
-      ::free(iter->second.block);
+      std::free(iter->second.block);
       _blocks.erase(iter);
     } else {
       std::abort();
@@ -650,15 +650,15 @@ void vm_state_t::exec(const op_t &op) {
   // Allocates a block of SIZE bytes and writes its ID to the OUT register.
   // If LITFLAG is set, SIZE is a literal.
   case REALLOC: {
-    reg(op[0]) = realloc(deref(op[1], op[3], 0x1), deref(op[2], op[3], 0x2));
+    reg(op[0]) = realloc_block(deref(op[1], op[3], 0x1), deref(op[2], op[3], 0x2));
   } break;
 
   // FREE BLOCKID
   // Frees the block whose ID is held in the given register and zeroes the
   // register.
   case FREE: {
-    free(reg(op[0]));
-    reg(op[0]).set(0.0);
+    free_block(reg(op[0]));
+    reg(op[0]) = 0.0;
   } break;
 
   // PEEK OUT, R(BLOCKID), LR(OFFSET), LR(TYPE), LITFLAG

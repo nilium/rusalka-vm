@@ -79,9 +79,12 @@ enum memblock_flags_t : uint32_t {
   VM_MEM_NO_PERMISSIONS = 0x0,
   VM_MEM_READABLE = 0x1,
   VM_MEM_WRITABLE = 0x2,
+  VM_MEM_STATIC = 0x4,
   VM_MEM_READ_WRITE = VM_MEM_READABLE | VM_MEM_WRITABLE,
-  VM_MEM_SOURCE_DATA = 0x4 | VM_MEM_READABLE,
+  VM_MEM_SOURCE_DATA = VM_MEM_STATIC | VM_MEM_READABLE,
 };
+
+constexpr int32_t VM_NULL_BLOCK = 0;
 
 
 class vm_state_t {
@@ -232,9 +235,9 @@ private:
   void exec_call(int32_t instr, int32_t argc);
 
 public:
-  int32_t realloc(int32_t block, int32_t size);
-  int32_t alloc(int32_t size) { return realloc(0, size); }
-  void free(int32_t block_id);
+  int32_t realloc_block(int32_t block, int32_t size);
+  int32_t alloc_block(int32_t size) { return realloc_block(0, size); }
+  void free_block(int32_t block_id);
   int32_t block_size(int32_t block_id) const;
   int32_t duplicate_block(int32_t block_id);
   void *get_block(int32_t block_id, uint32_t permissions);
