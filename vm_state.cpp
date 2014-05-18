@@ -90,7 +90,7 @@ vm_state_t::vm_state_t(size_t stackSize)
     _registers[index] = 0;
   }
 
-  _stack.reserve(stackSize);
+  _stack.resize(stackSize);
 }
 
 
