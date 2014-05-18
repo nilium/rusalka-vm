@@ -888,13 +888,13 @@ value_t &vm_state_t::stack(int32_t loc) {
 
 
 void vm_state_t::exec_call(int32_t pointer, int32_t argc) {
-  #if VM_NONVOLATILE_REGISTERS > 0
   // preserve nonvolatile registers
-  std::array<value_t, VM_NONVOLATILE_REGISTERS> nonvolatile_reg;
+  std::array<value_t, R_NONVOLATILE_REGISTERS> nonvolatile_reg;
   auto first_preserved = std::begin(_registers) + R_FIRST_NONVOLATILE;
-  auto last_preserved = first_preserved + VM_NONVOLATILE_REGISTERS;
-  std::copy(first_preserved, last_preserved, std::begin(nonvolatile_reg));
-  #endif
+  auto last_preserved = first_preserved + R_NONVOLATILE_REGISTERS;
+  if (R_NONVOLATILE_REGISTERS > 0) {
+    std::copy(first_preserved, last_preserved, std::begin(nonvolatile_reg));
+  }
 
 
   value_t const preserved_ip = ip();
@@ -921,10 +921,10 @@ void vm_state_t::exec_call(int32_t pointer, int32_t argc) {
     run();
   }
 
-  #if VM_NONVOLATILE_REGISTERS > 0
   // restore nonvolatiles
-  std::copy(std::begin(nonvolatile_reg), std::end(nonvolatile_reg), first_preserved);
-  #endif
+  if (R_NONVOLATILE_REGISTERS > 0) {
+    std::copy(std::begin(nonvolatile_reg), std::end(nonvolatile_reg), first_preserved);
+  }
 
   ip() = preserved_ip;
   ebp() = preserved_ebp;

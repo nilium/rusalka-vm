@@ -89,12 +89,21 @@ constexpr int32_t VM_NULL_BLOCK = 0;
 
 class vm_state_t {
   enum {
+    R_NONVOLATILE_REGISTERS = 8,
+
     R_IP = 0,
     R_EBP = 1,
     R_ESP = 2,
     R_RP = 3,
+
     R_FIRST_NONVOLATILE,
+    R_LAST_NONVOLATILE = R_FIRST_NONVOLATILE + (R_NONVOLATILE_REGISTERS - 1),
+
+    R_FIRST_VOLATILE,
+
     REGISTER_COUNT = 256,
+
+    R_VOLATILE_REGISTERS = REGISTER_COUNT - R_FIRST_VOLATILE,
   };
 
   struct memblock_t {
