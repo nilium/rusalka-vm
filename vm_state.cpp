@@ -833,8 +833,11 @@ void vm_state_t::exec(const op_t &op) {
 std::pair<bool, int32_t> vm_state_t::find_function_pointer(const char *name) const {
   const std::string str_name((name));
   auto finding = _source.imported_function(name);
-  if (finding.first) return finding;
-  else return _source.exported_function(name);
+  if (finding.first) {
+    return finding;
+  } else {
+    return _source.exported_function(name);
+  }
 }
 
 
