@@ -675,17 +675,17 @@ void vm_state_t::exec(const op_t &op) {
     // reg(op[0]).data = *(const uint64_t *)(block + deref(op[2], op[3]).i32());
     int32_t const offset = deref(op[2], op[4], 0x4);
     switch ((memop_typed_t)deref(op[3], op[4], 0x8).i32()) {
-    case MEMOP_UINT8:   out = *(uint8_t *)(block + offset);  break;
-    case MEMOP_INT8:    out = *(int8_t *)(block + offset);   break;
-    case MEMOP_UINT16:  out = *(uint16_t *)(block + offset); break;
-    case MEMOP_INT16:   out = *(int16_t *)(block + offset);  break;
-    case MEMOP_UINT32:  out = *(uint32_t *)(block + offset); break;
-    case MEMOP_INT32:   out = *(int32_t *)(block + offset);  break;
+    case MEMOP_UINT8:   out = *(uint8_t const *)(block + offset);  break;
+    case MEMOP_INT8:    out = *(int8_t const *)(block + offset);   break;
+    case MEMOP_UINT16:  out = *(uint16_t const *)(block + offset); break;
+    case MEMOP_INT16:   out = *(int16_t const *)(block + offset);  break;
+    case MEMOP_UINT32:  out = *(uint32_t const *)(block + offset); break;
+    case MEMOP_INT32:   out = *(int32_t const *)(block + offset);  break;
     // 64-bit integral types are only partially supported at the moment (may change later).
-    case MEMOP_UINT64:  out = *(uint64_t *)(block + offset); break;
-    case MEMOP_INT64:   out = *(int64_t *)(block + offset);  break;
-    case MEMOP_FLOAT32: out = *(float *)(block + offset);    break;
-    case MEMOP_FLOAT64: out = *(double *)(block + offset);   break;
+    case MEMOP_UINT64:  out = *(uint64_t const *)(block + offset); break;
+    case MEMOP_INT64:   out = *(int64_t const *)(block + offset);  break;
+    case MEMOP_FLOAT32: out = *(float const *)(block + offset);    break;
+    case MEMOP_FLOAT64: out = *(double const *)(block + offset);   break;
     default: /* invalid type */ std::abort(); break;
     }
   } break;
