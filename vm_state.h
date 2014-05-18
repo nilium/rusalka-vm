@@ -234,6 +234,8 @@ private:
 
   void exec_call(int32_t instr, int32_t argc);
 
+  bool check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const;
+
 public:
   int32_t realloc_block(int32_t block, int32_t size);
   int32_t alloc_block(int32_t size) { return realloc_block(0, size); }
