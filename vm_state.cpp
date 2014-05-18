@@ -268,7 +268,6 @@ int32_t vm_state_t::unused_block_id() {
   const auto current = _block_counter;
   while (_blocks.find(_block_counter) != end || _block_counter == 0) {
     ++_block_counter;
-    // if (_block_counter == current) throw std::runtime_error("no available block id");
   }
   return _block_counter++;
 }
