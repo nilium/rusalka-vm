@@ -751,31 +751,25 @@ void vm_state_t::exec(const op_t &op) {
   // 0x08 - in offset
   // 0x10 - size
   case MEMMOVE: {
-    const value_t flags = op[3];
-    int32_t size = deref(op[4], flags, 0x10);
-    int32_t dst_offset = deref(op[1], flags, 0x2);
-    int32_t src_offset = deref(op[3], flags, 0x8);
+    const value_t flags = op[5];
+    int32_t const dst_block_id = reg(op[0]);
+    int32_t const dst_offset = deref(op[1], flags, 0x2);
+    int32_t const src_block_id = reg(op[2]);
+    int32_t const src_offset = deref(op[3], flags, 0x8);
+    int32_t const size = deref(op[4], flags, 0x10);
+
     if (size > 0 && dst_offset >= 0 && src_offset >= 0) {
       // check dst block
-      int32_t dst_block_id = reg(op[0]);
-      int32_t dst_bsize = block_size(dst_block_id);
       block = (int8_t *)get_block(dst_block_id, VM_MEM_READ_WRITE);
-
-      if (dst_offset >= dst_bsize || (dst_offset + size) > dst_bsize || !block) {
+      if (!(block && check_block_bounds(dst_block_id, dst_offset, size))) {
         std::abort();
       }
-
       block += dst_offset;
 
-      // check src block
-      int32_t src_block_id = reg(op[2]);
-      int32_t src_bsize = block_size(src_block_id);
       block_in = (int8_t *)get_block(src_block_id, VM_MEM_READABLE);
-
-      if (src_offset >= src_bsize || (src_offset + size) > src_bsize || !block_in) {
+      if (!(block_in && check_block_bounds(src_block_id, src_offset, size))) {
         std::abort();
       }
-
       block_in += src_offset;
 
       std::memmove(block, block_in, size);
