@@ -428,7 +428,10 @@ void vm_state_t::exec(const op_t &op) {
   // MOD OUT, LHS, RHS, LITFLAG
   // Floating point modulo.
   case MOD: {
-    reg(op[0]).set(std::fmod(deref(op[1], op[3], 0x1).f64(), deref(op[2], op[3], 0x2).f64()));
+    reg(op[0]) = std::fmod(
+        deref(op[1], op[3], 0x1).f64(),
+        deref(op[2], op[3], 0x2).f64()
+      );
   } break;
 
   // IMOD OUT, LHS, RHS, LITFLAG
