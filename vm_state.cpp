@@ -804,8 +804,8 @@ void vm_state_t::exec_call(int32_t pointer, int32_t argc) {
     if (argc <= 0) {
       rp() = callback(*this, 0, nullptr);
     } else {
-      stack_t::const_iterator argv_end = _stack.cbegin() + ebp().i32();
-      stack_t::const_iterator argv_start = argv_end - argc;
+      auto argv_end = _stack.crbegin() + (_stack.size() - ebp().i32());
+      auto argv_start = argv_end - argc;
       stack_t argv(argv_start, argv_end);
       rp() = callback(*this, argc, &argv[0]);
     }
