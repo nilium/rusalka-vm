@@ -864,9 +864,9 @@ value_t vm_state_t::call_function_nt(int32_t pointer, int32_t num_args) {
 
 
 value_t vm_state_t::stack(int32_t loc) const {
-  if (loc <= 0) {
+  if (loc < 0) {
     std::abort();
-  } else if (loc >= _stack.size()) {
+  } else if (static_cast<size_t>(loc) >= _stack.size()) {
     return value_t::make(0);
   }
 
@@ -877,9 +877,9 @@ value_t vm_state_t::stack(int32_t loc) const {
 value_t &vm_state_t::stack(int32_t loc) {
   loc += ebp().i32();
 
-  if (loc <= 0) {
+  if (loc < 0) {
     std::abort();
-  } else if (loc >= _stack.size()) {
+  } else if (static_cast<size_t>(loc) >= _stack.size()) {
     _stack.resize(loc, value_t::make(0));
   }
 
