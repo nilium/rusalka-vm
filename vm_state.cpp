@@ -724,15 +724,39 @@ void vm_state_t::exec(const op_t &op) {
   // Just calls memmove for the blocks at the out/in registers. Offsets and
   // size may optionally be literals if their argument flags are set in LITFLAG.
   // Litflags:
-  // 0x1 - out offset
-  // 0x2 - in offset
-  // 0x3 - size
+  // 0x02 - out offset
+  // 0x08 - in offset
+  // 0x10 - size
   case MEMMOVE: {
-    // TODO: Bounds check everything.
     const value_t flags = op[3];
-    block = ((int8_t *)get_block(reg(op[0]), VM_MEM_WRITABLE | VM_MEM_READABLE)) + deref(op[2], flags, 0x1).i32();
-    block_in = ((int8_t *)get_block(reg(op[2]), VM_MEM_NO_PERMISSIONS)) + deref(op[3], flags, 0x2).i32();
-    std::memmove(block, block_in, deref(op[4], flags, 0x4).i32());
+    int32_t size = deref(op[4], flags, 0x10);
+    int32_t dst_offset = deref(op[1], flags, 0x2);
+    int32_t src_offset = deref(op[3], flags, 0x8);
+    if (size > 0 && dst_offset >= 0 && src_offset >= 0) {
+      // check dst block
+      int32_t dst_block_id = reg(op[0]);
+      int32_t dst_bsize = block_size(dst_block_id);
+      block = (int8_t *)get_block(dst_block_id, VM_MEM_READ_WRITE);
+
+      if (dst_offset >= dst_bsize || (dst_offset + size) > dst_bsize || !block) {
+        std::abort();
+      }
+
+      block += dst_offset;
+
+      // check src block
+      int32_t src_block_id = reg(op[2]);
+      int32_t src_bsize = block_size(src_block_id);
+      block_in = (int8_t *)get_block(src_block_id, VM_MEM_READABLE);
+
+      if (src_offset >= src_bsize || (src_offset + size) > src_bsize || !block_in) {
+        std::abort();
+      }
+
+      block_in += src_offset;
+
+      std::memmove(block, block_in, size);
+    }
   } break;
 
   // MEMDUP OUT, BLOCKID
