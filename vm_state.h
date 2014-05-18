@@ -52,21 +52,6 @@
 /** Log the final registers and stack */
 // #define LOG_FINAL_STATE
 
-/**
-  If defined, restores call argument registers on return to their original
-  values, otherwise there is no attempt to restore either.
-*/
-// #define VM_PRESERVE_CALL_ARGUMENT_REGISTERS
-
-/**
-  If defined, all registers are preserved on call and restored on return.
-  This disables VM_PRESERVE_CALL_ARGUMENT_REGISTERS. Otherwise, only registers
-  0 through 12 are preserved, with the exception of the return register (3) as
-  it's considered nonvolatile. Registers 13 through 31 are nonvolatile and must
-  be preserved by the callee if used.
-*/
-// #define VM_PRESERVE_PRESERVE_ALL_REGISTERS_ON_CALL
-
 
 class vm_source_t;
 class vm_state_t;
