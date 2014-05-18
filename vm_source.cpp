@@ -126,9 +126,8 @@ source_t::source_t(std::istream &&input) {
       op_t op;
 
       while (num_ops) {
-        op.opcode = NOP;
         input.read((char *)&op.opcode, sizeof(int32_t));
-        assert(op.opcode >= NOP);
+        assert(op.opcode >= ADD);
         assert(op.opcode < OP_COUNT);
 
         const size_t args_size = g_opcode_argc[op.opcode] * sizeof(value_t);

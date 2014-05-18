@@ -33,7 +33,7 @@ enum opcode_t : int32_t {
 };
 
 
-extern const uint32_t g_opcode_argc[OP_COUNT];
+extern const int32_t g_opcode_argc[OP_COUNT];
 
 
 std::ostream &operator << (std::ostream &out, opcode_t v);

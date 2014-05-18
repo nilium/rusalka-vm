@@ -23,9 +23,7 @@ The following sections will describe each chunk in a unit and their contents. Th
 
 All but the first two chunks are always in the same order. There is no requirement that other chunks be presented in the same order or contiguously in a unit, provided the version and offsets table are the first two chunks and follow one after the other. You can use the offsets table, in turn, to seek to different chunks.
 
-However, the `asm2bc` utility will always emit contiguous chunks in the order of the sections presented below. This may change in the future, hence the offsets table, but for now, the actual order of the chunks is always the same.
-
-> __Rationale for preferring signed integers:__ although unsigned integers grant you the one extra bit, it's a pain in the neck to mix signed and unsigned integers in the same program. As such, it seems simpler to mandate that signed integers be preferred unless the integer is _only_ to be used for bitwise operations.
+> __Rationale for preferring signed integers:__ although unsigned integers grant you the one extra bit, it's a pain in the neck to mix signed and unsigned integers in the same program. As such, it seems simpler to mandate that signed integers be preferred unless the integer is _only_ to be used for bitwise operations. If the range of 32-bit signed integers becomes an issue at some point, it'll be switched to 64-bit and the bytecode version will change.
 
 
 ##### Tables
@@ -56,43 +54,6 @@ Entries in this chunk are ordered according to the chunks in the unit. As such, 
 This chunk may contain more entries than there are chunks currently supported by the bytecode. If they're not chunks you care about, you can ignore their offsets since they won't be of any use. All entries must have unique names and offsets, otherwise you can consider the unit corrupt.
 
 
-### Relocation Tables
-
-All relocation tables follow the same format: they contain `count` instruction pointers and an unsigned 32-bit little-endian integer mask describing which operands of the instruction need to be relocated. How they're relocated depends on the table.
-
-As such, all relocation table entries are represented in C as such:
-
-    struct relocation_entry_t {
-        int32_t instruction_pointer;
-        uint32_t operands_mask;
-    }
-
-The instruction pointer is the zero-based offset, measured in instructions, into the unit's instructions relative to the start of the instructions for that unit. So, a pointer of 30 is the 31st instruction in the unit.
-
-The operands mask is the 32-bit unsigned little-endian integer mask for which operands need to be set. Each bit corresponds to an operand of the intruction. If the first bit in it is set, the first operand needs relocation. If the fifth bit is set, the fifth operand needs relocation. Fairly simple.
-
-
-#### `EREL` — Extern Relocations Table
-
-The externs relocation table contains `count` instruction pointers and a bitmask of which operands must be relocated once an extern exported label is made available.
-
-All extern labels are invalid values in the unit and must be filled out before the unit is considered valid. They are not required to have any usable value, though currently `asm2bc` gives them a value of zero.
-
-This may happen at link time or the extern label operands can be updated as units are loaded. There's no requirement for _when_ it happens, only that the instructions with incomplete operands be treated as invalid. What that means for the Rusalka VM is up to the implementation.
-
-
-#### `LREL` — Label Relocations Table
-
-The label relocations table contains `count` entries describing which operands reference a label _defined in the unit_. As such, they are already known positions in the instruction set and must be relocated if the unit is being linked with another unit.
-
-The labels referenced may either be imported or exported. If the label has a negative value, it is an import label and, as such, a host function. Import labels only need relocation if a previously-loaded unit defined the import label with a different position, otherwise it's considered a new import and may be given its own value according to the `IMPT` table.
-
-
-#### `DREL` - Data Relocations Table
-
-The data relocations table contains `count` entries describing which operands reference data blocks defined in the unit. Each unit gets its own data blocks, so these must always be relocated if the unit isn't to be loaded. VM implementations aren't required to deduplicate data blocks, though it may be useful to do as part of a linker stage. Depends on the size of the data block.
-
-
 #### `DATA` - Data Blocks Table
 
 The data table contains `count` entries describing data blocks in the unit. These blocks are to be treated as read-only by the VM.
@@ -108,6 +69,22 @@ Each entry can be represented as such:
 The data ID is the zero-based number of the block. These always count upwards, so the data entries are essentially an array. IDs must be incremented if prior units provide data blocks.
 
 The data itself is a string of `data_size_bytes`. The data is not required to contain anything and is not required to be null-terminated.
+
+
+#### `INST` — Instructions Table
+
+The instructions table contains `count` instructions. Each instruction is an integer opcode followed by its operands.
+
+    struct instruction_entry_t {
+        int32_t opcode;
+        double operands[ARGC];
+    }
+
+Because each opcode has a fixed number of arguments, there is no operand count provided for each instruction.
+
+All operands are little-endian 64-bit floats, or doubles. When treated as integers, these are cast to signed 32-bit integers, as otherwise the last 12 bits of a 64-bit integer would be cut off. They may also be cast to unsigned 32-bit integers for bitwise instructions. For integer division, a special exception to this rule is made where the doubles may be cast to signed 64-bit integers. See the IDIV implementation for the rationale behind that.
+
+My choice to have all operands represented as doubles should probably be discussed elsewhere, but it can be summed up pretty quickly: doubles provide a very reasonable level of accuracy for the most part and can represent integers up to 2<sup>53</sup>. Although this doesn't cover all cases, it has all the accuracy I care about for Rusalka.
 
 
 #### `IMPT` — Imports Table
@@ -144,20 +121,43 @@ The externs table contains `count` entries with the names of extern labels that 
 
 Each entry in the table is structured as a size-in-bytes integer followed by a sequence of characters for the name.
 
+The index (by counting) of each extern label is used as the placeholder for the label's value in the instruction table and must be relocated at load time.
+
 Extern label names are not null-terminated.
 
 
-#### `INST` — Instructions Table
+### Relocation Tables
 
-The instructions table contains `count` instructions. Each instruction is an integer opcode followed by its operands.
+All relocation tables follow the same format: they contain `count` instruction pointers and an unsigned 32-bit little-endian integer mask describing which operands of the instruction need to be relocated. How they're relocated depends on the table.
 
-    struct instruction_entry_t {
-        int32_t opcode;
-        double operands[ARGC];
+As such, all relocation table entries are represented in C as such:
+
+    struct relocation_entry_t {
+        int32_t instruction_pointer;
+        uint32_t operands_mask;
     }
 
-Because each opcode has a fixed number of arguments, there is no operand count provided for each instruction.
+The instruction pointer is the zero-based offset, measured in instructions, into the unit's instructions relative to the start of the instructions for that unit. So, a pointer of 30 is the 31st instruction in the unit.
 
-All operands are little-endian 64-bit floats, or doubles. When treated as integers, these are cast to signed 32-bit integers, as otherwise the last 12 bits of a 64-bit integer would be cut off. They may also be cast to unsigned 32-bit integers for bitwise instructions. For integer division, a special exception to this rule is made where the doubles may be cast to signed 64-bit integers. See the IDIV implementation for the rationale behind that.
+The operands mask is the 32-bit unsigned little-endian integer mask for which operands need to be set. Each bit corresponds to an operand of the intruction. If the first bit in it is set, the first operand needs relocation. If the fifth bit is set, the fifth operand needs relocation. Fairly simple.
 
-My choice to have all operands represented as doubles should probably be discussed elsewhere, but it can be summed up pretty quickly: doubles provide a very reasonable level of accuracy for the most part and can represent integers up to 2<sup>53</sup>. Although this doesn't cover all cases, it has all the accuracy I care about for Rusalka.
+
+#### `LREL` — Label Relocations Table
+
+The label relocations table contains `count` entries describing which operands reference a label _defined in the unit_. As such, they are already known positions in the instruction set and must be relocated if the unit is being linked with another unit.
+
+The labels referenced may either be imported or exported. If the label has a negative value, it is an import label and, as such, a host function. Import labels only need relocation if a previously-loaded unit defined the import label with a different position, otherwise it's considered a new import and may be given its own value according to the `IMPT` table.
+
+
+#### `EREL` — Extern Relocations Table
+
+The externs relocation table contains `count` instruction pointers and a bitmask of which operands must be relocated once an extern exported label is made available.
+
+All extern labels are invalid values in the unit and must be filled out before the unit is considered valid. Extern label references in the instruction set, those that require relocation, have values the same as the extern label's index in the `EXTS` table.
+
+Relocation may happen at link time or the extern label operands can be updated as units are loaded. There's no requirement for _when_ it happens, only that the instructions with incomplete operands be treated as invalid. What that means for the Rusalka VM is up to the implementation.
+
+
+#### `DREL` - Data Relocations Table
+
+The data relocations table contains `count` entries describing which operands reference data blocks defined in the unit. Each unit gets its own data blocks, so these must always be relocated if the unit isn't to be loaded. VM implementations aren't required to deduplicate data blocks, though it may be useful to do as part of a linker stage. Depends on the size of the data block.

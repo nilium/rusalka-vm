@@ -19,13 +19,13 @@
 
 #include "vm_opcode.h"
 
-const uint32_t g_opcode_argc[OP_COUNT] = {
+const int32_t g_opcode_argc[OP_COUNT] = {
 #define INSTRUCTION(OPCODE, ASM_NAME, CODE, NUM_ARGS, ARG_INFO... ) NUM_ARGS,
 #include "vm_instructions.h"
 #undef INSTRUCTION
 };
 
-std::ostream &operator << (std::ostream &out, const opcode_t &v) {
+std::ostream &operator << (std::ostream &out, opcode_t v) {
   switch (v) {
   #define INSTRUCTION(OPCODE, ASM_NAME, CODE, ARGS, ARG_INFO... ) case OPCODE: return out << #OPCODE;
   #include "vm_instructions.h"

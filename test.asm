@@ -20,33 +20,40 @@
 defdata woop "wooperton"
 
 // main
-.main
-    push [argv[0]]
-    load $1 -1.23456
-    call .fabs [$1]
-    fadd argv[0] argv[0] rp
-    call ^print [argv[0]]
-    load $20 ~woop
-    call ^prints [$20]
+.main:
+    push      $0
+    load      $1 0.5
+    call      .fabs [$1]
+    add       $0 $0 rp
+    call      ^print [$0]
+    load      $20 ~woop
+    load      $20 "woop"
+    call      ^prints [$20]
 
-    push [$0]
-    load $0 0
+    push      $0
+    load      $0 0
 
-@loop
-    cmpl $2 $0 0xFFFFFFF
-    jgtel $2 @loop_done
+    call      .extern_sym1 0
 
-    // itof 5 4
-    // faddl 5 5 0.5
-    // call ^print 0x20
-    addl $0 $0 1
-    jumpl @loop
+    load      $8 .extern_sym2
+    call      $8 0
 
-@loop_done
-    pop [$0]
-    return $0
+@loop:
+    cmp       $2 $0 ~0
+    jgez      $2 @loop_done
 
-// fabs(f)
-.fabs
-    uandl argv[0] argv[0] 0x7FFFFFFF
-    return argv[0]
+    add       $0 $0 1.0
+    jump      @loop
+
+@loop_done:
+    pop       $0
+    return
+
+// fabs(f). Just import a freakin' fabs function, this is stupid since I can't
+// just bitwise-and a double's sign bit since integers are strictly 32-bit
+// and therefore cannot touch the latter 32 bits of a double.
+.fabs:
+    jgez      @fabs_return_early $0
+    neg       $0 $0
+@fabs_return_early:
+    return

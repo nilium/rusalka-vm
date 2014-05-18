@@ -24,11 +24,11 @@
 #include <iostream>
 
 
-union value_t {
-  // int64_t i64;
+struct value_t
+{
   double  value;
 
-  float    f64() const  { return value; }
+  double   f64() const  { return value; }
   float    f32() const  { return (float)value; }
   int64_t  i64() const  { return (int64_t)value; }
   uint64_t ui64() const { return (uint64_t)value; }
@@ -60,6 +60,28 @@ union value_t {
   operator uint16_t() const { return (uint16_t)value; }
   operator int8_t() const   { return (int8_t)value; }
   operator uint8_t() const  { return (uint8_t)value; }
+
+  value_t &operator = (double v)    { set(v); return *this; }
+  value_t &operator = (float v)     { set(v); return *this; }
+  value_t &operator = (int64_t v)   { set(v); return *this; }
+  value_t &operator = (uint64_t v)  { set(v); return *this; }
+  value_t &operator = (int32_t v)   { set(v); return *this; }
+  value_t &operator = (uint32_t v)  { set(v); return *this; }
+  value_t &operator = (int16_t v)   { set(v); return *this; }
+  value_t &operator = (uint16_t v)  { set(v); return *this; }
+  value_t &operator = (int8_t v)    { set(v); return *this; }
+  value_t &operator = (uint8_t v)   { set(v); return *this; }
+
+  static value_t make(double v)    { return value_t { v }; }
+  static value_t make(float v)     { return value_t { (double)v }; }
+  static value_t make(int64_t v)   { return value_t { (double)v }; }
+  static value_t make(uint64_t v)  { return value_t { (double)v }; }
+  static value_t make(int32_t v)   { return value_t { (double)v }; }
+  static value_t make(uint32_t v)  { return value_t { (double)v }; }
+  static value_t make(int16_t v)   { return value_t { (double)v }; }
+  static value_t make(uint16_t v)  { return value_t { (double)v }; }
+  static value_t make(int8_t v)    { return value_t { (double)v }; }
+  static value_t make(uint8_t v)   { return value_t { (double)v }; }
 };
 
 std::ostream &operator << (std::ostream &out, value_t v);

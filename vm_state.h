@@ -90,8 +90,8 @@ class vm_state_t {
     R_EBP = 1,
     R_ESP = 2,
     R_RP = 3,
+    R_FIRST_NONVOLATILE,
     REGISTER_COUNT = 256,
-    REGISTER_SIZE = sizeof(value_t)
   };
 
   struct memblock_t {
@@ -101,11 +101,13 @@ class vm_state_t {
   };
 
   using memblock_map_t = std::map<int32_t, memblock_t>;
+  using stack_t = std::vector<value_t>;
+  using callbacks_t = std::vector<vm_callback_t *>;
 
   // std::array<value_t, REGISTER_COUNT> _registers;
   value_t _registers[REGISTER_COUNT];
-  std::vector<value_t> _stack;
-  std::vector<vm_callback_t *> _callbacks;
+  stack_t _stack;
+  callbacks_t _callbacks;
   memblock_map_t _blocks;
   int32_t _block_counter;
   int32_t _sequence;
@@ -206,30 +208,32 @@ private:
 
   int32_t fetch();
 
-  int32_t ip() const { return _registers[R_IP].i32(); }
-  int32_t ebp() const { return _registers[R_EBP].i32(); }
-  uint32_t esp() const { return _registers[R_ESP].ui32(); } // mask
-  value_t rp() const { return _registers[R_RP]; }
+  value_t ip() const { return _registers[R_IP]; }
+  value_t &ip() { return _registers[R_IP]; }
 
-  void ip(int32_t v) { _registers[R_IP].set(v); }
-  void ebp(int32_t v) { _registers[R_EBP].set(v); }
-  void esp(uint32_t v) { _registers[R_ESP].set(v); } // mask
-  void rp(value_t v) { _registers[R_RP] = v; }
+  value_t ebp() const { return _registers[R_EBP]; }
+  value_t &ebp() { return _registers[R_EBP]; }
+
+  value_t esp() const { return _registers[R_ESP]; }
+  value_t &esp() { return _registers[R_ESP]; }
+
+  value_t rp() const { return _registers[R_RP]; }
   value_t &rp() { return _registers[R_RP]; }
 
   value_t reg(int32_t off) const { return _registers[off]; }
   value_t &reg(int32_t off) { return _registers[off]; }
 
-  value_t stack(int32_t off) const { return _stack[ebp() + off]; }
-  value_t &stack(int32_t off) { return _stack[ebp() + off]; }
+  value_t stack(int32_t off) const;
+  value_t &stack(int32_t off);
 
-  void push(uint32_t bits);
-  void pop(uint32_t bits, bool shrink = true);
+  void push(value_t value);
+  value_t pop(bool copy_only = true);
 
-  void exec_call(int32_t instr, uint32_t args_mask);
+  void exec_call(int32_t instr, int32_t argc);
 
 public:
-  int32_t alloc(int32_t size);
+  int32_t realloc(int32_t block, int32_t size);
+  int32_t alloc(int32_t size) { return realloc(0, size); }
   void free(int32_t block_id);
   int32_t block_size(int32_t block_id) const;
   int32_t duplicate_block(int32_t block_id);

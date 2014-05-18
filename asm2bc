@@ -28,6 +28,34 @@ require 'set'
 BYTECODE_VERSION = 8
 
 
+module Colors
+  class <<self
+    attr_accessor :colored
+  end
+
+  self.colored = true
+
+  GREY     = '[30;m'
+  RED      = '[31;m'
+  GREEN    = '[32;m'
+  YELLOW   = '[33;m'
+  BLUE     = '[34;m'
+  PURPLE   = '[35;m'
+  CYAN     = '[36;m'
+  WHITE    = '[37;m'
+  NO_COLOR = '[0;m'
+
+  def self.white(*bits)  ; "#{self.colored  ? WHITE   : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def self.grey(*bits)   ; "#{self.colored  ? GREY    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def self.red(*bits)    ; "#{self.colored  ? RED     : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def self.green(*bits)  ; "#{self.colored  ? GREEN   : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def self.yellow(*bits) ; "#{self.colored  ? YELLOW  : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def self.blue(*bits)   ; "#{self.colored  ? BLUE    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def self.purple(*bits) ; "#{self.colored  ? PURPLE  : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def self.cyan(*bits)   ; "#{self.colored  ? CYAN    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+end
+
+
 ###############################################################################
 #  Parsing vm_instructions.h                                                  #
 ###############################################################################
@@ -47,30 +75,31 @@ module Op
 
   module Loading
 
-    def self.litflag ; :litflag ; end
-    def self.method_missing(name, *args) ; name ; end
-    def self.const_missing(name) ; name ; end
+    File.open('vm_instructions.h', 'r') do |io|
+      until io.readline.chomp == '// BEGIN INSTRUCTIONS' ; end
 
-    define_singleton_method(:VM_LICENSE) do |*args|
-      ::Op.license = args.join "\n"
-      nil
-    end
+      until (line = io.readline.chomp) == '// END INSTRUCTIONS'
+        instr_string = line[/(?<=INSTRUCTION\().+(?=\))/]
+        next unless instr_string
+        argv = instr_string.split(',').each(&:strip!)
 
-    define_singleton_method(:INSTRUCTION) do
-      |codename, asm_name, code, num_args, *args|
-      ::Op.const_set(codename, code)
-      ::Op::OP_NAMES << asm_name.downcase.tap do |name|
-          ::Op::OPS[name] = ::Op.const_get(codename)
-          ::Op::OP_PACKS[name] = 'E' * args.length
-          ::Op::OP_ARGS[name] = args
-          ::Op::OP_HAS_LITFLAG[name] = args.include?(:litflag)
+        codename = argv.shift.to_sym
+        asm_name = argv.shift.to_sym
+        opcode = argv.shift.to_i
+        argc = argv.shift.to_i
+        argv.map!(&:to_sym)
+
+        ::Op.const_set(codename, opcode)
+        ::Op::OP_NAMES << asm_name.downcase.tap do |name|
+          ::Op::OPS[name] = opcode
+          ::Op::OP_PACKS[name] = 'E' * argc
+          ::Op::OP_ARGS[name] = argv
+          ::Op::OP_HAS_LITFLAG[name] = argv[-1] == :litflag
         end.to_s
+
+      end
     end
 
-    self.module_eval(
-      File.open('vm_instructions.h') { |io| io.read },
-      'vm_instructions.h'
-      )
   end
 end
 
@@ -206,7 +235,8 @@ class Parser
         break generated
       end.tap { |k| @uuids << k }
 
-    "uuid_#{result.gsub('-', '_')}"
+    str = result.split('-').map { |i| i.to_i(16).to_s(36) }.join
+    str[/^\d/] ? "_#{str}" : str
   end
 
 
@@ -216,6 +246,7 @@ class Parser
     @prefix          = nil
     @instructions    = []
     @labels          = {}
+    @externs         = {}
     @label_mappings  = {}
     @string_mappings = {}
     @data_mappings   = {}
@@ -233,12 +264,16 @@ class Parser
       @label_mappings[ref.label.mangled] ||=
         case ref.label.kind
         when :import then -(@import_count += 1)
-        when :export then return no_export
+        when :export then return @externs[ref.label.mangled] || no_export
         else error "Unmatched labelref"
         end
     when DataRef then @string_mappings[ref.lookup]
     else ref
     end
+  end
+
+  def is_extern?(ref)
+    ref.kind_of?(LabelRef) && @externs.include?(ref.label.mangled)
   end
 
 
@@ -321,7 +356,7 @@ class Parser
       data = tok.value
       is_dupe = @data_mappings.include?(data)
       id = @data_mappings[data] ||= @data_mappings.length + 1
-      stmt = AnonDataStmt[id, :"__data_#{unique_uuid}"]
+      stmt = AnonDataStmt[id, :"data_#{unique_uuid}"]
       @string_mappings[stmt] = id
       unless is_dupe
         defstmt = DefDataStmt[stmt.prefix, data, mangle_data_name(stmt.prefix)]
@@ -565,6 +600,7 @@ class Parser
     @line = 0
     @column = 0
     __run__
+    id_extern_labels!
   ensure
     @prefix = nil
     @input = nil # don't retain the enumerator
@@ -663,39 +699,35 @@ class Parser
   end
 
   def imports_data
-    label_data filtered_labels :import
+    label_data(filtered_labels(:import)) { |_, _, address| -address }
   end
 
   def exports_data
-    label_data filtered_labels :export
+    label_data(filtered_labels(:export))
   end
 
   # A list of names indicating those referenced but without addresses.
   def externs_data
-    refs = @instructions.map(&:args)
-    refs.flatten!
-    refs.keep_if { |arg| arg.kind_of?(LabelRef) && lookup(arg, nil).nil? }
-    refs.map!(&:label)
-    refs.uniq!
-
-    refs.map! { |label|
-      namedata = label.mangled.to_s.encode(Encoding::UTF_8)
+    refs = @externs.map do |label, id|
+      namedata = label.to_s.encode(Encoding::UTF_8)
       "#{[namedata.bytesize].pack('l<')}#{namedata}"
-    }
+    end
 
     "#{[refs.length].pack('l<')}#{refs.join}"
   end
 
-  def label_data(labels)
+  def label_data(labels, &sort)
     data =
       labels.map do |name, label|
+        [name, label, lookup(LabelRef[label])]
+      end.sort_by { |k| sort ? sort[*k] : k[2] }.map do |name, label, address|
         namedata = name.to_s.encode(Encoding::UTF_8)
 
         if namedata.bytesize > 65535
           raise "Label may not exceed 65,535 characters in length"
         end
 
-        packdata = [lookup(LabelRef[label]), namedata.bytesize].pack('l<l<')
+        packdata = [address, namedata.bytesize].pack('l<l<')
         "#{packdata}#{namedata}"
       end.join
 
@@ -729,6 +761,20 @@ class Parser
     "#{[data.length].pack('l<')}#{data.join}"
   end
 
+  def arguments_where(&block)
+    args = []
+    @instructions.each_with_index do |instr, ip|
+      matches = instr.args.each_with_index.select do |arg, arg_idx|
+        block[arg]
+      end.map do |arg, arg_idx|
+        [ip, arg_idx, arg]
+      end
+
+      args += matches unless matches.empty?
+    end
+    args
+  end
+
   def label_relocation_table
     relocation_table { |arg| arg.kind_of?(LabelRef) && !lookup(arg, nil).nil? }
   end
@@ -741,8 +787,20 @@ class Parser
     relocation_table do |arg|
       arg.kind_of?(LabelRef) &&
       arg.label.kind == :export &&
-      lookup(arg, nil).nil?
+      @externs.include?(arg)
     end
+  end
+
+  def id_extern_labels!
+    extern_labels = arguments_where do |arg|
+      arg.kind_of?(LabelRef) && lookup(arg, nil).nil?
+    end
+
+    uniq_externs = extern_labels.map{ |ip, ia, ref| ref }.uniq(&:label)
+    uniq_externs.each { |ref|
+      next if @externs.include?(ref)
+      @externs[ref.label.mangled] = @externs.length
+    }
   end
 
 end # Parser
@@ -773,14 +831,14 @@ def write_data(parser, io)
   chunks = [
     Chunk[:VERS, version_data],
     Chunk[:OFFS, 0],
-    Chunk[:EREL, parser.extern_relocation_table],
-    Chunk[:LREL, parser.label_relocation_table],
-    Chunk[:DREL, parser.data_relocation_table],
     Chunk[:DATA, parser.data_blocks],
+    Chunk[:INST, parser.instruction_data],
     Chunk[:IMPT, parser.imports_data],
     Chunk[:EXPT, parser.exports_data],
     Chunk[:EXTS, parser.externs_data],
-    Chunk[:INST, parser.instruction_data],
+    Chunk[:LREL, parser.label_relocation_table],
+    Chunk[:EREL, parser.extern_relocation_table],
+    Chunk[:DREL, parser.data_relocation_table],
   ]
 
   # [chunk count] + [[label, offset], ...]
@@ -809,6 +867,9 @@ flags = Struct.new(:print_instrs).new
 loop {
   case ARGV.first
   when '--print-instrs' then flags.print_instrs = true
+  when '--no-print-instrs' then flags.print_instrs = false
+  when '--no-colors' then Colors.colored = false
+  when '--colors' then Colors.colored = true
   else break
   end
   ARGV.shift
@@ -861,6 +922,10 @@ def mul_of(x, n)
   ([(x.to_f / n).ceil, 1].max * n)
 end
 
+def rpad_to(str, len)
+  "#{' ' * (len - str[0].length)}#{str[1]}"
+end
+
 if flags.print_instrs
 
   max_arg_columns = []
@@ -870,66 +935,87 @@ if flags.print_instrs
     i.args.each_with_index.map { |a, j|
       a =
         if Op::OP_ARGS[i.name][j] == :litflag && a.kind_of?(Numeric)
-          "0b#{parser.lookup(a).to_i.to_s(2)}"
+          value = "0b#{parser.lookup(a).to_i.to_s(2)}"
+          [value, Colors.red(value)]
         elsif a.kind_of?(LabelRef)
-          "/* #{a.label.kind_char}#{a.label.name}#{' (extern)' if parser.lookup(a, nil).nil?} => */ #{parser.lookup(a).to_s}"
+          value = parser.lookup(a).to_s
+          comment = "/* #{
+              a.label.kind_char
+            }#{
+              a.label.name
+            }#{
+              ' (extern)' if parser.is_extern?(a)
+            } => */"
+
+          [
+            "#{comment} #{value}",
+            "#{Colors.white comment} #{Colors.yellow value}"
+          ]
         elsif a.kind_of?(DataRef)
-          "/* ~#{
-            case a.name
-            when AnonDataStmt then a.name.prefix
-            else a.name
-            end
-          } => */ #{parser.lookup(a).inspect.to_s}"
+          value = parser.lookup(a).inspect.to_s
+          comment = "/* ~#{
+              case a.name
+              when AnonDataStmt then a.name.prefix
+              else a.name
+              end
+            } => */"
+          [
+            "#{comment} #{value}",
+            "#{Colors.white comment} #{Colors.blue value}"
+          ]
         elsif a.kind_of?(RegisterRef)
-          case a.index
-          when 0 then 'ip'
-          when 1 then 'ebp'
-          when 2 then 'esp'
-          when 3 then 'rp'
-          else "%#{a.index}"
-          end
+          nocol =
+            case a.index
+            when 0 then 'ip'
+            when 1 then 'ebp'
+            when 2 then 'esp'
+            when 3 then 'rp'
+            else "%#{a.index}"
+            end
+          [nocol, Colors.green(nocol)]
         else
-          parser.lookup(a).to_s
+          nocol = parser.lookup(a).to_s
+          [nocol, Colors.cyan(nocol)]
         end
 
-      max_arg_columns[j] = max_arg_columns.fetch(j, []) << a.length
+      max_arg_columns[j] = max_arg_columns.fetch(j, []) << a[0].length
 
       a
     }
   }
   max_arg_columns.map! { |k| mul_of(k.max, 4) }
-  args.each { |ap| ap.map!.each_with_index { |s, j| s.rjust(max_arg_columns[j]) } }
+  args.each { |ap| ap.map!.each_with_index { |s, j| rpad_to(s, max_arg_columns[j]) } }
   max_line_no_length = ([parser.instructions.length.to_s.length / 4, 3].max) * 4
   instr_index = 0
   parser.data.each_with_index do |datum, index|
     case datum
     when Unit
       $stderr.write "\n\n" if index != 0
-      $stderr.puts "/#{'*' * 99}"
-      $stderr.puts "    Unit: #{datum.name} (#{datum.prefix})"
-      $stderr.puts "#{'*' * 99}/\n\n"
+      $stderr.puts Colors.white "/#{'*' * 99}"
+      $stderr.puts Colors.white "    Unit: #{datum.name} (#{datum.prefix})"
+      $stderr.puts "#{Colors.white "#{'*' * 99}/"}\n\n"
     when DefDataStmt
       stmt = datum
-      $stderr.puts "// Data: #{stmt.mangled}"
-      $stderr.puts "defdata  #{stmt.name}  #{stmt.string.inspect}"
+      $stderr.puts Colors.white "// Data: #{stmt.mangled}"
+      $stderr.puts "#{Colors.purple "defdata"} #{Colors.blue stmt.name} #{Colors.cyan stmt.string.inspect}"
     when Instruction
       instr = datum
-      $stderr.write "    #{"/* #{instr_index} */".ljust(max_line_no_length)}"
-      $stderr.write "#{instr.name.to_s.ljust(max_name_len)}"
+      $stderr.write "    #{Colors.white "/* #{instr_index} */".ljust(max_line_no_length)}"
+      $stderr.write "#{Colors.purple instr.name.to_s.ljust(max_name_len)}"
       $stderr.write " #{args[instr_index].join '  '}" unless args[instr_index].empty?
       $stderr.write "\n"
       instr_index += 1
     when LabelStmt
       $stderr.write "\n" if index != 0
       label = datum.label
-      $stderr.puts "// #{label.mangled}"
-      $stderr.write case label.kind
-                    when :export then '.'
-                    when :local then '@'
-                    when :import then '^' # never occurs
-                    end
-      $stderr.write label.name
-      $stderr.write ":\n"
+      $stderr.puts Colors.white "// #{label.mangled}"
+      $stderr.write Colors.yellow(
+        "#{case label.kind
+           when :export then '.'
+           when :local then '@'
+           when :import then '^' # never occurs
+           end}#{label.name}:")
+      $stderr.write "\n"
     else
     end
   end

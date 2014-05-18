@@ -28,6 +28,23 @@
 
 #define VM_FCMP_EPSILON (1.0e-12)
 
+#define VM_NONVOLATILE_REGISTERS 8
+
+
+enum memop_typed_t : int32_t
+{
+  MEMOP_UINT8   = 0,          // Cast to uint8_t
+  MEMOP_INT8    = 1,          // Cast to int8_t
+  MEMOP_UINT16  = 2,          // Cast to uint16_t
+  MEMOP_INT16   = 3,          // Cast to int16_t
+  MEMOP_UINT32  = 4,          // Cast to uint32_t
+  MEMOP_INT32   = 5,          // Cast to int32_t
+  MEMOP_UINT64  = 6,          // Cast to uint64_t
+  MEMOP_INT64   = 7,          // Cast to int64_t
+  MEMOP_FLOAT32 = 8,          // Cast to float
+  MEMOP_FLOAT64 = 9,          // Copied as double (no change)
+};
+
 
 static
 bool
@@ -163,8 +180,9 @@ vm_state_t::vm_state_t(size_t stackSize)
   , _block_counter(1)
   , _sequence(0)
 {
-  for (int32_t index = 0; index < REGISTER_COUNT; ++index)
-    _registers[index].set(0);
+  for (int32_t index = 0; index < REGISTER_COUNT; ++index) {
+    _registers[index] = 0;
+  }
 
   _stack.reserve(stackSize);
 }
@@ -195,8 +213,8 @@ int32_t vm_state_t::fetch() {
   while (vm.ip() < ops.size() && vm.ip() >= 0) {
     op_t op = ops[vm.ip()++];
     */
-  const int32_t next_instr = ip() + 1;
-  ip(next_instr);
+  const int32_t next_instr = ip().i32() + 1;
+  ip() = next_instr;
   _trap += (next_instr < 0) || (next_instr >= _source_size);
   return next_instr;
 }
@@ -229,7 +247,7 @@ void vm_state_t::bind_callback(const char *name, vm_callback_t *function) {
 
 
 bool vm_state_t::run(int32_t from_ip) {
-  ip(from_ip);
+  ip() = from_ip;
   return run();
 }
 
@@ -248,23 +266,42 @@ bool vm_state_t::run() {
 int32_t vm_state_t::unused_block_id() {
   auto end = _blocks.end();
   const auto current = _block_counter;
-  while (_blocks.find(_block_counter) != end) {
+  while (_blocks.find(_block_counter) != end || _block_counter == 0) {
     ++_block_counter;
-
     // if (_block_counter == current) throw std::runtime_error("no available block id");
   }
   return _block_counter++;
 }
 
 
-int32_t vm_state_t::alloc(int32_t size) {
-  const int32_t block_id = unused_block_id();
-  memblock_t block = {
+int32_t vm_state_t::realloc(int32_t block_id, int32_t size) {
+  void *src = nullptr;
+  if (block_id != 0) {
+    memblock_map_t::iterator iter = _blocks.find(block_id);
+
+    if (iter == _blocks.cend()) {
+      std::abort();
+      return 0;
+    }
+
+    src = iter->second.block;
+  } else {
+    block_id = unused_block_id();
+  }
+
+  memblock_t block {
     size,
     VM_MEM_WRITABLE | VM_MEM_READABLE,
-    malloc(static_cast<size_t>(size))
+    std::realloc(src, static_cast<size_t>(size))
   };
-  _blocks.emplace(block_id, block);
+
+  if (block.block == nullptr) {
+    // TODO: replace std::abort calls with sane handling for realloc failure
+    std::abort();
+    return 0;
+  }
+
+  _blocks[block_id] = block;
   return block_id;
 }
 
@@ -276,7 +313,7 @@ int32_t vm_state_t::duplicate_block(int32_t block_id) {
     if (entry.flags & VM_MEM_READABLE) {
       int32_t new_block_id = alloc(entry.size);
       void *new_block = get_block(new_block_id, VM_MEM_WRITABLE);
-      memcpy(new_block, entry.block, entry.size);
+      std::memcpy(new_block, entry.block, entry.size);
       return new_block_id;
     }
   }
@@ -343,10 +380,6 @@ void vm_state_t::exec(const op_t &op) {
   #endif
 
   switch (op.opcode) {
-  // NOP
-  // Does nothing.
-  case NOP: break;
-
   // For all math and bitwise instructions, litflag applies to both LHS and RHS
   // input. See vm_state_t::deref for how the test works.
   //
@@ -385,6 +418,12 @@ void vm_state_t::exec(const op_t &op) {
   // Multiplication (fp64).
   case MUL: {
     reg(op[0]).set(deref(op[1], op[3], 0x1).f64() * deref(op[2], op[3], 0x2).f64());
+  } break;
+
+  // POW OUT, LHS, RHS, LITFLAG
+  // Power (fp64).
+  case POW: {
+    reg(op[0]) = std::pow(deref(op[1], op[3], 0x1).f64(), deref(op[2], op[3], 0x2).f64());
   } break;
 
   // MOD OUT, LHS, RHS, LITFLAG
@@ -518,64 +557,53 @@ void vm_state_t::exec(const op_t &op) {
   // case of JLT, this is reversed and it is anything less than
   // or equal to -VM_FCMP_EPSILON).
 
-  // JNE COMPARE, POINTER, LITFLAG
+  // JNEZ COMPARE, POINTER, LITFLAG
   // Jump if the value at COMPARE is non-zero.
-  case JNE: {
-    if (reg(op[0]).f64() != 0.0)
-      ip(deref(op[1], op[2]));
+  case JNZ: {
+    if (reg(op[0]).f64() != 0.0) {
+      ip() = deref(op[1], op[2]);
+    }
   } break;
 
-  // JEQ COMPARE, POINTER, LITFLAG
-  case JEQ: {
-    if (reg(op[0]).f64() == 0.0)
-      ip(deref(op[1], op[2]));
+  // JEZ COMPARE, POINTER, LITFLAG
+  case JEZ: {
+    if (reg(op[0]).f64() == 0.0) {
+      ip() = deref(op[1], op[2]);
+    }
   } break;
 
-  // JGTE COMPARE, POINTER, LITFLAG
-  case JGTE: {
-    if (reg(op[0]).f64() >= 0.0)
-      ip(deref(op[1], op[2]));
+  // JGEZ COMPARE, POINTER, LITFLAG
+  case JGEZ: {
+    if (reg(op[0]).f64() >= 0.0) {
+      ip() = deref(op[1], op[2]);
+    }
   } break;
 
-  // JLTE COMPARE, POINTER, LITFLAG
-  case JLTE: {
-    if (reg(op[0]).f64() <= 0.0)
-      ip(deref(op[1], op[2]));
+  // JLEZ COMPARE, POINTER, LITFLAG
+  case JLEZ: {
+    if (reg(op[0]).f64() <= 0.0) {
+      ip() = deref(op[1], op[2]);
+    }
   } break;
 
-  // JLT COMPARE, POINTER, LITFLAG
-  case JLT: {
-    if (reg(op[0]).f64() <= -VM_FCMP_EPSILON)
-      ip(deref(op[1], op[2]));
+  // JLTZ COMPARE, POINTER, LITFLAG
+  case JLTZ: {
+    if (reg(op[0]).f64() <= -VM_FCMP_EPSILON) {
+      ip() = deref(op[1], op[2]);
+    }
   } break;
 
-  // JGT COMPARE, POINTER, LITFLAG
-  case JGT: {
-    if (reg(op[0]).f64() >= VM_FCMP_EPSILON)
-      ip(deref(op[1], op[2]));
+  // JGTZ COMPARE, POINTER, LITFLAG
+  case JGTZ: {
+    if (reg(op[0]).f64() >= VM_FCMP_EPSILON) {
+      ip() = deref(op[1], op[2]);
+    }
   } break;
 
   // JUMP POINTER, LITFLAG
   // Unconditional jump.
   case JUMP: {
-    ip(deref(op[1], op[2]));
-  } break;
-
-  // STORE ADDRESS, IN, LITFLAG
-  // Stores the value at IN at the given relative address on the stack.
-  // Litflags:
-  // 0x1 - ADDRESS is a literal 32-bit signed int.
-  // 0x2 - IN is a literal value.
-  case STORE: {
-    stack(deref(op[0], op[2])) = reg(op[1]);
-  } break;
-
-  // GET OUT, ADDRESS, LITFLAG
-  // Retrieves a value from the stack at the relative address given. If LITFLAG
-  // is set, the address is a literal signed integer (may be negative to
-  // ascend the stack). The value on the stack is written to OUT.
-  case GET: {
-    reg(op[0]) = stack(deref(op[1], op[2]));
+    ip() = deref(op[1], op[2]);
   } break;
 
   // PUSH MASK, LITFLAG
@@ -583,7 +611,7 @@ void vm_state_t::exec(const op_t &op) {
   // mask corresponds to registers 0 through 31. If LITFLAG is set, the mask is
   // a literal 32-bit uint.
   case PUSH: {
-    push(deref(op[0], op[1]));
+    push(reg(op[0]));
   } break;
 
   // POP MASK, LITFLAG
@@ -591,7 +619,7 @@ void vm_state_t::exec(const op_t &op) {
   // to the registers corresponding to the bits in MASK. If LITFLAG is set,
   // MASK is a literal 32-bit uint.
   case POP: {
-    pop(deref(op[0], op[1]), true);
+    reg(op[0]) = pop();
   } break;
 
   // LOAD OUT, IN, LITFLAG
@@ -601,11 +629,10 @@ void vm_state_t::exec(const op_t &op) {
     reg(op[0]) = deref(op[1], op[2]);
   } break;
 
-  // CALL POINTER, ARGSMASK, LITFLAG
-  // Executes a call to the function at the given pointer with the given
-  // arguments mask. The args mask is a 32-bit bitmask of which registers to
-  // use for arguments to the function called. If the function pointer is a
-  // negative value, the address is that of a host function.
+  // CALL POINTER, ARGC, LITFLAG
+  // Executes a call to the function at the given pointer. ARGC indicated the
+  // number of arguments on the stack for the receiving function, and is
+  // the
   // Litflags:
   // 0x1 - POINTER is a literal address.
   // 0x2 - ARGSMASK is a literal 32-bit uint.
@@ -613,27 +640,17 @@ void vm_state_t::exec(const op_t &op) {
     exec_call(deref(op[0], op[2], 0x1), deref(op[1], op[2], 0x2));
   } break;
 
-  // RETURN REG
-  // Copies the value held by register REG and returns from the current call
-  // frame.
+  // RETURN
   case RETURN: {
-    auto return_reg = op[0].i32();
-    value = reg(return_reg);
-    #ifdef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
-    pop(esp(), true);
-    #endif
-    pop(CALL_STACK_MASK, true);
-    if (return_reg != R_RP) {
-      rp() = value;
-    }
+    esp() = ebp();
     --_sequence;
   } break;
 
   // ALLOC OUT, SIZE, LITFLAG
   // Allocates a block of SIZE bytes and writes its ID to the OUT register.
   // If LITFLAG is set, SIZE is a literal.
-  case ALLOC: {
-    reg(op[0]).set(alloc(deref(op[1], op[2])));
+  case REALLOC: {
+    reg(op[0]) = realloc(deref(op[1], op[3], 0x1), deref(op[2], op[3], 0x2));
   } break;
 
   // FREE BLOCKID
@@ -644,42 +661,61 @@ void vm_state_t::exec(const op_t &op) {
     reg(op[0]).set(0.0);
   } break;
 
-  // PEEKN OUT, BLOCKID, OFFSET, LITFLAG
-  // Peeks a signed value of width N from the block at the given OFFSET and
-  // writes the result to OUT. If any LITFLAG is set, the offset is a literal.
-  case PEEK8: {
+  // PEEK OUT, R(BLOCKID), LR(OFFSET), LR(TYPE), LITFLAG
+  // Peeks a signed value of type TYPE from the block at the given OFFSET and
+  // writes the result to OUT.
+  // Litflags:
+  //  0x4 - offset
+  //  0x8 - type
+  case PEEK: {
+    value_t &out = reg(op[0]);
     block = (int8_t *)get_block(reg(op[1]), VM_MEM_READABLE);
-    reg(op[0]).set(block[deref(op[2], op[3]).i32()]);
-  } break;
-  case PEEK16: {
-    block = (int8_t *)get_block(reg(op[1]), VM_MEM_READABLE);
-    reg(op[0]).set(*(const uint16_t *)(block + deref(op[2], op[3]).i32()));
-  } break;
-  case PEEK32: {
-    block = (int8_t *)get_block(reg(op[1]), VM_MEM_READABLE);
-    reg(op[0]).set(*(const uint32_t *)(block + deref(op[2], op[3]).i32()));
+    // reg(op[0]).data = *(const uint64_t *)(block + deref(op[2], op[3]).i32());
+    int32_t const offset = deref(op[2], op[4], 0x4);
+    switch ((memop_typed_t)deref(op[3], op[4], 0x8).i32()) {
+    case MEMOP_UINT8:   out = *(uint8_t *)(block + offset);  break;
+    case MEMOP_INT8:    out = *(int8_t *)(block + offset);   break;
+    case MEMOP_UINT16:  out = *(uint16_t *)(block + offset); break;
+    case MEMOP_INT16:   out = *(int16_t *)(block + offset);  break;
+    case MEMOP_UINT32:  out = *(uint32_t *)(block + offset); break;
+    case MEMOP_INT32:   out = *(int32_t *)(block + offset);  break;
+    // 64-bit integral types are only partially supported at the moment (may change later).
+    case MEMOP_UINT64:  out = *(uint64_t *)(block + offset); break;
+    case MEMOP_INT64:   out = *(int64_t *)(block + offset);  break;
+    case MEMOP_FLOAT32: out = *(float *)(block + offset);    break;
+    case MEMOP_FLOAT64: out = *(double *)(block + offset);   break;
+    default: /* invalid type */ std::abort(); break;
+    }
   } break;
 
-  // POKEN BLOCKID, OFFSET, VALUE, LITFLAG
+  // POKE R(BLOCKID), LR(VALUE), LR(OFFSET), LR(TYPE), LITFLAG
   // Pokes the given VALUE (reg or lit) into the block at the given OFFSET. The
-  // VALUE is treated as a signed value of width N.
+  // value is converted to the given TYPE.
+  //
+  // See memop_typed_t for valid TYPE values.
+  //
   // Litflags:
-  // 0x1 - offset
-  // 0x2 - value
-  case POKE8: {
+  // 0x2 - VALUE
+  // 0x4 - OFFSET
+  // 0x8 - TYPE
+  case POKE: {
     block = (int8_t *)get_block(reg(op[0]), VM_MEM_WRITABLE);
-    int32_t const offset = deref(op[1], op[3], 0x1);
-    block[offset] = deref(op[2], op[3], 0x2);
-  } break;
-  case POKE16: {
-    block = (int8_t *)get_block(reg(op[0]), VM_MEM_WRITABLE);
-    int32_t const offset = deref(op[1], op[3], 0x1);
-    *(int16_t *)(block + offset) = deref(op[2], op[3], 0x2);
-  } break;
-  case POKE32: {
-    int32_t const offset = deref(op[1], op[3], 0x1);
-    block = (int8_t *)get_block(reg(op[0]).i32(), VM_MEM_WRITABLE);
-    *(int32_t *)(block + offset) = deref(op[2], op[3], 0x2);
+    value = deref(op[1], op[4], 0x2);
+    int32_t const offset = deref(op[2], op[4], 0x4);
+    switch ((memop_typed_t)deref(op[3], op[4], 0x8).i32()) {
+    case MEMOP_UINT8:   *(uint8_t *)(block + offset)  = value.ui8();  break;
+    case MEMOP_INT8:    *(int8_t *)(block + offset)   = value.i8();   break;
+    case MEMOP_UINT16:  *(uint16_t *)(block + offset) = value.ui16(); break;
+    case MEMOP_INT16:   *(int16_t *)(block + offset)  = value.i16();  break;
+    case MEMOP_UINT32:  *(uint32_t *)(block + offset) = value.ui32(); break;
+    case MEMOP_INT32:   *(int32_t *)(block + offset)  = value.i32();  break;
+    // 64-bit integral types are only partially supported at the moment (may change later).
+    case MEMOP_UINT64:  *(uint64_t *)(block + offset) = value.ui64(); break;
+    case MEMOP_INT64:   *(int64_t *)(block + offset)  = value.i64();  break;
+    case MEMOP_FLOAT32: *(float *)(block + offset)    = value.f32();  break;
+    case MEMOP_FLOAT64: *(double *)(block + offset)   = value.value;  break;
+    default: /* invalid type */ std::abort(); break;
+    }
   } break;
 
   // MEMMOVE BLOCKOUT, OUTOFFSET, BLOCKIN, INOFFSET, SIZE, LITFLAG
@@ -694,7 +730,7 @@ void vm_state_t::exec(const op_t &op) {
     const value_t flags = op[3];
     block = ((int8_t *)get_block(reg(op[0]), VM_MEM_WRITABLE | VM_MEM_READABLE)) + deref(op[2], flags, 0x1).i32();
     block_in = ((int8_t *)get_block(reg(op[2]), VM_MEM_NO_PERMISSIONS)) + deref(op[3], flags, 0x2).i32();
-    memmove(block, block_in, deref(op[4], flags, 0x4).i32());
+    std::memmove(block, block_in, deref(op[4], flags, 0x4).i32());
   } break;
 
   // MEMDUP OUT, BLOCKID
@@ -776,79 +812,91 @@ value_t vm_state_t::call_function_nt(int32_t pointer, int32_t argc, const value_
 value_t vm_state_t::call_function_nt(int32_t pointer, int32_t num_args) {
   const int32_t last_sequence = _sequence++;
   exec_call(pointer, arg_bits_for_count(num_args));
-  run(ip());
   _sequence = last_sequence;
   return rp();
 }
 
 
-void vm_state_t::exec_call(int32_t pointer, uint32_t args_mask) {
-  ++_sequence;
-  const uint32_t ordered_args_mask = arg_bits(args_mask);
-  push(CALL_STACK_MASK);
-  esp(args_mask);
-  #ifndef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
-  if (args_mask != ordered_args_mask) {
-  #endif
-    push(esp());
-  #ifndef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
-    pop(arg_bits(esp()), true);
+value_t vm_state_t::stack(int32_t loc) const {
+  if (loc <= 0) {
+    std::abort();
+  } else if (loc >= _stack.size()) {
+    return value_t::make(0);
   }
-  #else
-  pop(), false);
+
+  return _stack[loc];
+}
+
+
+value_t &vm_state_t::stack(int32_t loc) {
+  loc += ebp().i32();
+
+  if (loc <= 0) {
+    std::abort();
+  } else if (loc >= _stack.size()) {
+    _stack.resize(loc, value_t::make(0));
+  }
+
+  return _stack[loc];
+}
+
+
+void vm_state_t::exec_call(int32_t pointer, int32_t argc) {
+  #if VM_NONVOLATILE_REGISTERS > 0
+  // preserve nonvolatile registers
+  std::array<value_t, VM_NONVOLATILE_REGISTERS> nonvolatile_reg;
+  auto first_preserved = std::begin(_registers) + R_FIRST_NONVOLATILE;
+  auto last_preserved = first_preserved + VM_NONVOLATILE_REGISTERS;
+  std::copy(first_preserved, last_preserved, std::begin(nonvolatile_reg));
   #endif
 
-  ip(pointer);
+
+  value_t const preserved_ip = ip();
+  value_t const preserved_ebp = ebp();
+  ebp() = esp().i32() - argc;
+
   if (pointer < 0) {
-    vm_callback_t *callback = _callbacks[-(ip() + 1)];
-    // if (callback == NULL) throw std::runtime_error("unbound imported function");
-    rp() = callback(*this, count_bits<int32_t>(args_mask), &reg(4));
-    #ifdef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
-    pop(esp(), true);
-    #endif
-    pop(CALL_STACK_MASK, true);
-    --_sequence;
-  }
-}
+    ++_sequence;
 
+    vm_callback_t *callback = _callbacks[-(ip().i32() + 1)];
 
-void vm_state_t::push(uint32_t bits) {
-  if (bits) {
-    std::bitset<REGISTER_COUNT> reg_bits(static_cast<unsigned long long>(bits));
-    int32_t max_stack = (int32_t)reg_bits.count();
-    _stack.resize(ebp() + max_stack);
-    int32_t stack_index = 0;
-    int32_t reg_index = 0;
-    for (; reg_index < REGISTER_COUNT && stack_index < max_stack; ++reg_index)
-      if (reg_bits[reg_index]) stack(stack_index++).set(reg(reg_index).ui32());
-    ebp(ebp() + stack_index);
-  }
-  // std::clog << "POST-PUSH("<<bits<<"): " << ebp() << std::endl;
-}
-
-
-void vm_state_t::pop(uint32_t bits, bool shrink) {
-  if (bits) {
-    auto off = ebp();
-    // if (off == 0) throw std::underflow_error("stack underflow");
-    std::bitset<REGISTER_COUNT> reg_bits(static_cast<unsigned long long>(bits));
-    int32_t max_stack = (int32_t)reg_bits.count();
-    int32_t stack_index = 0;
-    int32_t reg_index = 0;
-    ebp(ebp() - max_stack);
-    for (; reg_index < REGISTER_COUNT && stack_index < max_stack; ++reg_index) {
-      if (reg_bits[reg_index]) {
-        reg(reg_index).set(stack(stack_index++).ui32());
-      }
-    }
-
-    if (shrink) {
-      _stack.resize(ebp());
+    if (argc <= 0) {
+      rp() = callback(*this, 0, nullptr);
     } else {
-      ebp(off);
+      stack_t::const_iterator argv_end = _stack.cbegin() + ebp().i32();
+      stack_t::const_iterator argv_start = argv_end - argc;
+      stack_t argv(argv_start, argv_end);
+      rp() = callback(*this, argc, &argv[0]);
     }
+
+    --_sequence;
+  } else {
+    ip() = pointer;
+    run();
   }
-  // std::clog << "POST-POP: (" << bits << ", " << shrink << ") " << ebp() << std::endl;
+
+  #if VM_NONVOLATILE_REGISTERS > 0
+  // restore nonvolatiles
+  std::copy(std::begin(nonvolatile_reg), std::end(nonvolatile_reg), first_preserved);
+  #endif
+
+  ip() = preserved_ip;
+  ebp() = preserved_ebp;
+}
+
+
+void vm_state_t::push(value_t value) {
+  stack(0) = value;
+  esp() = esp().i32() + 1;
+}
+
+
+value_t vm_state_t::pop(bool copy_only) {
+  value_t result = stack(esp().i32() - 1);
+  if (!copy_only) {
+    esp() = esp().i32() - 1;
+  }
+  return result;
 }
 
 
