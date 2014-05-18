@@ -28,8 +28,6 @@
 
 #define VM_FCMP_EPSILON (1.0e-12)
 
-#define VM_NONVOLATILE_REGISTERS 8
-
 
 enum memop_typed_t : int32_t
 {
@@ -81,108 +79,6 @@ vm_fequals(double lhs, double rhs)
   Don't know -- for now, the TRAP instruction is iffy and kind of just grinds
   the VM to a halt and makes it hard to recover.
 */
-
-
-#ifdef VM_PRESERVE_PRESERVE_ALL_REGISTERS_ON_CALL
-// Preserve all registers but rp (as it's overwritten by the returned value anyway).
-#define CALL_STACK_MASK (~0x8)
-#ifdef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
-#undef VM_PRESERVE_CALL_ARGUMENT_REGISTERS
-#endif
-#else
-// Only preserve registers 0 through 12. rp shouldn't be preserved.
-#define CALL_STACK_MASK (0xFF7)
-#endif
-
-
-static constexpr uint32_t cndmask[2] = { 0x0u, ~0x0u };
-
-
-static constexpr uint32_t arg_masks[32] = {
-  0x00000000, 0x00000010, 0x00000030, 0x00000070,
-  0x000000f0, 0x000001f0, 0x000003f0, 0x000007f0,
-  0x00000ff0, 0x00001ff0, 0x00003ff0, 0x00007ff0,
-  0x0000fff0, 0x0001fff0, 0x0003fff0, 0x0007fff0,
-  0x000ffff0, 0x001ffff0, 0x003ffff0, 0x007ffff0,
-  0x00fffff0, 0x01fffff0, 0x03fffff0, 0x07fffff0,
-  0x0ffffff0, 0x1ffffff0, 0x3ffffff0, 0x7ffffff0,
-  0xfffffff0, 0xfffffff0, 0xfffffff0, 0xfffffff0
-};
-
-
-template <typename T>
-static
-T
-byte_bit_counts(int32_t idx) {
-  static constexpr T bits_array[256] = {
-    0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3,
-    3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4,
-    3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4,
-    4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5,
-    3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 1, 2,
-    2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5,
-    4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5,
-    5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
-    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5,
-    5, 6, 5, 6, 6, 7, 4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
-  };
-  return bits_array[idx];
-}
-
-
-#if 0
-inline static uint32_t count_bits_in_byte(uint8_t num8) {
-  switch (num8) {
-  default: return 0;
-  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: return 1;
-  case 3: case 5: case 6: case 9: case 10: case 12: case 17: case 18: case 20: case 24: case 33: case 34: case 36: case 40: case 48: case 65: case 66: case 68: case 72: case 80: case 96: case 129: case 130: case 132: case 136: case 144: case 160: case 192: return 2;
-  case 7: case 11: case 13: case 14: case 19: case 21: case 22: case 25: case 26: case 28: case 35: case 37: case 38: case 41: case 42: case 44: case 49: case 50: case 52: case 56: case 67: case 69: case 70: case 73: case 74: case 76: case 81: case 82: case 84: case 88: case 97: case 98: case 100: case 104: case 112: case 131: case 133: case 134: case 137: case 138: case 140: case 145: case 146: case 148: case 152: case 161: case 162: case 164: case 168: case 176: case 193: case 194: case 196: case 200: case 208: case 224: return 3;
-  case 15: case 23: case 27: case 29: case 30: case 39: case 43: case 45: case 46: case 51: case 53: case 54: case 57: case 58: case 60: case 71: case 75: case 77: case 78: case 83: case 85: case 86: case 89: case 90: case 92: case 99: case 101: case 102: case 105: case 106: case 108: case 113: case 114: case 116: case 120: case 135: case 139: case 141: case 142: case 147: case 149: case 150: case 153: case 154: case 156: case 163: case 165: case 166: case 169: case 170: case 172: case 177: case 178: case 180: case 184: case 195: case 197: case 198: case 201: case 202: case 204: case 209: case 210: case 212: case 216: case 225: case 226: case 228: case 232: case 240: return 4;
-  case 31: case 47: case 55: case 59: case 61: case 62: case 79: case 87: case 91: case 93: case 94: case 103: case 107: case 109: case 110: case 115: case 117: case 118: case 121: case 122: case 124: case 143: case 151: case 155: case 157: case 158: case 167: case 171: case 173: case 174: case 179: case 181: case 182: case 185: case 186: case 188: case 199: case 203: case 205: case 206: case 211: case 213: case 214: case 217: case 218: case 220: case 227: case 229: case 230: case 233: case 234: case 236: case 241: case 242: case 244: case 248: return 5;
-  case 63: case 95: case 111: case 119: case 123: case 125: case 126: case 159: case 175: case 183: case 187: case 189: case 190: case 207: case 215: case 219: case 221: case 222: case 231: case 235: case 237: case 238: case 243: case 245: case 246: case 249: case 250: case 252: return 6;
-  case 127: case 191: case 223: case 239: case 247: case 251: case 253: case 254: return 7;
-  case 255: return 8;
-  }
-}
-#endif
-
-
-template <typename T>
-static
-T
-count_bits(uint32_t num) {
-  #if 0
-  return
-    count_bits_in_byte(num & 0xFF) +
-    count_bits_in_byte(num >> 8) +
-    count_bits_in_byte(num >> 16) +
-    count_bits_in_byte(num >> 24);
-  #endif
-
-  return
-    byte_bit_counts<T>(num & 0xFF) +
-    byte_bit_counts<T>((num >> 8)  & 0xFF) +
-    byte_bit_counts<T>((num >> 16) & 0xFF) +
-    byte_bit_counts<T>((num >> 24) & 0xFF);
-}
-
-
-static constexpr uint32_t arg_bits_for_count(uint32_t count) {
-  return arg_masks[count & 0x1F];
-}
-
-
-static uint32_t arg_bits(uint32_t bits) {
-  uint32_t r = 0;
-  uint32_t args = 0;
-  while (bits) {
-    if (bits & 0x1) r = (r << 1) | 0x10;
-    bits >>= 1;
-    ++args;
-  }
-  // if (args > 28) throw std::runtime_error("too many arguments");
-  return r;
-}
 
 
 vm_state_t::vm_state_t(size_t stackSize)
@@ -275,7 +171,6 @@ bool vm_state_t::run() {
 
 int32_t vm_state_t::unused_block_id() {
   auto end = _blocks.end();
-  const auto current = _block_counter;
   while (_blocks.find(_block_counter) != end || _block_counter == 0) {
     ++_block_counter;
   }
@@ -376,7 +271,6 @@ value_t vm_state_t::deref(value_t input, value_t flag, uint32_t mask) const {
 
 
 void vm_state_t::exec(const op_t &op) {
-  int32_t mask;
   value_t value;
   int8_t *block;
   int8_t *block_in;
