@@ -849,15 +849,16 @@ value_t vm_state_t::call_function_nt(const char *name, int32_t argc, const value
 
 
 value_t vm_state_t::call_function_nt(int32_t pointer, int32_t argc, const value_t *argv) {
-  for (int32_t arg_index = 0; arg_index < argc; ++arg_index)
-    reg(4 + arg_index) = argv[arg_index];
+  for (int32_t arg_index = 0; arg_index < argc; ++arg_index) {
+    push(argv[arg_index]);
+  }
   return call_function_nt(pointer, argc);
 }
 
 
 value_t vm_state_t::call_function_nt(int32_t pointer, int32_t num_args) {
   const int32_t last_sequence = _sequence++;
-  exec_call(pointer, arg_bits_for_count(num_args));
+  exec_call(pointer, num_args);
   _sequence = last_sequence;
   return rp();
 }
