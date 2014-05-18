@@ -180,7 +180,7 @@ class vm_state_t {
   }
 
 public:
-  vm_state_t(size_t stackSize);
+  vm_state_t(size_t stackSize = 8192);
   ~vm_state_t();
 
   /**
