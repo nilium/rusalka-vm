@@ -558,13 +558,13 @@ class Parser
         if !(done = terminator)
           args << value
         else
-          opargs = Op::OP_ARGS[name]
-          offset = opargs.first == :output ? 1 : 0
-          args << args.each_with_index.select do |arg, index|
-            opargs[index] == :input
-          end.reduce(0) do |bits, packet; arg, index|
-            arg, index = packet
-            bits | (arg.kind_of?(RegisterRef) ? 0 : 1 << (index - offset))
+          args << Op::OP_ARGS[name].each_with_index.reduce(0) do |bits, packet|
+            type, index = *packet
+            if type == :input && !args[index].kind_of?(RegisterRef)
+              bits | (0x1 << index)
+            else
+              bits
+            end
           end
         end
       end
