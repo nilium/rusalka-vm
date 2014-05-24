@@ -542,9 +542,68 @@ class Parser
     end
   end
 
+  CONDITIONAL_OPS = {
+    :equality       => [:eq, 0],          # EQ arg0 arg1 1; JUMP @__end_jump__
+    :not_equal      => [:eq, 1],          # EQ arg0 arg1 0; JUMP @__end_jump__
+    :greater_equal  => [:lt, 1],          # LT arg0 arg1 0; JUMP @__end_jump__
+    :greater_than   => [:le, 1],          # LE arg0 arg1 0; JUMP @__end_jump__
+    :less_than      => [:lt, 0],          # LT arg0 arg1 1; JUMP @__end_jump__
+    :lesser_equal   => [:le, 0]          # LE arg0 arg1 1; JUMP @__end_jump__
+  }
+
+  def conditional
+    maybe? do
+      accept(:id, content: 'if') do |tok|
+        invert = !!accept(:bang)
+        arg0        = value
+        multi_line = false
+
+        comp_instr  = accept(CONDITIONAL_OPS.keys) do |tok|
+          name, flag  = CONDITIONAL_OPS[tok.kind]
+          arg1        = self.value
+
+          multi_line = !!accept(:curl_open)
+          flag = 1 - flag if (invert || !multi_line) && !(invert && !multi_line)
+
+          lits = 0
+          lits |= 0x1 unless arg0.kind_of?(RegisterRef)
+          lits |= 0x2 unless arg1.kind_of?(RegisterRef)
+
+          Instruction[name, [arg0, arg1, flag, lits]].tap do |k|
+            @instructions << k
+          end
+        end
+
+        comp_instr
+
+        if multi_line
+          @data << comp_instr
+
+          label_id = Label[@prefix, "__if_#{unique_uuid}", :local]
+          jump_instr = Instruction[:jump, [LabelRef[label_id], 0x1]]
+          @data << jump_instr
+          @instructions << jump_instr
+
+          until accept(:curl_close)
+            line
+          end
+
+          # accept(:id, content: 'else') do
+          #   register_label_statement(LabelStmt[label_id])
+          #
+          #   else_label_id = Label[@prefix, "__else_#{unique_uuid}"]
+          # end ||
+          register_label_statement(LabelStmt[label_id])
+        else
+          comp_instr
+        end
+      end
+    end
+  end
+
   # Instruction and data statements
   def statement
-    defdata || instruction
+    defdata || conditional || instruction
   end
 
   # OPNAME VALUE* TERM
