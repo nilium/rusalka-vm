@@ -861,6 +861,8 @@ def write_data(parser, io)
     write_chunk(chunk.name, chunk.data, io)
   end
 
+  $stderr.puts "Wrote #{relative_off} bytes"
+
   nil
 end
 
