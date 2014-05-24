@@ -78,7 +78,8 @@ module Op
     File.open('vm_instructions.h', 'r') do |io|
       until io.readline.chomp == '// BEGIN INSTRUCTIONS' ; end
 
-      until (line = io.readline.chomp) == '// END INSTRUCTIONS'
+      until (line = io.readline.strip) == '// END INSTRUCTIONS'
+        next if line.start_with? '//'
         instr_string = line[/(?<=INSTRUCTION\().+(?=\))/]
         next unless instr_string
         argv = instr_string.split(',').each(&:strip!)
