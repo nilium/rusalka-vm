@@ -779,7 +779,7 @@ class Parser
   end
 
   def label_relocation_table
-    relocation_table { |arg| arg.kind_of?(LabelRef) && !lookup(arg, nil).nil? }
+    relocation_table { |arg| arg.kind_of?(LabelRef) && !lookup(arg, nil).nil? && !@externs.include?(arg.label.mangled) }
   end
 
   def data_relocation_table
@@ -790,7 +790,7 @@ class Parser
     relocation_table do |arg|
       arg.kind_of?(LabelRef) &&
       arg.label.kind == :export &&
-      @externs.include?(arg)
+      @externs.include?(arg.label.mangled)
     end
   end
 
