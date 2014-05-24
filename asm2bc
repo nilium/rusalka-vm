@@ -452,21 +452,25 @@ class Parser
     label_name { |kind, name| LabelRef[Label[@prefix, name, kind]] }
   end
 
+  def register_label_statement(stmt)
+    if @label_mappings.include?(stmt.label.mangled)
+      warn "Duplicate label: #{stmt.label.name}"
+    end
+
+    @label_mappings[stmt.label.mangled] = @instructions.length
+    @labels[stmt.label.mangled] = stmt.label
+
+    stmt
+  end
+
   # label_name TERM
   def label
     label_name do |kind, name|
       unless accept(:colon, distance: 0)
         warn "Expected colon after reading label name #{name}"
-        break
+        return nil
       end
-      LabelStmt[Label[@prefix, name, kind]].tap do |stmt|
-        if @label_mappings.include?(stmt.label.mangled)
-          warn "Duplicate label: #{stmt.label.name}"
-        end
-
-        @label_mappings[stmt.label.mangled] = @instructions.length
-        @labels[stmt.label.mangled] = stmt.label
-      end
+      register_label_statement LabelStmt[Label[@prefix, name, kind]]
     end
   end
 
