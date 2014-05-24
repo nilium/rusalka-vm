@@ -99,4 +99,15 @@ read_label(std::istream &input)
 }
 
 
+std::string
+read_lstring(std::istream &input)
+{
+  std::string result;
+  int32_t length = read_primitive<int32_t>(input);
+  result.resize(length, '\0');
+  input.read(&result[0], length);
+  return result;
+}
+
+
 #endif /* end __VM_UNIT_IO_INL__ include guard */
