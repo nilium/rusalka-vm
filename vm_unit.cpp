@@ -9,12 +9,13 @@
 
 
 
-// Iterates over each bit in a mask and passes the index of set bits to func.
-template <typename Func>
+// Iterates over each bit in a mask and passes the  of set bits to func.
+template <typename T, typename Func>
 void
-each_in_mask(uint32_t mask, Func func)
+each_in_mask(T mask, Func func)
 {
-  for (int32_t index = 0; mask && index < int(sizeof(uint32_t)) * 8; index += 4) {
+  static_assert(std::is_unsigned<T>::value, "Mask must be unsigned");
+  for (int32_t index = 0; mask; index += 4) {
     if (mask & 0xFu) {
       if (mask & 0x1u) { func(index); }
       if (mask & 0x2u) { func(index + 1); }
