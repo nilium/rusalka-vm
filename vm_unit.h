@@ -58,6 +58,13 @@ class vm_unit_t
 
   using relocation_table_t = std::vector<relocation_ptr_t>;
   using label_relocations_t = std::map<int32_t, int32_t>;
+  // Externs may be relocated in two ways:
+  // 1) The extern might just need to be adjusted because there are prior
+  //  unresolved externs, in which case the second field is false (unresolved).
+  // 2) The extern might've been resolved in the process of loading the extern
+  //  table, so the second field is true (resolved).
+  using extern_relocation_t = std::pair<int32_t /* new_address */, bool /* resolved */>;
+  using extern_relocations_t = std::map<int32_t, extern_relocation_t>;
 
   struct instruction_ptr_t
   {
@@ -79,7 +86,8 @@ class vm_unit_t
 
   label_table_t imports;
   label_table_t exports;
-  label_table_t externs;
+  label_table_t externs; // only contains unresolved externs
+  relocation_table_t unresolved_relocations;
 
   void read_instruction(std::istream &input);
   void read_instructions(std::istream &input);
@@ -87,12 +95,18 @@ class vm_unit_t
   void read_imports(std::istream &input, label_relocations_t &relocations);
   void read_exports(std::istream &input, int32_t base, label_relocations_t &relocations);
 
-  void read_externs(std::istream &input);
+  void read_externs(std::istream &input, extern_relocations_t &relocations);
 
   void read_label_relocations(
     std::istream &input,
     int32_t instruction_base,
     label_relocations_t const &relocations
+    );
+
+  void read_extern_relocations(
+    std::istream &input,
+    int32_t instruction_base,
+    extern_relocations_t const &relocations
     );
 
   void resolve_externs();
@@ -106,6 +120,13 @@ public:
 
   // Reads a unit and links it into this unit.
   void read(std::istream &input);
+
+  bool is_valid() const
+  {
+    return externs.size() == 0 && unresolved_relocations.size() == 0;
+  }
+
+  void debug_write_instructions(std::ostream &out) const;
 
   void merge_unit(const vm_unit_t &unit);
 
