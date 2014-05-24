@@ -714,9 +714,9 @@ class Parser
     refs = @externs.map do |label, id|
       namedata = label.to_s.encode(Encoding::UTF_8)
       "#{[namedata.bytesize].pack('l<')}#{namedata}"
-    end
+    end.join
 
-    "#{[refs.length].pack('l<')}#{refs.join}"
+    "#{[@externs.length].pack('l<')}#{refs}"
   end
 
   def label_data(labels, &sort)
