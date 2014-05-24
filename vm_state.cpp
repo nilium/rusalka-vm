@@ -295,53 +295,53 @@ void vm_state_t::exec(const op_t &op) {
   // ADD OUT, LHS, RHS, LITFLAG
   // Addition (fp64).
   case ADD: {
-    reg(op[0]).set(deref(op[1], op[3], 0x1).f64() + deref(op[2], op[3], 0x2).f64());
+    reg(op[0]).set(deref(op[1], op[3], 0x2).f64() + deref(op[2], op[3], 0x4).f64());
   } break;
 
   // SUB OUT, LHS, RHS, LITFLAG
   // Subtraction (fp64).
   case SUB: {
-    reg(op[0]).set(deref(op[1], op[3], 0x1).f64() - deref(op[2], op[3], 0x2).f64());
+    reg(op[0]).set(deref(op[1], op[3], 0x2).f64() - deref(op[2], op[3], 0x4).f64());
   } break;
 
   // DIV OUT, LHS, RHS, LITFLAG
   // Floating point division.
   case DIV: {
-    reg(op[0]).set(deref(op[1], op[3], 0x1).f64() / deref(op[2], op[3], 0x2).f64());
+    reg(op[0]).set(deref(op[1], op[3], 0x2).f64() / deref(op[2], op[3], 0x4).f64());
   } break;
 
   // IDIV OUT, LHS, RHS, LITFLAG
   // Integer division (64-bit signed -- rationale: 64-bit is used as the result
   // will never be out of range of a 64-bit float).
   case IDIV: {
-    reg(op[0]).set(deref(op[1], op[3], 0x1).i64() / deref(op[2], op[3], 0x2).i64());
+    reg(op[0]).set(deref(op[1], op[3], 0x2).i64() / deref(op[2], op[3], 0x4).i64());
   } break;
 
   // MUL OUT, LHS, RHS, LITFLAG
   // Multiplication (fp64).
   case MUL: {
-    reg(op[0]).set(deref(op[1], op[3], 0x1).f64() * deref(op[2], op[3], 0x2).f64());
+    reg(op[0]).set(deref(op[1], op[3], 0x2).f64() * deref(op[2], op[3], 0x4).f64());
   } break;
 
   // POW OUT, LHS, RHS, LITFLAG
   // Power (fp64).
   case POW: {
-    reg(op[0]) = std::pow(deref(op[1], op[3], 0x1).f64(), deref(op[2], op[3], 0x2).f64());
+    reg(op[0]) = std::pow(deref(op[1], op[3], 0x2).f64(), deref(op[2], op[3], 0x4).f64());
   } break;
 
   // MOD OUT, LHS, RHS, LITFLAG
   // Floating point modulo.
   case MOD: {
     reg(op[0]) = std::fmod(
-        deref(op[1], op[3], 0x1).f64(),
-        deref(op[2], op[3], 0x2).f64()
+        deref(op[1], op[3], 0x2).f64(),
+        deref(op[2], op[3], 0x4).f64()
       );
   } break;
 
   // IMOD OUT, LHS, RHS, LITFLAG
   // Signed integer modulo (32-bit).
   case IMOD: {
-    reg(op[0]).set(deref(op[1], op[3], 0x1).i32() % deref(op[2], op[3], 0x2).i32());
+    reg(op[0]).set(deref(op[1], op[3], 0x2).i32() % deref(op[2], op[3], 0x4).i32());
   } break;
 
   // NEG OUT, IN
@@ -359,19 +359,19 @@ void vm_state_t::exec(const op_t &op) {
   // OR OUT, LHS, RHS, LITFLAG
   // Bitwise or (unsigned 32-bit).
   case OR: {
-    reg(op[0]).set(deref(op[1], op[2], 0x1).ui32() | deref(op[2], op[3], 0x2).ui32());
+    reg(op[0]).set(deref(op[1], op[2], 0x2).ui32() | deref(op[2], op[3], 0x4).ui32());
   } break;
 
   // AND OUT, LHS, RHS, LITFLAG
   // Bitwise and (unsigned 32-bit).
   case AND: {
-    reg(op[0]).set(deref(op[1], op[2], 0x1).ui32() & deref(op[2], op[3], 0x2).ui32());
+    reg(op[0]).set(deref(op[1], op[2], 0x2).ui32() & deref(op[2], op[3], 0x4).ui32());
   } break;
 
   // XOR OUT, LHS, RHS, LITFLAG
   // Bitwise xor (unsigned 32-bit).
   case XOR: {
-    reg(op[0]).set(deref(op[1], op[2], 0x1).ui32() ^ deref(op[2], op[3], 0x2).ui32());
+    reg(op[0]).set(deref(op[1], op[2], 0x2).ui32() ^ deref(op[2], op[3], 0x4).ui32());
   } break;
 
   // ARITHSHIFT OUT, LHS, RHS, LITFLAG
@@ -380,8 +380,8 @@ void vm_state_t::exec(const op_t &op) {
   // RHS < 0  -> Right shift.
   // RHS == 0 -> Cast to signed 32-bit int.
   case ARITHSHIFT: {
-    const int32_t input = deref(op[1], op[3], 0x1).i32();
-    const int32_t shift = deref(op[2], op[3], 0x2).i32();
+    const int32_t input = deref(op[1], op[3], 0x2).i32();
+    const int32_t shift = deref(op[2], op[3], 0x4).i32();
     if (shift > 0) reg(op[0]).set(input << shift);
     else if (shift < 0) reg(op[0]).set(input >> (-shift));
     else reg(op[0]).set(input);
@@ -393,8 +393,8 @@ void vm_state_t::exec(const op_t &op) {
   // RHS < 0  -> Right shift.
   // RHS == 0 -> Cast to unsigned 32-bit int.
   case BITSHIFT: {
-    const uint32_t input = deref(op[1], op[3], 0x1).ui32();
-    const int32_t shift = deref(op[2], op[3]).i32();
+    const uint32_t input = deref(op[1], op[3], 0x2).ui32();
+    const int32_t shift = deref(op[2], op[3], 0x4).i32();
     if (shift > 0) reg(op[0]).set(input << shift);
     else if (shift < 0) reg(op[0]).set(input >> (-shift));
     else reg(op[0]).set(input);
@@ -403,136 +403,85 @@ void vm_state_t::exec(const op_t &op) {
   // FLOOR OUT, IN
   // Nearest integral value <= IN.
   case FLOOR: {
-    reg(op[0]).set(std::floor(reg(op[1]).f64()));
+    reg(op[0]) = std::floor(reg(op[1]).f64());
   } break;
 
   // CEIL OUT, IN
   // Nearest integral value >= IN.
   case CEIL: {
-    reg(op[0]).set(std::ceil(reg(op[1]).f64()));
+    reg(op[0]) = std::ceil(reg(op[1]).f64());
   } break;
 
   // ROUND OUT, IN
   // Nearest integral value using FE_TONEAREST.
   case ROUND: {
     std::fesetround(FE_TONEAREST);
-    reg(op[0]).set(std::round(reg(op[1]).f64()));
+    reg(op[0]) = std::round(reg(op[1]).f64());
   } break;
 
   // RINT OUT, IN
   // Nearest integral value using FE_TOWARDZERO.
   case RINT: {
     std::fesetround(FE_TOWARDZERO);
-    reg(op[0]).set(std::round(reg(op[1]).f64()));
+    reg(op[0]) = std::round(reg(op[1]).f64());
   } break;
 
-  // CMP OUT, LHS, RHS, LITFLAG
-  // Compares LHS and RHS as doubles.
-  //
+  // EQ|LE|LT LHS, RHS, RESULT, LITFLAG
+  // Compares LHS and RHS. If the comparison's result is RESULT, the next
+  // instruction is executed, otherwise IP is incremented by 1 and the next
+  // instruction is skipped.
+  // - EQ tests for equality if RESULT is non-zero, otherwise inequality.
+  // - LE tests if LHS is less than or equal to RHS if non-zero, otherwise greater
+  //   than.
+  // - LT tests if LHS is less than RHS if non-zero, otherwise greater than or
+  //   equal to.
   // Litflags:
-  // 0x1 - LHS is a literal value.
-  // 0x2 - RHS is a literal value.
-  //
-  // Result stored in OUT depends on the result of comparing the two:
-  // if LHS == RHS using vm_fequals => 0.0
-  // if LHS > RHS, 1.0
-  // Otherwise, LHS < RHS, -1.0
-  //
-  // The results of CMP are such that they are exactly the 64-bit floating
-  // point values above, therefore making them ideal for use with the
-  // conditional jumps below.
-  case CMP: {
-    const double lhs = deref(op[1], op[3], 0x1).f64();
-    const double rhs = deref(op[2], op[3], 0x2).f64();
-    if (vm_fequals(rhs, lhs)) reg(op[0]).set(0.0);
-    else if (lhs > rhs) reg(op[0]).set(1.0);
-    else reg(op[0]).set(-1.0);
-  } break;
-
-  // Jumps for comparisons. If LITFLAG is set, the POINTER for all jumps is
-  // a literal value. All jump pointers are 32-bit signed integers.
-  //
-  // For all jumps and calls, negative pointers are addresses of host
-  // functions and causes the VM to call into them, if bound.
-  //
-  // All comparisons are expected to be the result of a CMP instruction, though
-  // this is not necessarily required. However, it is useful, as the CMP
-  // instruction produces exact 64-bit numbers that simplify the checks, as
-  // any slightly non-zero value will pass JNE and fail JEQ. JLT and JGT both
-  // check for any number greater than or equal to the VM_FCMP_EPSILON (in the
-  // case of JLT, this is reversed and it is anything less than
-  // or equal to -VM_FCMP_EPSILON).
-
-  // JNEZ COMPARE, POINTER, LITFLAG
-  // Jump if the value at COMPARE is non-zero.
-  case JNZ: {
-    if (reg(op[0]).f64() != 0.0) {
-      ip() = deref(op[1], op[2]);
+  // 0x1 - LHS is a literal
+  // 0x2 - RHS is a literal
+  case EQ: {
+    if ((deref(op[0], op[3], 0x1) == deref(op[1], op[3], 0x2)) != (op[2].i32() != 0)) {
+      ip() = ip().i32() + 1;
     }
   } break;
 
-  // JEZ COMPARE, POINTER, LITFLAG
-  case JEZ: {
-    if (reg(op[0]).f64() == 0.0) {
-      ip() = deref(op[1], op[2]);
+  case LE: {
+    if ((deref(op[0], op[3], 0x1) < deref(op[1], op[3], 0x2)) != (op[2].i32() != 0)) {
+      ip() = ip().i32() + 1;
     }
   } break;
 
-  // JGEZ COMPARE, POINTER, LITFLAG
-  case JGEZ: {
-    if (reg(op[0]).f64() >= 0.0) {
-      ip() = deref(op[1], op[2]);
-    }
-  } break;
-
-  // JLEZ COMPARE, POINTER, LITFLAG
-  case JLEZ: {
-    if (reg(op[0]).f64() <= 0.0) {
-      ip() = deref(op[1], op[2]);
-    }
-  } break;
-
-  // JLTZ COMPARE, POINTER, LITFLAG
-  case JLTZ: {
-    if (reg(op[0]).f64() <= -VM_FCMP_EPSILON) {
-      ip() = deref(op[1], op[2]);
-    }
-  } break;
-
-  // JGTZ COMPARE, POINTER, LITFLAG
-  case JGTZ: {
-    if (reg(op[0]).f64() >= VM_FCMP_EPSILON) {
-      ip() = deref(op[1], op[2]);
+  case LT: {
+    if ((deref(op[0], op[3], 0x1) <= deref(op[1], op[3], 0x2)) != (op[2].i32() != 0)) {
+      ip() = ip().i32() + 1;
     }
   } break;
 
   // JUMP POINTER, LITFLAG
   // Unconditional jump.
+  // Litflags:
+  // 0x1 - POINTER is a literal address.
   case JUMP: {
     ip() = deref(op[1], op[2]);
   } break;
 
-  // PUSH MASK, LITFLAG
-  // Pushes as many values to the stack as are bits set in MASK. Each bit in the
-  // mask corresponds to registers 0 through 31. If LITFLAG is set, the mask is
-  // a literal 32-bit uint.
+  // PUSH REG
+  // Pushes the value in REG onto the stack.
   case PUSH: {
     push(reg(op[0]));
   } break;
 
-  // POP MASK, LITFLAG
-  // Pops as many values off the stack as are bits set in MASK and assigns them
-  // to the registers corresponding to the bits in MASK. If LITFLAG is set,
-  // MASK is a literal 32-bit uint.
+  // POP REG
+  // Pops the last value on the stack and stores it in REG.
   case POP: {
     reg(op[0]) = pop();
   } break;
 
   // LOAD OUT, IN, LITFLAG
-  // Copies the value of IN to OUT. If LITFLAG is set, the IN argument is a
-  // literal value.
+  // Copies the value of IN to OUT.
+  // Litflags:
+  // 0x2 - IN is a literal.
   case LOAD: {
-    reg(op[0]) = deref(op[1], op[2]);
+    reg(op[0]) = deref(op[1], op[2], 0x2);
   } break;
 
   // CALL POINTER, ARGC, LITFLAG
@@ -541,7 +490,7 @@ void vm_state_t::exec(const op_t &op) {
   // the
   // Litflags:
   // 0x1 - POINTER is a literal address.
-  // 0x2 - ARGSMASK is a literal 32-bit uint.
+  // 0x2 - ARGC is a literal integer.
   case CALL: {
     exec_call(deref(op[0], op[2], 0x1), deref(op[1], op[2], 0x2));
   } break;
@@ -552,11 +501,12 @@ void vm_state_t::exec(const op_t &op) {
     --_sequence;
   } break;
 
-  // ALLOC OUT, SIZE, LITFLAG
-  // Allocates a block of SIZE bytes and writes its ID to the OUT register.
-  // If LITFLAG is set, SIZE is a literal.
+  // REALLOC OUT, IN, SIZE, LITFLAG
+  // Reallocates a block of SIZE bytes and writes its ID to the OUT register.
+  // Litflags:
+  // 0x4 - Size
   case REALLOC: {
-    reg(op[0]) = realloc_block(deref(op[1], op[3], 0x1), deref(op[2], op[3], 0x2));
+    reg(op[0]) = realloc_block(op[1], deref(op[2], op[3], 0x4));
   } break;
 
   // FREE BLOCKID
@@ -567,15 +517,16 @@ void vm_state_t::exec(const op_t &op) {
     reg(op[0]) = 0.0;
   } break;
 
-  // PEEK OUT, R(BLOCKID), LR(OFFSET), LR(TYPE), LITFLAG
+  // PEEK OUT, LR(BLOCKID), LR(OFFSET), LR(TYPE), LITFLAG
   // Peeks a value of type TYPE from the block at the given OFFSET and writes
   // the result to OUT.
   // Litflags:
+  //  0x2 - blockid
   //  0x4 - offset
   //  0x8 - type
   case PEEK: {
     value_t &out = reg(op[0]);
-    int32_t const block_id = reg(op[1]);
+    int32_t const block_id = deref(op[1], op[4], 0x2);
     int32_t const offset = deref(op[2], op[4], 0x4);
     memop_typed_t const type = (memop_typed_t)deref(op[3], op[4], 0x8).i32();
     block = ((int8_t *)get_block(block_id, VM_MEM_READABLE)) + offset;
@@ -642,13 +593,14 @@ void vm_state_t::exec(const op_t &op) {
   // size may optionally be literals if their argument flags are set in LITFLAG.
   // Litflags:
   // 0x02 - out offset
+  // 0x04 - block in
   // 0x08 - in offset
   // 0x10 - size
   case MEMMOVE: {
     const value_t flags = op[5];
     int32_t const dst_block_id = reg(op[0]);
     int32_t const dst_offset = deref(op[1], flags, 0x2);
-    int32_t const src_block_id = reg(op[2]);
+    int32_t const src_block_id = deref(reg(op[2]), flags, 0x4);
     int32_t const src_offset = deref(op[3], flags, 0x8);
     int32_t const size = deref(op[4], flags, 0x10);
 
