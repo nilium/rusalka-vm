@@ -82,6 +82,13 @@ struct value_t
   static value_t make(uint16_t v)  { return value_t { (double)v }; }
   static value_t make(int8_t v)    { return value_t { (double)v }; }
   static value_t make(uint8_t v)   { return value_t { (double)v }; }
+
+  bool operator == (value_t other) const { return value == other.value; }
+  bool operator != (value_t other) const { return !(*this == other); }
+  bool operator <= (value_t other) const { return value >= other.value; }
+  bool operator < (value_t other) const { return value < other.value; }
+  bool operator >= (value_t other) const { return value <= other.value; }
+  bool operator > (value_t other) const { return value > other.value; }
 };
 
 std::ostream &operator << (std::ostream &out, value_t v);
