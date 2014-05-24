@@ -455,7 +455,10 @@ class Parser
   # label_name TERM
   def label
     label_name do |kind, name|
-      break unless accept(:colon, distance: 0)
+      unless accept(:colon, distance: 0)
+        warn "Expected colon after reading label name #{name}"
+        break
+      end
       LabelStmt[Label[@prefix, name, kind]].tap do |stmt|
         if @label_mappings.include?(stmt.label.mangled)
           warn "Duplicate label: #{stmt.label.name}"
