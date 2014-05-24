@@ -604,7 +604,6 @@ class Parser
     @line = 0
     @column = 0
     __run__
-    id_extern_labels!
   ensure
     @prefix = nil
     @input = nil # don't retain the enumerator
@@ -921,6 +920,8 @@ ARGV.each do |file|
   # parser.prefix = unit_digest
   parser.run(tokens.each, file)
 end
+
+parser.id_extern_labels!
 
 def mul_of(x, n)
   ([(x.to_f / n).ceil, 1].max * n)
