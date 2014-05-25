@@ -62,6 +62,13 @@ class vm_unit_t
     int32_t   arg_pointer;
   };
 
+  struct data_block_t
+  {
+    int32_t id;
+    int32_t offset; // offset into _data
+    int32_t size;   // size in bytes of the block
+  };
+
   using relocation_table_t = std::vector<relocation_ptr_t>;
   using relocation_map_t = std::map<int32_t, int32_t>;
   // Externs may be relocated in two ways:
@@ -75,6 +82,7 @@ class vm_unit_t
   using instruction_ptrs_t = std::vector<instruction_ptr_t>;
   using instruction_argv_t = std::vector<value_t>;
   using label_table_t = std::map<std::string, int32_t>;
+  using data_id_ary_t = std::vector<int32_t>;
 
   int32_t last_import = 0;
 
@@ -85,6 +93,10 @@ class vm_unit_t
   label_table_t exports;
   label_table_t externs; // only contains unresolved externs
   relocation_table_t unresolved_relocations;
+
+  std::vector<uint8_t> _data;
+  std::vector<data_block_t> _data_blocks;
+  relocation_table_t _data_relocations;
 
   void read_instruction(std::istream &input);
   void read_instructions(std::istream &input);
