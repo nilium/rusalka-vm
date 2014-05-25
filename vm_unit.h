@@ -157,6 +157,8 @@ public:
 
   vm_instruction_t instruction(int32_t pointer) const;
 
+  op_t fetch_op(int32_t ip) const;
+
   template <typename Func>
   void each_data(Func &&fn) const;
 

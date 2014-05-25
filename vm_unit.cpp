@@ -467,3 +467,9 @@ void vm_unit_t::debug_write_instructions(std::ostream &out) const
   }
 }
 
+
+op_t vm_unit_t::fetch_op(int32_t ip) const
+{
+  return op_t { *this, ip };
+}
+
