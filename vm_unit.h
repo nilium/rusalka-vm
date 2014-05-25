@@ -56,6 +56,12 @@ class vm_unit_t
     uint32_t args_mask;
   };
 
+  struct instruction_ptr_t
+  {
+    opcode_t  opcode;
+    int32_t   arg_pointer;
+  };
+
   using relocation_table_t = std::vector<relocation_ptr_t>;
   using relocation_map_t = std::map<int32_t, int32_t>;
   // Externs may be relocated in two ways:
@@ -65,12 +71,6 @@ class vm_unit_t
   //  table, so the second field is true (resolved).
   using extern_relocation_t = std::pair<int32_t /* new_address */, bool /* resolved */>;
   using extern_relocations_t = std::map<int32_t, extern_relocation_t>;
-
-  struct instruction_ptr_t
-  {
-    opcode_t  opcode;
-    int32_t   arg_pointer;
-  };
 
   using instruction_ptrs_t = std::vector<instruction_ptr_t>;
   using instruction_argv_t = std::vector<value_t>;
