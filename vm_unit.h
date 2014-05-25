@@ -175,7 +175,9 @@ void vm_unit_t::each_data(Func &&fn)
   bool stop = false;
   for (data_block_t const &blk : _data_blocks) {
     fn(index++, blk.id, blk.size, (void const *)&_data[blk.offset], stop);
-    if (stop) return;
+    if (stop) {
+      return;
+    }
   }
 }
 
@@ -188,7 +190,9 @@ void vm_unit_t::each_data(Func &&fn) const
   bool stop = false;
   for (data_block_t const &blk : _data_blocks) {
     fn(index++, blk.id, blk.size, (void const *)&_data[blk.offset], stop);
-    if (stop) return;
+    if (stop) {
+      return;
+    }
   }
 }
 
