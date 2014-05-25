@@ -111,7 +111,6 @@ class vm_unit_t
 
   void resolve_externs();
 
-  static void read_labels(std::istream &input, chunk_id_t id, label_table_t &table);
 
 public:
 

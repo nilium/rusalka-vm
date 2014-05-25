@@ -163,20 +163,6 @@ vm_unit_t::read_label_relocations(
 
 
 void
-vm_unit_t::read_labels(
-  std::istream &input,
-  chunk_id_t id,
-  label_table_t &table
-  )
-{
-  read_table(input, id, [&](int32_t index) {
-    (void)index;
-  });
-}
-
-
-
-void
 vm_unit_t::read_externs(std::istream &input, extern_relocations_t &relocations)
 {
   read_table(input, CHUNK_EXTS, [&](int32_t index) {
