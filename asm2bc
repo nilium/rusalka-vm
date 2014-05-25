@@ -753,8 +753,8 @@ class Parser
         end
 
         [data, id]
-      end.sort_by!(&:last).map! do |data, id|
-        "#{[id, data.bytesize].pack('l<l<')}#{data}"
+      end.sort_by(&:last).map do |data, id|
+        "#{[data.bytesize].pack('l<')}#{data}"
       end.join
 
     "#{[@data_mappings.length].pack('l<')}#{mapped}"
