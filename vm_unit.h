@@ -74,10 +74,7 @@ class vm_unit_t
 
   using instruction_ptrs_t = std::vector<instruction_ptr_t>;
   using instruction_argv_t = std::vector<value_t>;
-
-  using data_t = std::string;
   using label_table_t = std::map<std::string, int32_t>;
-  using data_table_t = std::map<int32_t, data_t>;
 
   int32_t last_import = 0;
 
