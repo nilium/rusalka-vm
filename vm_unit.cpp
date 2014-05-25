@@ -315,6 +315,63 @@ vm_unit_t::resolve_externs()
 
 
 void
+vm_unit_t::read_data_table(std::istream &input, int32_t data_base, relocation_map_t &relocations)
+{
+  read_table(input, CHUNK_DATA, [&](int32_t max_count) {
+      _data_blocks.reserve(_data_blocks.size() + max_count);
+    },
+    [&](int32_t data_index) {
+      // base is always 1 (0 reserved for null, basically)
+      int32_t const block_id = 1 + data_base + data_index;
+      int32_t const block_size = read_primitive<int32_t>(input);
+      int32_t const offset = _data.size();
+
+      _data.resize(static_cast<size_t>(offset + block_size));
+      input.read((char *)&_data[offset], block_size);
+
+      _data_blocks.emplace_back(data_block_t { block_id, offset, block_size });
+
+      if (data_base > 0) {
+        relocations.emplace(1 + data_index, block_id);
+      }
+
+      std::cerr << "Read data block " << data_index << ":" << block_id << "[" << block_size << "] <"
+        << std::string((char const *)&_data[offset], (char const *)&_data[offset + block_size]) << ">"
+        << std::endl;
+
+    });
+}
+
+
+void vm_unit_t::read_data_relocations(std::istream &input, int32_t instr_base, int32_t data_base, relocation_map_t &load_relocations)
+{
+  relocation_map_t::const_iterator not_found = load_relocations.cend();
+  read_table(input, CHUNK_DREL, [&](int32_t count) {
+      _data_relocations.reserve(_data_relocations.size() + count);
+    }, [&](int32_t index) {
+      relocation_ptr_t rel = read_primitive<relocation_ptr_t>(input);
+      rel.pointer += instr_base;
+
+      int32_t const arg_base = instructions[rel.pointer].arg_pointer;
+
+      each_in_mask(rel.args_mask, [&](int32_t arg_index) {
+        value_t &arg = instruction_argv[arg_base + arg_index];
+        relocation_map_t::const_iterator iter = load_relocations.find(arg.i32());
+        if (iter == not_found) {
+          return;
+        }
+        int32_t prev = arg;
+        arg = iter->second;
+
+        std::cerr << "Relocating data reference " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << arg_index << "] from " << prev << " to " << iter->second << std::endl;
+      });
+
+      _data_relocations.emplace_back(rel);
+    });
+}
+
+
+void
 vm_unit_t::read(std::istream &input)
 {
   version_chunk_t const filehead {
@@ -378,6 +435,19 @@ vm_unit_t::read(std::istream &input)
     std::cerr << "Done reading extern relocations table." << std::endl;
   } else {
     std::cerr << "Unable to seek to relocated labels table." << std::endl;
+  }
+
+  relocation_map_t data_relocations;
+  int32_t data_base = static_cast<int32_t>(_data_blocks.size());
+
+  if (offsets.seek_to_offset(input, CHUNK_DATA)) {
+    read_data_table(input, data_base, data_relocations);
+  } else {
+    std::cerr << "Unable to seek to data table." << std::endl;
+  }
+
+  if (offsets.seek_to_offset(input, CHUNK_DREL)) {
+    read_data_relocations(input, instruction_base, data_base, data_relocations);
   }
 
   resolve_externs();

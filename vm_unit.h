@@ -120,6 +120,20 @@ class vm_unit_t
 
   void resolve_externs();
 
+  void read_data_table(
+    std::istream &input,
+    int32_t data_base,
+    relocation_map_t &relocations
+    );
+
+  void read_data_relocations(
+    std::istream &input,
+    int32_t instr_base,
+    int32_t data_base,
+    relocation_map_t &load_relocations
+    );
+
+  void relocate_static_data(data_id_ary_t const &pointers);
 
 public:
 
