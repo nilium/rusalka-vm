@@ -61,12 +61,11 @@ The data table contains `count` entries describing data blocks in the unit. Thes
 Each entry can be represented as such:
 
     struct data_block_entry_t {
-        int32_t data_id;
         int32_t data_size_bytes;
         char    data[data_size_bytes];
     };
 
-The data ID is the zero-based number of the block. These always count upwards, so the data entries are essentially an array. IDs must be incremented if prior units provide data blocks.
+The data ID is the one-based index of the block in the data table. Data entries from additional units will need to be relocated to ensure their IDs do not overlap (unless the VM tries to remove duplicate entries).
 
 The data itself is a string of `data_size_bytes`. The data is not required to contain anything and is not required to be null-terminated.
 
