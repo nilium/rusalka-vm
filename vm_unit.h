@@ -57,7 +57,7 @@ class vm_unit_t
   };
 
   using relocation_table_t = std::vector<relocation_ptr_t>;
-  using label_relocations_t = std::map<int32_t, int32_t>;
+  using relocation_map_t = std::map<int32_t, int32_t>;
   // Externs may be relocated in two ways:
   // 1) The extern might just need to be adjusted because there are prior
   //  unresolved externs, in which case the second field is false (unresolved).
@@ -92,15 +92,15 @@ class vm_unit_t
   void read_instruction(std::istream &input);
   void read_instructions(std::istream &input);
 
-  void read_imports(std::istream &input, label_relocations_t &relocations);
-  void read_exports(std::istream &input, int32_t base, label_relocations_t &relocations);
+  void read_imports(std::istream &input, relocation_map_t &relocations);
+  void read_exports(std::istream &input, int32_t base, relocation_map_t &relocations);
 
   void read_externs(std::istream &input, extern_relocations_t &relocations);
 
   void read_label_relocations(
     std::istream &input,
     int32_t instruction_base,
-    label_relocations_t const &relocations
+    relocation_map_t const &relocations
     );
 
   void read_extern_relocations(

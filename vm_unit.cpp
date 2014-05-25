@@ -127,10 +127,10 @@ void
 vm_unit_t::read_label_relocations(
   std::istream &input,
   int32_t instruction_base,
-  label_relocations_t const &relocations
+  relocation_map_t const &relocations
   )
 {
-  label_relocations_t::const_iterator not_found = relocations.cend();
+  relocation_map_t::const_iterator not_found = relocations.cend();
 
   read_table(input, CHUNK_LREL, [&](int32_t rel_index) {
     relocation_ptr_t rel = read_primitive<relocation_ptr_t>(input);
@@ -140,7 +140,7 @@ vm_unit_t::read_label_relocations(
     each_in_mask(rel.args_mask, [&](int32_t index) {
       int32_t const arg_index = arg_base + index;
       value_t &arg = instruction_argv[arg_index];
-      label_relocations_t::const_iterator iter = relocations.find(arg.i32());
+      relocation_map_t::const_iterator iter = relocations.find(arg.i32());
 
       int32_t orig_base = arg;
       int32_t new_base;
@@ -199,7 +199,7 @@ vm_unit_t::read_externs(std::istream &input, extern_relocations_t &relocations)
 
 
 void
-vm_unit_t::read_imports(std::istream &input, label_relocations_t &relocations)
+vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
 {
   read_table(input, CHUNK_IMPT, [&](int32_t index) {
     label_t label = read_label(input);
@@ -231,7 +231,7 @@ vm_unit_t::read_imports(std::istream &input, label_relocations_t &relocations)
 
 
 void
-vm_unit_t::read_exports(std::istream &input, int32_t base, label_relocations_t &relocations)
+vm_unit_t::read_exports(std::istream &input, int32_t base, relocation_map_t &relocations)
 {
   read_table(input, CHUNK_EXPT, [&](int32_t index) {
     label_t label = read_label(input);
@@ -264,7 +264,7 @@ vm_unit_t::resolve_externs()
     return;
   }
 
-  label_relocations_t relocations;
+  relocation_map_t relocations;
   label_table_t next_externs;
   relocation_table_t next_relocations;
 
@@ -292,7 +292,7 @@ vm_unit_t::resolve_externs()
       int32_t const arg_index = arg_base + mask_index;
       value_t &arg = instruction_argv[arg_index];
 
-      label_relocations_t::const_iterator iter = relocations.find(arg.i32());
+      relocation_map_t::const_iterator iter = relocations.find(arg.i32());
 
       if (iter == not_found) {
         updated_mask |= 0x1U << (mask_index - 1);
@@ -325,7 +325,7 @@ vm_unit_t::read(std::istream &input)
   int32_t instruction_base = static_cast<int32_t>(instructions.size());
   int32_t instruction_argv_base = static_cast<int32_t>(instruction_argv.size());
 
-  label_relocations_t label_relocations;
+  relocation_map_t label_relocations;
 
   if (filehead.version < 8) {
     std::cerr << "Bytecode version incorrect: expected 8, got " << filehead.version << std::endl;
