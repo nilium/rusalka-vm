@@ -253,6 +253,16 @@ value_t vm_state_t::deref(value_t input, value_t flag, uint32_t mask) const {
 }
 
 
+template <typename T>
+constexpr T vm_shift(T num, int32_t shift)
+{
+  return
+    shift == 0
+    ? num
+    : ((shift > 0) ? (num << shift) : (num >> (-shift)));
+}
+
+
 void vm_state_t::exec(const op_t &op) {
   value_t value;
   int8_t *block;
@@ -363,11 +373,9 @@ void vm_state_t::exec(const op_t &op) {
   // RHS < 0  -> Right shift.
   // RHS == 0 -> Cast to signed 32-bit int.
   case ARITHSHIFT: {
-    const int32_t input = deref(op[1], op[3], 0x2).i32();
-    const int32_t shift = deref(op[2], op[3], 0x4).i32();
-    if (shift > 0) reg(op[0]).set(input << shift);
-    else if (shift < 0) reg(op[0]).set(input >> (-shift));
-    else reg(op[0]).set(input);
+    const int32_t input = deref(op[1], op[3], 0x2);
+    const int32_t shift = deref(op[2], op[3], 0x4);
+    reg(op[0]) = vm_shift(input, shift);
   } break;
 
   // BITSHIFT OUT, LHS, RHS, LITFLAG
@@ -376,11 +384,9 @@ void vm_state_t::exec(const op_t &op) {
   // RHS < 0  -> Right shift.
   // RHS == 0 -> Cast to unsigned 32-bit int.
   case BITSHIFT: {
-    const uint32_t input = deref(op[1], op[3], 0x2).ui32();
-    const int32_t shift = deref(op[2], op[3], 0x4).i32();
-    if (shift > 0) reg(op[0]).set(input << shift);
-    else if (shift < 0) reg(op[0]).set(input >> (-shift));
-    else reg(op[0]).set(input);
+    const uint32_t input = deref(op[1], op[3], 0x2);
+    const int32_t shift = deref(op[2], op[3], 0x4);
+    reg(op[0]) = vm_shift(input, shift);
   } break;
 
   // FLOOR OUT, IN
