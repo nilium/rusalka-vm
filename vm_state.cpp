@@ -512,11 +512,13 @@ void vm_state_t::exec(const op_t &op) {
     int32_t const block_id = deref(op[1], op[4], 0x2);
     int32_t const offset = deref(op[2], op[4], 0x4);
     memop_typed_t const type = (memop_typed_t)deref(op[3], op[4], 0x8).i32();
-    block = ((int8_t *)get_block(block_id, VM_MEM_READABLE)) + offset;
+    block = ((int8_t *)get_block(block_id, VM_MEM_READABLE));
 
     if (!(block && check_block_bounds(block_id, offset, MEMOP_SIZE[type]))) {
       std::abort();
     }
+
+    block += offset;
 
     switch (type) {
     case MEMOP_UINT8:   out = *(uint8_t const *)block;  break;
@@ -549,11 +551,13 @@ void vm_state_t::exec(const op_t &op) {
     value = deref(op[1], op[4], 0x2);
     int32_t const offset = deref(op[2], op[4], 0x4);
     memop_typed_t const type = (memop_typed_t)deref(op[3], op[4], 0x8).i32();
-    block = ((int8_t *)get_block(block_id, VM_MEM_WRITABLE)) + offset;
+    block = ((int8_t *)get_block(block_id, VM_MEM_WRITABLE));
 
     if (!(block && check_block_bounds(block_id, offset, MEMOP_SIZE[type]))) {
       std::abort();
     }
+
+    block += offset;
 
     switch (type) {
     case MEMOP_UINT8:   *(uint8_t *)(block + offset)  = value.ui8();  break;
