@@ -49,7 +49,7 @@ read_primitive<table_header_t>(std::istream &input)
 
 template <typename Func>
 bool
-read_table(std::istream &input, chunk_id_t id, Func func)
+read_table(std::istream &input, chunk_id_t id, Func &&func)
 {
   table_header_t const itable = read_primitive<table_header_t>(input);
 
@@ -71,7 +71,7 @@ read_table(
   std::istream &input,
   chunk_id_t id,
   table_header_t &header_out,
-  Func func
+  Func &&func
   )
 {
   table_header_t const itable = read_primitive<table_header_t>(input);
