@@ -153,7 +153,39 @@ public:
   void merge_unit(const vm_unit_t &unit);
 
   vm_instruction_t instruction(int32_t pointer) const;
+
+  template <typename Func>
+  void each_data(Func &&fn) const;
+
+  template <typename Func>
+  void each_data(Func &&fn);
 };
+
+
+
+template <typename Func>
+void vm_unit_t::each_data(Func &&fn)
+{
+  int32_t index = 0;
+  bool stop = false;
+  for (data_block_t const &blk : _data_blocks) {
+    fn(index++, blk.id, blk.size, (void const *)&_data[blk.offset], stop);
+    if (stop) return;
+  }
+}
+
+
+
+template <typename Func>
+void vm_unit_t::each_data(Func &&fn) const
+{
+  int32_t index = 0;
+  bool stop = false;
+  for (data_block_t const &blk : _data_blocks) {
+    fn(index++, blk.id, blk.size, (void const *)&_data[blk.offset], stop);
+    if (stop) return;
+  }
+}
 
 
 #endif /* end __VM_UNIT_H__ include guard */
