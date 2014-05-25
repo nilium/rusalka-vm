@@ -65,6 +65,26 @@ read_table(std::istream &input, chunk_id_t id, Func &&func)
 }
 
 
+template <typename InitFunc, typename Func>
+bool
+read_table(std::istream &input, chunk_id_t id, InitFunc &&init, Func &&func)
+{
+  table_header_t const itable = read_primitive<table_header_t>(input);
+
+  if (itable.header.id == id) {
+    init(itable.count);
+
+    for (int32_t counter = 0; counter < itable.count; ++counter) {
+      func(counter);
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+
 template <typename Func>
 bool
 read_table(
