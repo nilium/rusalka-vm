@@ -26,13 +26,17 @@
 #include "vm_value.h"
 
 
-struct op_t {
-  int32_t args;
-  opcode_t opcode;
-  value_t argv[0];
+class vm_unit_t;
 
-  value_t operator [] (int32_t index) const { return argv[index]; }
-  value_t &operator [] (int32_t index) { return argv[index]; }
+
+class op_t
+{
+public:
+  vm_unit_t const &unit;
+  int32_t const ip;
+
+  opcode_t opcode() const;
+  value_t operator [] (int32_t index) const;
 };
 
 // static_assert(sizeof(opcode_t) == sizeof(value_t),

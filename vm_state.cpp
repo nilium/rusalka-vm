@@ -126,29 +126,12 @@ int32_t vm_state_t::fetch() {
 }
 
 
-void vm_state_t::set_source(source_t &&source) {
-  _source = std::move(source);
-  _source_size = (uint32_t)_source.size();
-  _callbacks.clear();
-  _callbacks.resize(_source.imports_table().size(), NULL);
-  for (auto kvpair : _source.data_table()) {
-    _block_counter = std::max(kvpair.first, _block_counter + 1);
-    memblock_t block = {
-      kvpair.second->size,
-      VM_MEM_SOURCE_DATA,
-      kvpair.second->data
-    };
-    _blocks.emplace(kvpair.first, block);
-  }
+void vm_state_t::set_unit(vm_unit_t const &unit) {
+  _unit = unit;
 }
 
 
 void vm_state_t::bind_callback(const char *name, vm_callback_t *function) {
-  auto finding = _source.imported_function(name);
-  if (finding.first) {
-    const int32_t idx = -(finding.second + 1);
-    _callbacks.at(idx) = function;
-  }
 }
 
 
@@ -163,7 +146,6 @@ bool vm_state_t::run() {
   const int32_t term_sequence = _sequence++;
   int32_t opidx = fetch();
   for (; term_sequence < _sequence && !_trap; opidx = fetch()) {
-    exec(_source.fetch_op(opidx));
   }
   return _trap == 0;
 }
@@ -282,7 +264,7 @@ void vm_state_t::exec(const op_t &op) {
   std::clog << std::endl;
   #endif
 
-  switch (op.opcode) {
+  switch (op.opcode()) {
   // For all math and bitwise instructions, litflag applies to both LHS and RHS
   // input. See vm_state_t::deref for how the test works.
   //
@@ -676,14 +658,14 @@ void vm_state_t::exec(const op_t &op) {
 }
 
 
-std::pair<bool, int32_t> vm_state_t::find_function_pointer(const char *name) const {
+vm_fn_find_result_t vm_state_t::find_function_pointer(const char *name) const {
   const std::string str_name((name));
-  auto finding = _source.imported_function(name);
-  if (finding.first) {
-    return finding;
-  } else {
-    return _source.exported_function(name);
+  vm_unit_t::label_table_t::const_iterator iter = _unit.imports.find(name);
+  if (iter == _unit.imports.cend() &&
+      (iter = _unit.exports.find(name)) == _unit.exports.cend()) {
+    return vm_fn_find_result_t { false, 0 };
   }
+  return vm_fn_find_result_t { true, iter->second };
 }
 
 

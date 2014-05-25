@@ -34,8 +34,8 @@
 #include "vm_op.h"
 #include "vm_value.h"
 #include "vm_opcode.h"
-#include "vm_source.h"
 #include "vm_function.h"
+#include "vm_unit.h"
 
 
 /*** Macros to configure the VM ***/
@@ -53,11 +53,12 @@
 // #define LOG_FINAL_STATE
 
 
-class vm_source_t;
 class vm_state_t;
 
 
 typedef value_t (vm_callback_t)(vm_state_t &vm, int32_t argc, const value_t *argv);
+
+using vm_fn_find_result_t = std::pair<bool, int32_t>;
 
 
 enum memblock_flags_t : uint32_t {
@@ -103,6 +104,7 @@ class vm_state_t {
 
   // std::array<value_t, REGISTER_COUNT> _registers;
   value_t _registers[REGISTER_COUNT];
+
   stack_t _stack;
   callbacks_t _callbacks;
   memblock_map_t _blocks;
@@ -112,7 +114,7 @@ class vm_state_t {
 
   int32_t unused_block_id();
 
-  source_t _source;
+  vm_unit_t _unit;
   int32_t _source_size;
 
   template <class T, class... ARGS>
@@ -188,7 +190,7 @@ public:
     not be called afterward. The VM takes ownership of the source data -- the
     object is moved and the original object is invalid.
   */
-  void set_source(source_t &&source);
+  void set_unit(vm_unit_t const &unit);
 
 private:
   void exec(const op_t &op);
@@ -242,7 +244,7 @@ public:
   void dump_registers(size_t count = REGISTER_COUNT) const;
   void dump_stack(size_t until = SIZE_MAX) const;
 
-  std::pair<bool, int32_t> find_function_pointer(const char *name) const;
+  vm_fn_find_result_t find_function_pointer(const char *name) const;
 
   void bind_callback(const char *name, vm_callback_t *function);
 

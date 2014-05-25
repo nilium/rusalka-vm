@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include "vm_opcode.h"
+#include "vm_op.h"
 #include "vm_value.h"
 
 
@@ -46,6 +47,8 @@ struct vm_instruction_t
 
 class vm_unit_t
 {
+  friend class op_t;
+  friend class vm_state_t;
 
   struct relocation_ptr_t
   {
