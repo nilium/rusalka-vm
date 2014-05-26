@@ -23,12 +23,21 @@ defdata woop "wooperton"
 .main:
     push      $0
     load      $1 0.5
-    call      .fabs [$1]
+    push      $1
+    call      .fabs 1
+
     add       $0 $0 rp
-    call      ^print [$0]
+
+    push      $0
+    call      ^print 1
+
     load      $20 ~woop
+    push      $20
+    call      ^prints 1
+
     load      $20 "woop"
-    call      ^prints [$20]
+    push      $20
+    call      ^prints 1
 
     push      $0
     load      $0 0
@@ -39,13 +48,10 @@ defdata woop "wooperton"
     call      $8 0
 
 @loop:
-    cmp       $2 $0 ~0
-    jgez      $2 @loop_done
+    for $0 < 2048 {
+      add     $0 $0 1.0
+    }
 
-    add       $0 $0 1.0
-    jump      @loop
-
-@loop_done:
     pop       $0
     return
 
@@ -53,7 +59,8 @@ defdata woop "wooperton"
 // just bitwise-and a double's sign bit since integers are strictly 32-bit
 // and therefore cannot touch the latter 32 bits of a double.
 .fabs:
-    jgez      @fabs_return_early $0
-    neg       $0 $0
+    load      rp $0
+    if rp < 0.0
+      neg     rp rp
 @fabs_return_early:
     return
