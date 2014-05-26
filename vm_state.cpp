@@ -501,7 +501,7 @@ void vm_state_t::exec(const op_t &op) {
   // POP REG
   // Pops the last value on the stack and stores it in REG.
   case POP: {
-    reg(op[0]) = pop();
+    reg(op[0]) = pop(false);
   } break;
 
   // LOAD OUT, IN, LITFLAG
