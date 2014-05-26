@@ -93,6 +93,15 @@ struct value_t final
   bool operator > (value_t other) const { return value > other.value; }
 };
 
+
 std::ostream &operator << (std::ostream &out, value_t v);
+
+
+template <class T>
+value_t make_value(T x)
+{
+  return value_t { x };
+}
+
 
 #endif /* end __VM_VALUE_H__ include guard */
