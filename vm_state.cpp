@@ -707,7 +707,7 @@ value_t vm_state_t::stack(int32_t loc) const {
   if (loc < 0) {
     std::abort();
   } else if (static_cast<size_t>(loc) >= _stack.size()) {
-    return value_t::make(0);
+    return value_t { 0 };
   }
 
   return _stack[loc];
@@ -720,7 +720,7 @@ value_t &vm_state_t::stack(int32_t loc) {
   if (loc < 0) {
     std::abort();
   } else if (static_cast<size_t>(loc) >= _stack.size()) {
-    _stack.resize(loc, value_t::make(0));
+    _stack.resize(loc + 1);
   }
 
   return _stack[loc];
