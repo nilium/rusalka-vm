@@ -237,6 +237,10 @@ int32_t vm_state_t::duplicate_block(int32_t block_id) {
 
 
 int32_t vm_state_t::block_size(int32_t block_id) const {
+  if (block_id == 0) {
+    return 0;
+  }
+
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
     return iter->second.size;
@@ -259,6 +263,10 @@ void vm_state_t::free_block(int32_t block_id) {
 
 
 void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) {
+  if (block_id == 0) {
+    return nullptr;
+  }
+
   auto block = _blocks.at(block_id);
   if (permissions != VM_MEM_NO_PERMISSIONS && !(block.flags & permissions)) {
     std::abort();
