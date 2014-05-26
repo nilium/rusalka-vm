@@ -747,8 +747,6 @@ value_t vm_state_t::stack(int32_t loc) const {
 
 
 value_t &vm_state_t::stack(int32_t loc) {
-  loc += ebp().i32();
-
   if (loc < 0) {
     std::abort();
   } else if (static_cast<size_t>(loc) >= _stack.size()) {
