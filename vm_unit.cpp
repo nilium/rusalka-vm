@@ -15,14 +15,11 @@ void
 each_in_mask(T mask, Func func)
 {
   static_assert(std::is_unsigned<T>::value, "Mask must be unsigned");
-  for (int32_t index = 0; mask; index += 4) {
-    if (mask & 0xFu) {
-      if (mask & 0x1u) { func(index); }
-      if (mask & 0x2u) { func(index + 1); }
-      if (mask & 0x4u) { func(index + 2); }
-      if (mask & 0x8u) { func(index + 3); }
+  for (int32_t index = 0; mask; index += 1) {
+    if (mask & 0x1u) {
+      func(index);
     }
-    mask >>= 4;
+    mask >>= 1;
   }
 }
 
