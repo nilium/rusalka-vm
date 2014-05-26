@@ -472,13 +472,13 @@ void vm_state_t::exec(const op_t &op) {
     }
   } break;
 
-  case LE: {
+  case LT: {
     if ((deref(op[0], op[3], 0x1) < deref(op[1], op[3], 0x2)) != (op[2].i32() != 0)) {
       ip() = ip().i32() + 1;
     }
   } break;
 
-  case LT: {
+  case LE: {
     if ((deref(op[0], op[3], 0x1) <= deref(op[1], op[3], 0x2)) != (op[2].i32() != 0)) {
       ip() = ip().i32() + 1;
     }
