@@ -553,17 +553,20 @@ class Parser
 
   def conditional
     maybe? do
-      accept(:id, content: 'if') do |tok|
-        invert = !!accept(:bang)
-        arg0        = value
+      accept(:id, content: ['if', 'for']) do |tok|
+        label_pre  = tok.value
+        is_loop    = label_pre == 'for'
+        invert     = !!accept(:bang)
+        arg0       = value
         multi_line = false
 
-        comp_instr  = accept(CONDITIONAL_OPS.keys) do |tok|
+        comp_instr = accept(CONDITIONAL_OPS.keys) do |tok|
           name, flag  = CONDITIONAL_OPS[tok.kind]
           arg1        = self.value
 
           multi_line = !!accept(:curl_open)
-          flag = 1 - flag if (invert || !multi_line) && !(invert && !multi_line)
+          implicit_invert = !(multi_line || is_loop)
+          flag = 1 - flag if (invert || implicit_invert) && !(invert && implicit_invert)
 
           lits = 0
           lits |= 0x1 unless arg0.kind_of?(RegisterRef)
@@ -574,18 +577,34 @@ class Parser
           end
         end
 
-        comp_instr
+        loop_label_id = nil
+        loop_jump_instr = nil
+        if is_loop
+          loop_label_id = Label[@prefix, "__#{label_pre}_start_#{unique_uuid}", :local]
+          @data << register_label_statement(LabelStmt[loop_label_id])
+          loop_jump_instr = Instruction[:jump, [LabelRef[loop_label_id], 0x1]]
+        end
 
-        if multi_line
+
+        if multi_line || is_loop
           @data << comp_instr
 
-          label_id = Label[@prefix, "__if_#{unique_uuid}", :local]
+          label_id = Label[@prefix, "__#{label_pre}_end_#{unique_uuid}", :local]
           jump_instr = Instruction[:jump, [LabelRef[label_id], 0x1]]
           @data << jump_instr
           @instructions << jump_instr
 
-          until accept(:curl_close)
+          if multi_line
+            until accept(:curl_close)
+              line
+            end
+          else
             line
+          end
+
+          if is_loop
+            @data << loop_jump_instr
+            @instructions << loop_jump_instr
           end
 
           # accept(:id, content: 'else') do
