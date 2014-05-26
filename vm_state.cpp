@@ -160,8 +160,13 @@ bool vm_state_t::run() {
   _trap = 0;
   const int32_t term_sequence = _sequence++;
   int32_t opidx = fetch();
-  for (; term_sequence < _sequence && !_trap; opidx = fetch()) {
+  while (!_trap) {
     exec(_unit.fetch_op(opidx));
+    if (term_sequence < _sequence) {
+      opidx = fetch();
+    } else {
+      break;
+    }
   }
   return _trap == 0;
 }
