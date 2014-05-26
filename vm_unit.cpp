@@ -171,10 +171,10 @@ void vm_unit_t::read_extern_relocations(
         return;
       }
 
-      arg = new_base = iter->second.first;
+      new_base = arg = iter->second.pointer;
       std::cerr << "Relocating " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << mask_index << "] from " << orig_base << " to " << new_base;
 
-      if (!iter->second.second) {
+      if (!iter->second.resolved) {
         /* unresolved */
         unresolved_relocations.emplace_back(rel);
         std::cerr << " (remains unresolved)";

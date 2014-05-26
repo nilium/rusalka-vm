@@ -72,6 +72,12 @@ class vm_unit_t
     int32_t size;   // size in bytes of the block
   };
 
+  struct extern_relocation_t
+  {
+    value_t pointer;
+    bool resolved;
+  };
+
   using relocation_table_t   = std::vector<relocation_ptr_t>;
   using relocation_map_t     = std::map<value_t, value_t>;
   // Externs may be relocated in two ways:
@@ -79,7 +85,6 @@ class vm_unit_t
   //  unresolved externs, in which case the second field is false (unresolved).
   // 2) The extern might've been resolved in the process of loading the extern
   //  table, so the second field is true (resolved).
-  using extern_relocation_t  = std::pair<value_t /* new_address */, bool /* resolved */>;
   using extern_relocations_t = std::map<value_t, extern_relocation_t>;
 
   using instruction_ptrs_t   = std::vector<instruction_ptr_t>;
