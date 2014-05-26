@@ -644,7 +644,7 @@ void vm_state_t::exec(const op_t &op)
     case MEMOP_UINT64:  *(uint64_t *)rw_block = value.ui64(); break;
     case MEMOP_INT64:   *(int64_t *)rw_block  = value.i64();  break;
     case MEMOP_FLOAT32: *(float *)rw_block    = value.f32();  break;
-    case MEMOP_FLOAT64: *(double *)rw_block   = value.value;  break;
+    case MEMOP_FLOAT64: *(double *)rw_block   = value.f64();  break;
     default: /* invalid type */ std::abort(); break;
     }
   } break;
