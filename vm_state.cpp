@@ -735,9 +735,7 @@ value_t vm_state_t::call_function_nt(int32_t pointer, int32_t argc, const value_
 
 
 value_t vm_state_t::call_function_nt(int32_t pointer, int32_t num_args) {
-  const int32_t last_sequence = _sequence++;
   exec_call(pointer, num_args);
-  _sequence = last_sequence;
   return rp();
 }
 
@@ -775,15 +773,13 @@ void vm_state_t::exec_call(int32_t pointer, int32_t argc) {
     std::copy(first_preserved, last_preserved, std::begin(nonvolatile_reg));
   }
 
-
   value_t const preserved_ip = ip();
   value_t const preserved_ebp = ebp();
   ebp() = esp().i32() - argc;
 
   if (pointer < 0) {
+    vm_callback_t *callback = _callbacks[-(pointer + 1)];
     ++_sequence;
-
-    vm_callback_t *callback = _callbacks[-(ip().i32() + 1)];
 
     if (argc <= 0) {
       rp() = callback(*this, 0, nullptr);
