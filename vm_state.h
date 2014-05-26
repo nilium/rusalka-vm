@@ -134,54 +134,6 @@ class vm_state_t {
     return index;
   }
 
-  static value_t value_of(double d) {
-    value_t v;
-    v.set(d);
-    return v;
-  }
-
-  static value_t value_of(float f) {
-    value_t v;
-    v.set(f);
-    return v;
-  }
-
-  static value_t value_of(int32_t i) {
-    value_t v;
-    v.set(i);
-    return v;
-  }
-
-  static value_t value_of(uint32_t u) {
-    value_t v;
-    v.set(u);
-    return v;
-  }
-
-  static value_t value_of(int16_t i) {
-    value_t v;
-    v.set(i);
-    return v;
-  }
-
-  static value_t value_of(uint16_t u) {
-    value_t v;
-    v.set(u);
-    return v;
-  }
-
-  static value_t value_of(int8_t i) {
-    value_t v;
-    v.set(i);
-    return v;
-  }
-
-  static value_t value_of(uint8_t u) {
-    value_t v;
-    v.set(u);
-    return v;
-  }
-
 public:
   vm_state_t(size_t stackSize = 8192);
   ~vm_state_t();
