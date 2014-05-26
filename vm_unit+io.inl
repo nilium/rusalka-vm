@@ -16,8 +16,7 @@ read_string(std::istream &input, int32_t length)
 
 
 template <typename T>
-T
-read_primitive(std::istream &input)
+T read_primitive(std::istream &input)
 {
   T value {};
   input.read((char *)&value, sizeof value);
@@ -26,8 +25,7 @@ read_primitive(std::istream &input)
 
 
 template <>
-chunk_header_t
-read_primitive<chunk_header_t>(std::istream &input)
+chunk_header_t read_primitive<chunk_header_t>(std::istream &input)
 {
   return chunk_header_t {
     read_primitive<chunk_id_t>(input),
@@ -37,8 +35,7 @@ read_primitive<chunk_header_t>(std::istream &input)
 
 
 template <>
-table_header_t
-read_primitive<table_header_t>(std::istream &input)
+table_header_t read_primitive<table_header_t>(std::istream &input)
 {
   return table_header_t {
     read_primitive<chunk_header_t>(input),
@@ -48,8 +45,7 @@ read_primitive<table_header_t>(std::istream &input)
 
 
 template <typename Func>
-bool
-read_table(std::istream &input, chunk_id_t id, Func &&func)
+bool read_table(std::istream &input, chunk_id_t id, Func &&func)
 {
   table_header_t const itable = read_primitive<table_header_t>(input);
 
@@ -66,8 +62,7 @@ read_table(std::istream &input, chunk_id_t id, Func &&func)
 
 
 template <typename InitFunc, typename Func>
-bool
-read_table(std::istream &input, chunk_id_t id, InitFunc &&init, Func &&func)
+bool read_table(std::istream &input, chunk_id_t id, InitFunc &&init, Func &&func)
 {
   table_header_t const itable = read_primitive<table_header_t>(input);
 
@@ -86,8 +81,7 @@ read_table(std::istream &input, chunk_id_t id, InitFunc &&init, Func &&func)
 
 
 template <typename Func>
-bool
-read_table(
+bool read_table(
   std::istream &input,
   chunk_id_t id,
   table_header_t &header_out,
@@ -109,8 +103,7 @@ read_table(
 }
 
 
-label_t
-read_label(std::istream &input)
+label_t read_label(std::istream &input)
 {
   int32_t const address = read_primitive<int32_t>(input);
   int32_t const length = read_primitive<int32_t>(input);
@@ -119,8 +112,7 @@ read_label(std::istream &input)
 }
 
 
-std::string
-read_lstring(std::istream &input)
+std::string read_lstring(std::istream &input)
 {
   std::string result;
   int32_t length = read_primitive<int32_t>(input);

@@ -19,8 +19,7 @@ struct chunk_offsets_t
   std::vector<chunk_offset_t>   offsets;
 
 
-  explicit
-  chunk_offsets_t(std::istream &input)
+  explicit chunk_offsets_t(std::istream &input)
   {
     read_table(input, CHUNK_OFFS, header, [&](int32_t index) {
       offsets.emplace_back(
@@ -32,8 +31,7 @@ struct chunk_offsets_t
   }
 
 
-  int32_t
-  offset_for(chunk_id_t id) const
+  int32_t offset_for(chunk_id_t id) const
   {
     for (int32_t index = 0; index < header.count; ++index) {
       if (offsets[index].id == id) {
@@ -47,8 +45,11 @@ struct chunk_offsets_t
   // Returns true if the seek went through. May need to check eof bit on the
   // stream, however, as this only returns input.good() in case the seek is
   // successful.
-  bool
-  seek_to_offset(std::istream &input, chunk_id_t id, int32_t io_start = 0) const
+  bool seek_to_offset(
+    std::istream &input,
+    chunk_id_t id,
+    int32_t io_start = 0
+    ) const
   {
     int32_t const offset = io_start + offset_for(id);
 
@@ -62,6 +63,7 @@ struct chunk_offsets_t
 
     return input.good();
   }
+
 };
 
 

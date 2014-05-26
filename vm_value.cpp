@@ -22,6 +22,14 @@
 #include <iomanip>
 
 
-std::ostream &operator << (std::ostream &out, value_t v) {
-  return out << "<" << std::dec << v.f64() << ", " << std::hex << std::showbase << v.i32() << std::dec << std::noshowbase << ">";
+std::ostream &operator << (std::ostream &out, value_t v)
+{
+  return
+    out
+    << "<"
+    << std::dec << v.f64() << ", "
+    << std::hex << std::showbase
+    << v.i32()
+    << std::dec << std::noshowbase
+    << ">";
 }

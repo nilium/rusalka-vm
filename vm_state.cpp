@@ -83,23 +83,27 @@ vm_state_t::vm_state_t(size_t stackSize)
 }
 
 
-vm_state_t::~vm_state_t() {
+vm_state_t::~vm_state_t()
+{
   release_all_memblocks();
 }
 
 
-vm_function_t<vm_state_t> vm_state_t::function(const char *name) {
+vm_function_t<vm_state_t> vm_state_t::function(const char *name)
+{
   const auto pointer = find_function_pointer(name);
   // if (!pointer.first) throw std::runtime_error("no such function");
   return vm_function_t<vm_state_t>(*this, pointer.second);
 }
 
-vm_function_t<vm_state_t> vm_state_t::function(int pointer) {
+vm_function_t<vm_state_t> vm_state_t::function(int pointer)
+{
   return vm_function_t<vm_state_t>(*this, pointer);
 }
 
 
-int32_t vm_state_t::fetch() {
+int32_t vm_state_t::fetch()
+{
   const int32_t next_instr = ip().i32();
   ip() = next_instr + 1;
   if (next_instr < 0 || next_instr >= _source_size) {
@@ -123,7 +127,8 @@ void vm_state_t::set_unit(vm_unit_t &&unit)
 }
 
 
-void vm_state_t::prepare_unit() {
+void vm_state_t::prepare_unit()
+{
   release_all_memblocks();
   _block_counter = 1;
   _source_size = _unit.instructions.size();
@@ -141,7 +146,8 @@ void vm_state_t::prepare_unit() {
 }
 
 
-void vm_state_t::bind_callback(const char *name, int length, vm_callback_t *function) {
+void vm_state_t::bind_callback(const char *name, int length, vm_callback_t *function)
+{
   std::string name_str(name, length);
   auto imported = _unit.imports.find(name_str);
   if (imported != _unit.imports.cend()) {
@@ -151,13 +157,15 @@ void vm_state_t::bind_callback(const char *name, int length, vm_callback_t *func
 }
 
 
-bool vm_state_t::run(int32_t from_ip) {
+bool vm_state_t::run(int32_t from_ip)
+{
   ip() = from_ip;
   return run();
 }
 
 
-bool vm_state_t::run() {
+bool vm_state_t::run()
+{
   _trap = 0;
   const int32_t term_sequence = _sequence++;
   while (!_trap && term_sequence < _sequence) {
@@ -179,7 +187,8 @@ void vm_state_t::release_all_memblocks()
 }
 
 
-int32_t vm_state_t::unused_block_id() {
+int32_t vm_state_t::unused_block_id()
+{
   auto end = _blocks.end();
   while (_blocks.find(_block_counter) != end || _block_counter == 0) {
     ++_block_counter;
@@ -188,7 +197,8 @@ int32_t vm_state_t::unused_block_id() {
 }
 
 
-int32_t vm_state_t::realloc_block(int32_t block_id, int32_t size) {
+int32_t vm_state_t::realloc_block(int32_t block_id, int32_t size)
+{
   void *src = nullptr;
   if (block_id != 0) {
     memblock_map_t::iterator iter = _blocks.find(block_id);
@@ -220,7 +230,8 @@ int32_t vm_state_t::realloc_block(int32_t block_id, int32_t size) {
 }
 
 
-int32_t vm_state_t::duplicate_block(int32_t block_id) {
+int32_t vm_state_t::duplicate_block(int32_t block_id)
+{
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
     const auto entry = iter->second;
@@ -235,7 +246,8 @@ int32_t vm_state_t::duplicate_block(int32_t block_id) {
 }
 
 
-int32_t vm_state_t::block_size(int32_t block_id) const {
+int32_t vm_state_t::block_size(int32_t block_id) const
+{
   if (block_id == 0) {
     return 0;
   }
@@ -248,7 +260,8 @@ int32_t vm_state_t::block_size(int32_t block_id) const {
 }
 
 
-void vm_state_t::free_block(int32_t block_id) {
+void vm_state_t::free_block(int32_t block_id)
+{
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
     if (!(iter->second.flags & VM_MEM_SOURCE_DATA)) {
@@ -261,7 +274,8 @@ void vm_state_t::free_block(int32_t block_id) {
 }
 
 
-void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) {
+void *vm_state_t::get_block(int32_t block_id, uint32_t permissions)
+{
   if (block_id == 0) {
     return nullptr;
   }
@@ -274,7 +288,8 @@ void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) {
 }
 
 
-const void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) const {
+const void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) const
+{
   auto block = _blocks.at(block_id);
   if (permissions != VM_MEM_NO_PERMISSIONS && !(block.flags & permissions)) {
     std::abort();
@@ -283,7 +298,8 @@ const void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) const 
 }
 
 
-value_t vm_state_t::deref(value_t input, value_t flag, uint32_t mask) const {
+value_t vm_state_t::deref(value_t input, value_t flag, uint32_t mask) const
+{
   return (flag.ui32() & mask) ? input : reg(input.i32());
 }
 
@@ -298,7 +314,8 @@ constexpr T vm_shift(T num, int32_t shift)
 }
 
 
-void vm_state_t::exec(const op_t &op) {
+void vm_state_t::exec(const op_t &op)
+{
   value_t value;
   int8_t *block;
   int8_t *block_in;
@@ -704,7 +721,8 @@ void vm_state_t::exec(const op_t &op) {
 }
 
 
-vm_fn_find_result_t vm_state_t::find_function_pointer(const char *name) const {
+vm_fn_find_result_t vm_state_t::find_function_pointer(const char *name) const
+{
   const std::string str_name((name));
   vm_unit_t::label_table_t::const_iterator iter = _unit.imports.find(name);
   if (iter == _unit.imports.cend() &&
@@ -715,14 +733,16 @@ vm_fn_find_result_t vm_state_t::find_function_pointer(const char *name) const {
 }
 
 
-value_t vm_state_t::call_function_nt(const char *name, int32_t argc, const value_t *argv) {
+value_t vm_state_t::call_function_nt(const char *name, int32_t argc, const value_t *argv)
+{
   const auto pointer = find_function_pointer(name);
   // if (!pointer.first) throw std::runtime_error("no such function");
   return call_function_nt(pointer.second, argc, argv);
 }
 
 
-value_t vm_state_t::call_function_nt(int32_t pointer, int32_t argc, const value_t *argv) {
+value_t vm_state_t::call_function_nt(int32_t pointer, int32_t argc, const value_t *argv)
+{
   for (int32_t arg_index = 0; arg_index < argc; ++arg_index) {
     push(argv[arg_index]);
   }
@@ -730,13 +750,15 @@ value_t vm_state_t::call_function_nt(int32_t pointer, int32_t argc, const value_
 }
 
 
-value_t vm_state_t::call_function_nt(int32_t pointer, int32_t num_args) {
+value_t vm_state_t::call_function_nt(int32_t pointer, int32_t num_args)
+{
   exec_call(pointer, num_args);
   return rp();
 }
 
 
-value_t vm_state_t::stack(int32_t loc) const {
+value_t vm_state_t::stack(int32_t loc) const
+{
   if (loc < 0) {
     std::abort();
   } else if (static_cast<size_t>(loc) >= _stack.size()) {
@@ -747,7 +769,8 @@ value_t vm_state_t::stack(int32_t loc) const {
 }
 
 
-value_t &vm_state_t::stack(int32_t loc) {
+value_t &vm_state_t::stack(int32_t loc)
+{
   if (loc < 0) {
     std::abort();
   } else if (static_cast<size_t>(loc) >= _stack.size()) {
@@ -758,7 +781,8 @@ value_t &vm_state_t::stack(int32_t loc) {
 }
 
 
-void vm_state_t::exec_call(int32_t pointer, int32_t argc) {
+void vm_state_t::exec_call(int32_t pointer, int32_t argc)
+{
   // preserve nonvolatile registers
   std::array<value_t, R_NONVOLATILE_REGISTERS> nonvolatile_reg;
   auto first_preserved = std::begin(_registers) + R_FIRST_NONVOLATILE;
@@ -802,7 +826,8 @@ void vm_state_t::exec_call(int32_t pointer, int32_t argc) {
 }
 
 
-bool vm_state_t::check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const {
+bool vm_state_t::check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const
+{
   int32_t const bsize = block_size(block_id);
 
   return
@@ -813,13 +838,15 @@ bool vm_state_t::check_block_bounds(int32_t block_id, int32_t offset, int32_t si
 }
 
 
-void vm_state_t::push(value_t value) {
+void vm_state_t::push(value_t value)
+{
   stack(esp().i32()) = value;
   esp() = esp().i32() + 1;
 }
 
 
-value_t vm_state_t::pop(bool copy_only) {
+value_t vm_state_t::pop(bool copy_only)
+{
   int32_t stack_top = esp().i32() - 1;
   value_t result = stack(stack_top);
   if (!copy_only) {
@@ -829,7 +856,8 @@ value_t vm_state_t::pop(bool copy_only) {
 }
 
 
-void vm_state_t::dump_registers(size_t count) const {
+void vm_state_t::dump_registers(size_t count) const
+{
   uint32_t index = 0;
   for (; index < count && index < REGISTER_COUNT; ++index) {
     const value_t &regval = _registers[index];
@@ -838,7 +866,8 @@ void vm_state_t::dump_registers(size_t count) const {
 }
 
 
-void vm_state_t::dump_stack(size_t until) const {
+void vm_state_t::dump_stack(size_t until) const
+{
   uint32_t index = 0;
   for (; index < until && index < _stack.size(); ++index) {
     const value_t &stackval = _stack[index];

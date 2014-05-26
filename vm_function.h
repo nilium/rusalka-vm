@@ -28,7 +28,8 @@
 
 
 template <typename VM_TYPE>
-class vm_function_t {
+class vm_function_t
+{
   VM_TYPE &_vm;
   int32_t _pointer;
 
@@ -46,11 +47,13 @@ public:
   vm_function_t() = delete;
 
   template <class... ARGS>
-  value_t operator()(ARGS&&... args) {
+  value_t operator()(ARGS&&... args)
+  {
     return _vm.call_function(_pointer, std::forward<ARGS>(args)...);
   }
 
-  value_t operator()() {
+  value_t operator()()
+  {
     return _vm.call_function(_pointer, 0);
   }
 };

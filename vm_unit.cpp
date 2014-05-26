@@ -105,8 +105,7 @@ vm_unit_t::~vm_unit_t()
 }
 
 
-void
-vm_unit_t::read_instruction(std::istream &input)
+void vm_unit_t::read_instruction(std::istream &input)
 {
   opcode_t const opcode = static_cast<opcode_t>(read_primitive<int32_t>(input));
   int32_t arg_base = static_cast<int32_t>(instruction_argv.size());
@@ -130,8 +129,7 @@ vm_unit_t::read_instruction(std::istream &input)
 }
 
 
-void
-vm_unit_t::read_instructions(std::istream &input)
+void vm_unit_t::read_instructions(std::istream &input)
 {
   read_table(input, CHUNK_INST, [&](int32_t index) {
     (void)index;
@@ -140,8 +138,7 @@ vm_unit_t::read_instructions(std::istream &input)
 }
 
 
-void
-vm_unit_t::read_extern_relocations(
+void vm_unit_t::read_extern_relocations(
   std::istream &input,
   int32_t instruction_base,
   extern_relocations_t const &relocations
@@ -189,8 +186,7 @@ vm_unit_t::read_extern_relocations(
 }
 
 
-void
-vm_unit_t::read_label_relocations(
+void vm_unit_t::read_label_relocations(
   std::istream &input,
   int32_t instruction_base,
   relocation_map_t const &relocations
@@ -228,8 +224,10 @@ vm_unit_t::read_label_relocations(
 
 
 
-void
-vm_unit_t::read_externs(std::istream &input, extern_relocations_t &relocations)
+void vm_unit_t::read_externs(
+  std::istream &input,
+  extern_relocations_t &relocations
+  )
 {
   read_table(input, CHUNK_EXTS, [&](int32_t index) {
     std::string name = read_lstring(input);
@@ -273,8 +271,7 @@ vm_unit_t::read_externs(std::istream &input, extern_relocations_t &relocations)
 }
 
 
-void
-vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
+void vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
 {
   read_table(input, CHUNK_IMPT, [&](int32_t index) {
     label_t label = read_label(input);
@@ -305,8 +302,11 @@ vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
 }
 
 
-void
-vm_unit_t::read_exports(std::istream &input, int32_t base, relocation_map_t &relocations)
+void vm_unit_t::read_exports(
+  std::istream &input,
+  int32_t base,
+  relocation_map_t &relocations
+  )
 {
   read_table(input, CHUNK_EXPT, [&](int32_t index) {
     label_t label = read_label(input);
@@ -332,8 +332,7 @@ vm_unit_t::read_exports(std::istream &input, int32_t base, relocation_map_t &rel
 }
 
 
-void
-vm_unit_t::resolve_externs()
+void vm_unit_t::resolve_externs()
 {
   if (unresolved_relocations.size() == 0) {
     return;
@@ -389,8 +388,11 @@ vm_unit_t::resolve_externs()
 }
 
 
-void
-vm_unit_t::read_data_table(std::istream &input, int32_t data_base, relocation_map_t &relocations)
+void vm_unit_t::read_data_table(
+  std::istream &input,
+  int32_t data_base,
+  relocation_map_t &relocations
+  )
 {
   read_table(input, CHUNK_DATA, [&](int32_t max_count) {
       _data_blocks.reserve(_data_blocks.size() + max_count);
@@ -418,7 +420,12 @@ vm_unit_t::read_data_table(std::istream &input, int32_t data_base, relocation_ma
 }
 
 
-void vm_unit_t::read_data_relocations(std::istream &input, int32_t instr_base, int32_t data_base, relocation_map_t &load_relocations)
+void vm_unit_t::read_data_relocations(
+  std::istream &input,
+  int32_t instr_base,
+  int32_t data_base,
+  relocation_map_t &load_relocations
+  )
 {
   relocation_map_t::const_iterator not_found = load_relocations.cend();
   read_table(input, CHUNK_DREL, [&](int32_t count) {
@@ -446,8 +453,7 @@ void vm_unit_t::read_data_relocations(std::istream &input, int32_t instr_base, i
 }
 
 
-void
-vm_unit_t::read(std::istream &input)
+void vm_unit_t::read(std::istream &input)
 {
   version_chunk_t const filehead {
     read_primitive<chunk_header_t>(input),  // header

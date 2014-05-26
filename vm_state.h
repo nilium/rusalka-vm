@@ -56,12 +56,12 @@
 class vm_state_t;
 
 
-typedef value_t (vm_callback_t)(vm_state_t &vm, int32_t argc, const value_t *argv);
-
+using vm_callback_t = value_t(vm_state_t &vm, int32_t argc, value_t const *argv);
 using vm_fn_find_result_t = std::pair<bool, int32_t>;
 
 
-enum memblock_flags_t : uint32_t {
+enum memblock_flags_t : uint32_t
+{
   VM_MEM_NO_PERMISSIONS = 0x0,
   VM_MEM_READABLE = 0x1,
   VM_MEM_WRITABLE = 0x2,
@@ -73,8 +73,10 @@ enum memblock_flags_t : uint32_t {
 constexpr int32_t VM_NULL_BLOCK = 0;
 
 
-class vm_state_t {
-  enum {
+class vm_state_t
+{
+  enum
+  {
     R_NONVOLATILE_REGISTERS = 8,
 
     R_IP = 0,
@@ -92,7 +94,8 @@ class vm_state_t {
     R_VOLATILE_REGISTERS = REGISTER_COUNT - R_FIRST_VOLATILE,
   };
 
-  struct memblock_t {
+  struct memblock_t
+  {
     int32_t size;
     uint32_t flags;
     void *block;
@@ -119,18 +122,21 @@ class vm_state_t {
   int32_t _source_size;
 
   template <class T, class... ARGS>
-  int32_t load_registers(int32_t index, T &&first, ARGS&&... args) {
+  int32_t load_registers(int32_t index, T &&first, ARGS&&... args)
+  {
     push(make_value(std::forward<T>(first)));
     return load_registers(index + 1, std::forward<ARGS>(args)...);
   }
 
   template <class T>
-  int32_t load_registers(int32_t index, T &&first) {
+  int32_t load_registers(int32_t index, T &&first)
+  {
     push(make_value(std::forward<T>(first)));
     return index + 1;
   }
 
-  int32_t load_registers(int32_t index) {
+  int32_t load_registers(int32_t index) const
+  {
     return index;
   }
 
@@ -209,19 +215,22 @@ public:
   }
 
   template <class... ARGS>
-  value_t call_function(const char *name, ARGS&&... args) {
+  value_t call_function(const char *name, ARGS&&... args)
+  {
     const auto pointer = find_function_pointer(name);
     // if (!pointer.first) throw std::runtime_error("no such function");
     return call_function(pointer.second, args...);
   }
 
   template <class... ARGS>
-  value_t call_function(int32_t pointer, ARGS&&... args) {
+  value_t call_function(int32_t pointer, ARGS&&... args)
+  {
     const int32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
     return call_function_nt(pointer, argc);
   }
 
-  value_t call_function(const char *name) {
+  value_t call_function(const char *name)
+  {
     const auto pointer = find_function_pointer(name);
     // if (!pointer.first) throw std::runtime_error("no such function");
 

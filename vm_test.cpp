@@ -22,7 +22,8 @@
 #include <fstream>
 
 
-value_t printfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
+value_t printfn(vm_state_t &vm, int32_t argc, const value_t *argv)
+{
   std::cerr << "PRINTI: ";
   for (; argc > 0; --argc, ++argv) {
     std::cerr << argv->i32() << ' ';
@@ -31,7 +32,8 @@ value_t printfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
   return value_t { 0 };
 }
 
-value_t printsfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
+value_t printsfn(vm_state_t &vm, int32_t argc, const value_t *argv)
+{
   std::cerr << "PRINTS: ";
   for (; argc > 0; --argc, ++argv) {
     const char *ptr = reinterpret_cast<const char *>(vm.get_block(argv->i32(), VM_MEM_READABLE));
