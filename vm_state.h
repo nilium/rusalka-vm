@@ -179,7 +179,7 @@ private:
   value_t &stack(int32_t off);
 
   void push(value_t value);
-  value_t pop(bool copy_only = true);
+  value_t pop(bool copy_only = false);
 
   void exec_call(int32_t instr, int32_t argc);
 
