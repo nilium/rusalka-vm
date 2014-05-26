@@ -28,7 +28,7 @@ value_t printfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
     std::cout << *argv << ' ';
   }
   std::cout << std::endl;
-  return {0};
+  return value_t { 0 };
 }
 
 value_t printsfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
@@ -37,7 +37,7 @@ value_t printsfn(vm_state_t &vm, int32_t argc, const value_t *argv) {
     std::cout << (const char *)vm.get_block(argv->i32(), VM_MEM_READABLE) << ' ';
   }
   std::cout << std::endl;
-  return {0};
+  return value_t { 0 };
 }
 
 
