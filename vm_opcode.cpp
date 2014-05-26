@@ -19,7 +19,7 @@
 
 #include "vm_opcode.h"
 
-const int32_t g_opcode_argc[OP_COUNT] = {
+const int32_t g_opcode_argc[OP_COUNT] {
 #define INSTRUCTION(OPCODE, ASM_NAME, CODE, NUM_ARGS, ARG_INFO... ) NUM_ARGS,
 #include "vm_instructions.h"
 #undef INSTRUCTION
