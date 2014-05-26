@@ -474,6 +474,70 @@ void vm_unit_t::debug_write_instructions(std::ostream &out) const
 }
 
 
+
+bool vm_unit_t::relocate_static_data(data_id_ary_t const &new_ids)
+{
+  relocation_map_t relocations;
+
+  for (int32_t index = 0; index < _data_blocks.size(); ++index) {
+    data_block_t &block = _data_blocks[index];
+
+    auto insertion = relocations.emplace(
+      value_t { block.id },
+      value_t { new_ids[index] }
+      );
+
+    block.id = new_ids[index];
+
+    if (!insertion.second) {
+      return false;
+    }
+  }
+
+  apply_relocation_table(_data_relocations, relocations);
+
+  return true;
+}
+
+
+void vm_unit_t::apply_instruction_relocation(
+  relocation_ptr_t rel,
+  relocation_map_t const &relocations
+  )
+{
+  int32_t const arg_base = instructions[rel.pointer].arg_pointer;
+  relocation_map_t::const_iterator not_found = relocations.cend();
+  each_in_mask(rel.args_mask, [&](int32_t arg_index) {
+    value_t &arg = instruction_argv[arg_base + arg_index];
+    relocation_map_t::const_iterator mapped = relocations.find(arg);
+
+    if (mapped == not_found) {
+      return;
+    }
+
+    arg = mapped->second;
+
+    std::cerr
+      << "Relocating "
+      << rel.pointer << ": " << instructions[rel.pointer].opcode
+      << "[" << arg_index << "] from "
+      << mapped->first << " to " << mapped->second << std::endl;
+
+  });
+}
+
+
+void vm_unit_t::apply_relocation_table(
+  relocation_table_t const &table,
+  relocation_map_t const &relocations
+  )
+{
+  for (auto rel : table) {
+    apply_instruction_relocation(rel, relocations);
+  }
+}
+
+
 op_t vm_unit_t::fetch_op(int32_t ip) const
 {
   return op_t { *this, ip };

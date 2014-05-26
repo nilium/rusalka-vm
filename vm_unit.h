@@ -136,7 +136,16 @@ class vm_unit_t
     relocation_map_t &load_relocations
     );
 
-  void relocate_static_data(data_id_ary_t const &pointers);
+  bool relocate_static_data(data_id_ary_t const &new_ids);
+
+  void apply_instruction_relocation(
+    relocation_ptr_t rel,
+    relocation_map_t const &relocations
+    );
+  void apply_relocation_table(
+    relocation_table_t const &table,
+    relocation_map_t const &relocations
+    );
 
 public:
 
