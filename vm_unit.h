@@ -150,7 +150,12 @@ class vm_unit_t
 public:
 
   vm_unit_t();
+  vm_unit_t(vm_unit_t const &m);
+  vm_unit_t(vm_unit_t &&m);
   ~vm_unit_t();
+
+  vm_unit_t &operator = (vm_unit_t const &m);
+  vm_unit_t &operator = (vm_unit_t &&m);
 
   // Reads a unit and links it into this unit.
   void read(std::istream &input);

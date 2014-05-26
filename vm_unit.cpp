@@ -30,6 +30,75 @@ vm_unit_t::vm_unit_t()
 }
 
 
+vm_unit_t::vm_unit_t(vm_unit_t const &m)
+: last_import(m.last_import)
+, instructions(m.instructions)
+, instruction_argv(m.instruction_argv)
+, imports(m.imports)
+, exports(m.exports)
+, externs(m.externs)
+, unresolved_relocations(m.unresolved_relocations)
+, _data(m._data)
+, _data_blocks(m._data_blocks)
+, _data_relocations(m._data_relocations)
+{
+  /* nop */
+}
+
+
+vm_unit_t::vm_unit_t(vm_unit_t &&m)
+: last_import(m.last_import)
+, instructions(std::move(m.instructions))
+, instruction_argv(std::move(m.instruction_argv))
+, imports(std::move(m.imports))
+, exports(std::move(m.exports))
+, externs(std::move(m.externs))
+, unresolved_relocations(std::move(m.unresolved_relocations))
+, _data(std::move(m._data))
+, _data_blocks(std::move(m._data_blocks))
+, _data_relocations(std::move(m._data_relocations))
+{
+  m.last_import = 0;
+}
+
+
+vm_unit_t &vm_unit_t::operator = (vm_unit_t const &m)
+{
+  last_import            = m.last_import;
+  instructions           = m.instructions;
+  instruction_argv       = m.instruction_argv;
+  imports                = m.imports;
+  exports                = m.exports;
+  externs                = m.externs;
+  unresolved_relocations = m.unresolved_relocations;
+  _data                  = m._data;
+  _data_blocks           = m._data_blocks;
+  _data_relocations      = m._data_relocations;
+
+  return *this;
+}
+
+
+vm_unit_t &vm_unit_t::operator = (vm_unit_t &&m)
+{
+  last_import            = 0;
+  last_import            = m.last_import;
+  instructions           = std::move(m.instructions);
+  instruction_argv       = std::move(m.instruction_argv);
+  imports                = std::move(m.imports);
+  exports                = std::move(m.exports);
+  externs                = std::move(m.externs);
+  unresolved_relocations = std::move(m.unresolved_relocations);
+  _data                  = std::move(m._data);
+  _data_blocks           = std::move(m._data_blocks);
+  _data_relocations      = std::move(m._data_relocations);
+
+  m.last_import = 0;
+
+  return *this;
+}
+
+
 vm_unit_t::~vm_unit_t()
 {
   /* nop */
