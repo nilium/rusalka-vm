@@ -24,7 +24,7 @@
 #include <iostream>
 
 
-struct value_t
+struct value_t final
 {
   double  value;
 
