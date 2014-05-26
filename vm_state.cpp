@@ -126,7 +126,10 @@ void vm_state_t::set_unit(vm_unit_t const &unit) {
   release_all_memblocks();
   _block_counter = 1;
   _unit = unit;
+  _source_size = unit.instructions.size();
 
+  _callbacks.resize(unit.imports.size());
+  std::fill(_callbacks.begin(), _callbacks.end(), nullptr);
   vm_unit_t::data_id_ary_t new_ids;
   new_ids.resize(_unit._data_blocks.size(), 0);
   unit.each_data([&](int32_t index, int32_t id, int32_t size, void const *ptr, bool &stop) {
