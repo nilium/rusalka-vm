@@ -777,9 +777,11 @@ void vm_state_t::exec_call(int32_t pointer, int32_t argc) {
     if (argc <= 0) {
       rp() = callback(*this, 0, nullptr);
     } else {
-      auto argv_end = _stack.crbegin() + (_stack.size() - ebp().i32());
-      auto argv_start = argv_end - argc;
-      stack_t argv(argv_start, argv_end);
+      stack_t argv;
+      argv.reserve(argc);
+      for (int32_t argi = 0; argi < argc; ++argi) {
+        argv.push_back(pop());
+      }
       rp() = callback(*this, argc, &argv[0]);
     }
 
