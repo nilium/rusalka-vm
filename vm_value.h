@@ -28,6 +28,19 @@ struct value_t final
 {
   double  value;
 
+  value_t() : value(0.0) {}
+  explicit value_t(double v)   : value(v) {}
+  explicit value_t(float v)    : value((double)v) {}
+  explicit value_t(int64_t v)  : value((double)v) {}
+  explicit value_t(uint64_t v) : value((double)v) {}
+  explicit value_t(int32_t v)  : value((double)v) {}
+  explicit value_t(uint32_t v) : value((double)v) {}
+  explicit value_t(int16_t v)  : value((double)v) {}
+  explicit value_t(uint16_t v) : value((double)v) {}
+  explicit value_t(int8_t v)   : value((double)v) {}
+  explicit value_t(uint8_t v)  : value((double)v) {}
+  value_t(value_t const &v)  : value(v.value) {}
+
   double   f64() const  { return value; }
   float    f32() const  { return (float)value; }
   int64_t  i64() const  { return (int64_t)value; }
