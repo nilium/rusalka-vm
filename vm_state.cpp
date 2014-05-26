@@ -139,7 +139,13 @@ void vm_state_t::set_unit(vm_unit_t const &unit) {
 }
 
 
-void vm_state_t::bind_callback(const char *name, vm_callback_t *function) {
+void vm_state_t::bind_callback(const char *name, int length, vm_callback_t *function) {
+  std::string name_str(name, length);
+  auto imported = _unit.imports.find(name_str);
+  if (imported != _unit.imports.cend()) {
+    const int32_t idx = -(imported->second + 1);
+    _callbacks.at(idx) = function;
+  }
 }
 
 

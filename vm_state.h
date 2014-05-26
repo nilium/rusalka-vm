@@ -247,7 +247,11 @@ public:
 
   vm_fn_find_result_t find_function_pointer(const char *name) const;
 
-  void bind_callback(const char *name, vm_callback_t *function);
+  void bind_callback(const char *name, int length, vm_callback_t *function);
+  void bind_callback(const char *name, vm_callback_t *function)
+  {
+    bind_callback(name, std::strlen(name), function);
+  }
 
   template <class... ARGS>
   value_t call_function(const char *name, ARGS&&... args) {
