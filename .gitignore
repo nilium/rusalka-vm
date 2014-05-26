@@ -1,0 +1,7 @@
+obj/
+Makefile
+*.make
+*.bc
+*.o
+
+.DS_Store
