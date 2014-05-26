@@ -85,17 +85,6 @@ struct value_t final
   value_t &operator = (int8_t v)    { set(v); return *this; }
   value_t &operator = (uint8_t v)   { set(v); return *this; }
 
-  static value_t make(double v)    { return value_t { v }; }
-  static value_t make(float v)     { return value_t { (double)v }; }
-  static value_t make(int64_t v)   { return value_t { (double)v }; }
-  static value_t make(uint64_t v)  { return value_t { (double)v }; }
-  static value_t make(int32_t v)   { return value_t { (double)v }; }
-  static value_t make(uint32_t v)  { return value_t { (double)v }; }
-  static value_t make(int16_t v)   { return value_t { (double)v }; }
-  static value_t make(uint16_t v)  { return value_t { (double)v }; }
-  static value_t make(int8_t v)    { return value_t { (double)v }; }
-  static value_t make(uint8_t v)   { return value_t { (double)v }; }
-
   bool operator == (value_t other) const { return value == other.value; }
   bool operator != (value_t other) const { return !(*this == other); }
   bool operator <= (value_t other) const { return value >= other.value; }
