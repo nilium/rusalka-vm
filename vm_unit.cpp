@@ -98,7 +98,7 @@ vm_unit_t::read_extern_relocations(
       int32_t orig_base = arg;
       int32_t new_base = arg;
 
-      auto iter = relocations.find(orig_base);
+      auto iter = relocations.find(arg);
       if (iter == not_found) {
         std::cerr << "Relocation of " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << mask_index << "] for " << orig_base << " remains unresolved" << std::endl;
         unresolved_relocations.emplace_back(rel);
@@ -137,12 +137,12 @@ vm_unit_t::read_label_relocations(
     each_in_mask(rel.args_mask, [&](int32_t index) {
       int32_t const arg_index = arg_base + index;
       value_t &arg = instruction_argv[arg_index];
-      relocation_map_t::const_iterator iter = relocations.find(arg.i32());
+      relocation_map_t::const_iterator iter = relocations.find(arg);
 
       int32_t orig_base = arg;
       int32_t new_base;
 
-      if (iter != not_found && iter->first == arg.i32()) {
+      if (iter != not_found && iter->first == arg) {
         new_base = iter->second;
         arg = iter->second;
       } else if (arg.i32() >= 0) {
@@ -170,7 +170,10 @@ vm_unit_t::read_externs(std::istream &input, extern_relocations_t &relocations)
     auto export_iter = exports.find(name);
     if (export_iter != exports.end()) {
       std::cerr << " (extern matches export, " << index << " -> " << export_iter->second << ")" << std::endl;
-      relocations.emplace(index, extern_relocation_t { export_iter->second, true });
+      relocations.emplace(
+        value_t { index },
+        extern_relocation_t { value_t { export_iter->second }, true }
+        );
       return;
     }
 
@@ -178,14 +181,20 @@ vm_unit_t::read_externs(std::istream &input, extern_relocations_t &relocations)
     if (extern_iter != externs.end()) {
       std::cerr << " (extern already exists; requires relocation: " << (extern_iter->second != index) << ")" << std::endl;
       if (extern_iter->second != index) {
-        relocations.emplace(index, extern_relocation_t { extern_iter->second, false });
+        relocations.emplace(
+          value_t { index },
+          extern_relocation_t { value_t { extern_iter->second }, false }
+          );
       }
       return;
     }
 
     int32_t new_address = static_cast<int32_t>(externs.size());
     if (index != new_address) {
-      relocations.emplace(index, extern_relocation_t { new_address, false });
+      relocations.emplace(
+        value_t { index },
+        extern_relocation_t { value_t { new_address }, false }
+        );
       std::cerr << " (address needs relocation)";
     }
 
@@ -208,7 +217,7 @@ vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
       label.address = --last_import;
 
       if (orig_address != label.address) {
-        relocations.emplace(orig_address, label.address);
+        relocations.emplace(value_t { orig_address }, value_t { label.address });
         std::cerr << "at " << label.address << " (new; requires relocation)" << std::endl;
       } else {
         std::cerr << "at " << label.address << " (new; does not require relocation)" << std::endl;
@@ -217,7 +226,7 @@ vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
       std::cerr << "at " << label.address << " (duplicate; does not require relocation)" << std::endl;
       return;
     } else {
-      relocations.emplace(label.address, iter->second);
+      relocations.emplace(value_t { label.address }, value_t { iter->second });
       std::cerr << "at " << label.address << " (duplicate; requires relocation)" << std::endl;
     }
 
@@ -239,13 +248,13 @@ vm_unit_t::read_exports(std::istream &input, int32_t base, relocation_map_t &rel
       std::cerr << "(duplicate label -- label will not be accessible)" << std::endl;
       if (base != 0) {
         address += base;
-        relocations.emplace(label.address, address);
+        relocations.emplace(value_t { label.address }, value_t { address });
       }
       return;
     } else if (base != 0) {
       std::cerr << " (requires relocation)" << std::endl;
       address += base;
-      relocations.emplace(label.address, address);
+      relocations.emplace(value_t { label.address }, value_t { address });
     } else {
       std::cerr << " (does not require relocation)" << std::endl;
     }
@@ -273,7 +282,7 @@ vm_unit_t::resolve_externs()
     }
 
     std::cerr << "Found extern: " << ext.first << " at " << iter->second << std::endl;
-    relocations.emplace(ext.second, iter->second);
+    relocations.emplace(value_t { ext.second }, value_t { iter->second });
   }
 
   if (relocations.size() == 0) {
@@ -289,7 +298,7 @@ vm_unit_t::resolve_externs()
       int32_t const arg_index = arg_base + mask_index;
       value_t &arg = instruction_argv[arg_index];
 
-      relocation_map_t::const_iterator iter = relocations.find(arg.i32());
+      relocation_map_t::const_iterator iter = relocations.find(arg);
 
       if (iter == not_found) {
         updated_mask |= 0x1U << (mask_index - 1);
@@ -329,7 +338,7 @@ vm_unit_t::read_data_table(std::istream &input, int32_t data_base, relocation_ma
       _data_blocks.emplace_back(data_block_t { block_id, offset, block_size });
 
       if (data_base > 0) {
-        relocations.emplace(1 + data_index, block_id);
+        relocations.emplace(value_t { 1 + data_index }, value_t { block_id });
       }
 
       std::cerr << "Read data block " << data_index << ":" << block_id << "[" << block_size << "] <"
@@ -353,7 +362,7 @@ void vm_unit_t::read_data_relocations(std::istream &input, int32_t instr_base, i
 
       each_in_mask(rel.args_mask, [&](int32_t arg_index) {
         value_t &arg = instruction_argv[arg_base + arg_index];
-        relocation_map_t::const_iterator iter = load_relocations.find(arg.i32());
+        relocation_map_t::const_iterator iter = load_relocations.find(arg);
         if (iter == not_found) {
           return;
         }

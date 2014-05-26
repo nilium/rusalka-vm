@@ -73,14 +73,14 @@ class vm_unit_t
   };
 
   using relocation_table_t = std::vector<relocation_ptr_t>;
-  using relocation_map_t = std::map<int32_t, int32_t>;
+  using relocation_map_t = std::map<value_t, value_t>;
   // Externs may be relocated in two ways:
   // 1) The extern might just need to be adjusted because there are prior
   //  unresolved externs, in which case the second field is false (unresolved).
   // 2) The extern might've been resolved in the process of loading the extern
   //  table, so the second field is true (resolved).
-  using extern_relocation_t = std::pair<int32_t /* new_address */, bool /* resolved */>;
-  using extern_relocations_t = std::map<int32_t, extern_relocation_t>;
+  using extern_relocation_t = std::pair<value_t /* new_address */, bool /* resolved */>;
+  using extern_relocations_t = std::map<value_t, extern_relocation_t>;
 
   using instruction_ptrs_t = std::vector<instruction_ptr_t>;
   using instruction_argv_t = std::vector<value_t>;
