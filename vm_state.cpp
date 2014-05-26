@@ -120,17 +120,22 @@ int32_t vm_state_t::fetch() {
 }
 
 
-void vm_state_t::set_unit(vm_unit_t const &unit) {
+void vm_state_t::set_unit(vm_unit_t const &unit)
+{
+  _unit = unit;
+  prepare_unit();
+}
+
+
+void vm_state_t::prepare_unit() {
   release_all_memblocks();
   _block_counter = 1;
-  _unit = unit;
-  _source_size = unit.instructions.size();
-
-  _callbacks.resize(unit.imports.size());
+  _source_size = _unit.instructions.size();
+  _callbacks.resize(_unit.imports.size());
   std::fill(_callbacks.begin(), _callbacks.end(), nullptr);
   vm_unit_t::data_id_ary_t new_ids;
   new_ids.resize(_unit._data_blocks.size(), 0);
-  unit.each_data([&](int32_t index, int32_t id, int32_t size, void const *ptr, bool &stop) {
+  _unit.each_data([&](int32_t index, int32_t id, int32_t size, void const *ptr, bool &stop) {
     int32_t new_id = unused_block_id();
     memblock_t block { size, VM_MEM_SOURCE_DATA, const_cast<void *>(ptr) };
     _blocks.emplace(new_id, block);

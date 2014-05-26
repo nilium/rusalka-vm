@@ -134,6 +134,8 @@ class vm_state_t {
     return index;
   }
 
+  void prepare_unit();
+
 public:
   vm_state_t(size_t stackSize = 8192);
   ~vm_state_t();
