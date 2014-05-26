@@ -71,9 +71,9 @@ static int32_t const MEMOP_SIZE[MEMOP_MAX] {
 
 
 vm_state_t::vm_state_t(size_t stackSize)
-  : _stack()
-  , _block_counter(1)
-  , _sequence(0)
+: _stack()
+, _block_counter(1)
+, _sequence(0)
 {
   for (int32_t index = 0; index < REGISTER_COUNT; ++index) {
     _registers[index] = 0.0;
