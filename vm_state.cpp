@@ -26,9 +26,6 @@
 #include "vm_state.h"
 
 
-#define VM_FCMP_EPSILON (1.0e-12)
-
-
 enum memop_typed_t : int32_t
 {
   MEMOP_UINT8   = 0,          // Cast to uint8_t
@@ -52,14 +49,6 @@ static int32_t const MEMOP_SIZE[MEMOP_MAX] {
   8, 8,
   4, 8,
 };
-
-
-static
-bool
-vm_fequals(double lhs, double rhs)
-{
-  return std::abs(lhs - rhs) < VM_FCMP_EPSILON;
-}
 
 
 /*
