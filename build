@@ -1,6 +1,0 @@
-#!/bin/sh
-
-OPT_FLAGS="-O0 -g -fno-fast-math -fno-exceptions -Wall -Wextra"
-
-rm -f vm_*.o
-c++ -std=gnu++11 -stdlib=libc++ -c vm_*.cpp $OPT_FLAGS && c++ --std=gnu++11 -stdlib=libc++ vm_*.o -o vm_test -lc++ $OPT_FLAGS
