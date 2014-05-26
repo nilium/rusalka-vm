@@ -159,14 +159,9 @@ bool vm_state_t::run(int32_t from_ip) {
 bool vm_state_t::run() {
   _trap = 0;
   const int32_t term_sequence = _sequence++;
-  int32_t opidx = fetch();
-  while (!_trap) {
+  while (!_trap && term_sequence < _sequence) {
+    int32_t opidx = fetch();
     exec(_unit.fetch_op(opidx));
-    if (term_sequence < _sequence) {
-      opidx = fetch();
-    } else {
-      break;
-    }
   }
   return _trap == 0;
 }
