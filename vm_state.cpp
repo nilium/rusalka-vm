@@ -123,6 +123,8 @@ int32_t vm_state_t::fetch() {
 
 
 void vm_state_t::set_unit(vm_unit_t const &unit) {
+  release_all_memblocks();
+  _block_counter = 1;
   _unit = unit;
 
   vm_unit_t::data_id_ary_t new_ids;
