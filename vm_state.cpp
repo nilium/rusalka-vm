@@ -831,9 +831,10 @@ void vm_state_t::push(value_t value) {
 
 
 value_t vm_state_t::pop(bool copy_only) {
-  value_t result = stack(esp().i32() - 1);
+  int32_t stack_top = esp().i32() - 1;
+  value_t result = stack(stack_top);
   if (!copy_only) {
-    esp() = esp().i32() - 1;
+    esp() = stack_top;
   }
   return result;
 }
