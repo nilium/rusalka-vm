@@ -127,6 +127,13 @@ void vm_state_t::set_unit(vm_unit_t const &unit)
 }
 
 
+void vm_state_t::set_unit(vm_unit_t &&unit)
+{
+  _unit = std::forward<vm_unit_t &&>(unit);
+  prepare_unit();
+}
+
+
 void vm_state_t::prepare_unit() {
   release_all_memblocks();
   _block_counter = 1;

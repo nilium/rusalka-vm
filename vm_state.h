@@ -146,6 +146,7 @@ public:
     object is moved and the original object is invalid.
   */
   void set_unit(vm_unit_t const &unit);
+  void set_unit(vm_unit_t &&unit);
 
 private:
   void exec(const op_t &op);
