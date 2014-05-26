@@ -111,13 +111,11 @@ vm_function_t<vm_state_t> vm_state_t::function(int pointer) {
 
 
 int32_t vm_state_t::fetch() {
-  /*
-  while (vm.ip() < ops.size() && vm.ip() >= 0) {
-    op_t op = ops[vm.ip()++];
-    */
-  const int32_t next_instr = ip().i32() + 1;
-  ip() = next_instr;
-  _trap += (next_instr < 0) || (next_instr >= _source_size);
+  const int32_t next_instr = ip().i32();
+  ip() = next_instr + 1;
+  if (next_instr < 0 || next_instr >= _source_size) {
+    ++_trap;
+  }
   return next_instr;
 }
 
