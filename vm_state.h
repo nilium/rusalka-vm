@@ -120,13 +120,13 @@ class vm_state_t {
 
   template <class T, class... ARGS>
   int32_t load_registers(int32_t index, T &&first, ARGS&&... args) {
-    reg(index) = value_of(std::forward<T>(first));
+    push(make_value(std::forward<T>(first)));
     return load_registers(index + 1, std::forward<ARGS>(args)...);
   }
 
   template <class T>
   int32_t load_registers(int32_t index, T &&first) {
-    reg(index) = value_of(std::forward<T>(first));
+    push(make_value(std::forward<T>(first)));
     return index + 1;
   }
 
