@@ -484,7 +484,7 @@ void vm_state_t::exec(const op_t &op) {
   // Litflags:
   // 0x1 - POINTER is a literal address.
   case JUMP: {
-    ip() = deref(op[1], op[2]);
+    ip() = deref(op[0], op[1], 0x1);
   } break;
 
   // PUSH REG
