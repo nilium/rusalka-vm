@@ -813,7 +813,7 @@ bool vm_state_t::check_block_bounds(int32_t block_id, int32_t offset, int32_t si
 
 
 void vm_state_t::push(value_t value) {
-  stack(0) = value;
+  stack(esp().i32()) = value;
   esp() = esp().i32() + 1;
 }
 
