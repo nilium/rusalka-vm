@@ -554,11 +554,19 @@ class Parser
   def conditional
     maybe? do
       accept(:id, content: ['if', 'for']) do |tok|
-        label_pre  = tok.value
-        is_loop    = label_pre == 'for'
-        invert     = !!accept(:bang)
-        arg0       = value
-        multi_line = false
+        label_pre       = tok.value
+        is_loop         = label_pre == 'for'
+        invert          = !!accept(:bang)
+        arg0            = value
+        multi_line      = false
+        loop_label_id   = nil
+        loop_jump_instr = nil
+
+        if is_loop
+          loop_label_id = Label[@prefix, "__#{label_pre}_start_#{unique_uuid}", :local]
+          @data << register_label_statement(LabelStmt[loop_label_id])
+          loop_jump_instr = Instruction[:jump, [LabelRef[loop_label_id], 0x1]]
+        end
 
         comp_instr = accept(CONDITIONAL_OPS.keys) do |tok|
           name, flag  = CONDITIONAL_OPS[tok.kind]
@@ -576,15 +584,6 @@ class Parser
             @instructions << k
           end
         end
-
-        loop_label_id = nil
-        loop_jump_instr = nil
-        if is_loop
-          loop_label_id = Label[@prefix, "__#{label_pre}_start_#{unique_uuid}", :local]
-          @data << register_label_statement(LabelStmt[loop_label_id])
-          loop_jump_instr = Instruction[:jump, [LabelRef[loop_label_id], 0x1]]
-        end
-
 
         if multi_line || is_loop
           @data << comp_instr
