@@ -95,11 +95,7 @@ vm_state_t::vm_state_t(size_t stackSize)
 
 
 vm_state_t::~vm_state_t() {
-  for (auto kvpair : _blocks) {
-    if (!(kvpair.second.flags & VM_MEM_SOURCE_DATA)) {
-      std::free(kvpair.second.block);
-    }
-  }
+  release_all_memblocks();
 }
 
 
@@ -159,6 +155,17 @@ bool vm_state_t::run() {
     exec(_unit.fetch_op(opidx));
   }
   return _trap == 0;
+}
+
+
+void vm_state_t::release_all_memblocks()
+{
+  for (auto kvpair : _blocks) {
+    if (!(kvpair.second.flags & VM_MEM_SOURCE_DATA)) {
+      std::free(kvpair.second.block);
+    }
+  }
+  _blocks.clear();
 }
 
 

@@ -113,6 +113,7 @@ class vm_state_t {
   int32_t _trap = 0;
 
   int32_t unused_block_id();
+  void release_all_memblocks();
 
   vm_unit_t _unit;
   int32_t _source_size;
