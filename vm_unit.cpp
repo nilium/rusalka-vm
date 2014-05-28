@@ -110,8 +110,6 @@ void vm_unit_t::read_instruction(std::istream &input)
   opcode_t const opcode = static_cast<opcode_t>(read_primitive<int32_t>(input));
   int32_t arg_base = static_cast<int32_t>(instruction_argv.size());
 
-  std::cerr << instructions.size() << ": " << opcode << "(" << arg_base  << ")";
-
   instructions.emplace_back(
     instruction_ptr_t {
       opcode,
@@ -123,9 +121,7 @@ void vm_unit_t::read_instruction(std::istream &input)
   for (int32_t counter = 0; counter < argc; ++counter) {
     value_t arg = read_primitive<value_t>(input);
     instruction_argv.push_back(arg);
-    std::cerr << " " << arg;
   }
-  std::cerr << std::endl;
 }
 
 
@@ -153,34 +149,24 @@ void vm_unit_t::read_extern_relocations(
     rel.pointer += instruction_base;
     int32_t const arg_base = instructions[rel.pointer].arg_pointer;
 
-    std::cerr << "Reading extern relocations for " << rel.pointer << "(" << arg_base << ")" << std::endl;
-
     each_in_mask(rel.args_mask, [&](int32_t mask_index) {
       int32_t const arg_index = arg_base + mask_index;
       value_t &arg = instruction_argv[arg_index];
-
-      std::cerr << "Trying to relocate " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << mask_index << "] -> " << arg << std::endl;
 
       int32_t orig_base = arg;
       int32_t new_base = arg;
 
       auto iter = relocations.find(arg);
       if (iter == not_found) {
-        std::cerr << "Relocation of " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << mask_index << "] for " << orig_base << " remains unresolved" << std::endl;
         unresolved_relocations.emplace_back(rel);
         return;
       }
 
       new_base = arg = iter->second.pointer;
-      std::cerr << "Relocating " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << mask_index << "] from " << orig_base << " to " << new_base;
-
       if (!iter->second.resolved) {
         /* unresolved */
         unresolved_relocations.emplace_back(rel);
-        std::cerr << " (remains unresolved)";
       }
-
-      std::cerr << std::endl;
     });
   });
 }
@@ -216,8 +202,6 @@ void vm_unit_t::read_label_relocations(
       } else {
         return;
       }
-
-      std::cerr << "Relocating " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << index << "] from " << orig_base << " to " << new_base << std::endl;
     });
   });
 }
@@ -232,11 +216,8 @@ void vm_unit_t::read_externs(
   read_table(input, CHUNK_EXTS, [&](int32_t index) {
     std::string name = read_lstring(input);
 
-    std::cerr << "Read extern " << index << " <" << name << ">";
-
     auto export_iter = exports.find(name);
     if (export_iter != exports.end()) {
-      std::cerr << " (extern matches export, " << index << " -> " << export_iter->second << ")" << std::endl;
       relocations.emplace(
         value_t { index },
         extern_relocation_t { value_t { export_iter->second }, true }
@@ -246,7 +227,6 @@ void vm_unit_t::read_externs(
 
     auto extern_iter = externs.find(name);
     if (extern_iter != externs.end()) {
-      std::cerr << " (extern already exists; requires relocation: " << (extern_iter->second != index) << ")" << std::endl;
       if (extern_iter->second != index) {
         relocations.emplace(
           value_t { index },
@@ -262,11 +242,9 @@ void vm_unit_t::read_externs(
         value_t { index },
         extern_relocation_t { value_t { new_address }, false }
         );
-      std::cerr << " (address needs relocation)";
     }
 
     externs.emplace(std::move(name), new_address);
-    std::cerr << std::endl;
   });
 }
 
@@ -275,7 +253,6 @@ void vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
 {
   read_table(input, CHUNK_IMPT, [&](int32_t index) {
     label_t label = read_label(input);
-    std::cerr << "Read imported label " << label.name << " ";
 
     auto iter = imports.find(label.name);
     if (iter == imports.end()) {
@@ -284,18 +261,12 @@ void vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
 
       if (orig_address != label.address) {
         relocations.emplace(value_t { orig_address }, value_t { label.address });
-        std::cerr << "at " << label.address << " (new; requires relocation)" << std::endl;
-      } else {
-        std::cerr << "at " << label.address << " (new; does not require relocation)" << std::endl;
       }
     } else if (iter->second == label.address) {
-      std::cerr << "at " << label.address << " (duplicate; does not require relocation)" << std::endl;
       return;
     } else {
       relocations.emplace(value_t { label.address }, value_t { iter->second });
-      std::cerr << "at " << label.address << " (duplicate; requires relocation)" << std::endl;
     }
-
 
     imports.emplace(std::move(label.name), label.address);
   });
@@ -310,23 +281,20 @@ void vm_unit_t::read_exports(
 {
   read_table(input, CHUNK_EXPT, [&](int32_t index) {
     label_t label = read_label(input);
-    std::cerr << "Read exported label " << label.name << " at " << label.address;
     label_table_t::const_iterator iter = exports.find(label.name);
     int32_t address = label.address;
+
     if (iter != exports.cend()) {
-      std::cerr << "(duplicate label -- label will not be accessible)" << std::endl;
       if (base != 0) {
         address += base;
         relocations.emplace(value_t { label.address }, value_t { address });
       }
       return;
     } else if (base != 0) {
-      std::cerr << " (requires relocation)" << std::endl;
       address += base;
       relocations.emplace(value_t { label.address }, value_t { address });
-    } else {
-      std::cerr << " (does not require relocation)" << std::endl;
     }
+
     exports.emplace(std::move(label.name), address);
   });
 }
@@ -349,7 +317,6 @@ void vm_unit_t::resolve_externs()
       return;
     }
 
-    std::cerr << "Found extern: " << ext.first << " at " << iter->second << std::endl;
     relocations.emplace(value_t { ext.second }, value_t { iter->second });
   }
 
@@ -372,8 +339,6 @@ void vm_unit_t::resolve_externs()
         updated_mask |= 0x1U << (mask_index - 1);
         return;
       }
-
-      std::cerr << "Resolved extern reference, relocating " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << mask_index << "] from " << arg.i32() << " to " << iter->second << std::endl;
 
       arg = iter->second;
     });
@@ -411,11 +376,6 @@ void vm_unit_t::read_data_table(
       if (data_base > 0) {
         relocations.emplace(value_t { 1 + data_index }, value_t { block_id });
       }
-
-      std::cerr << "Read data block " << data_index << ":" << block_id << "[" << block_size << "] <"
-        << std::string((char const *)&_data[offset], (char const *)&_data[offset + block_size]) << ">"
-        << std::endl;
-
     });
 }
 
@@ -444,8 +404,6 @@ void vm_unit_t::read_data_relocations(
         }
         int32_t prev = arg;
         arg = iter->second;
-
-        std::cerr << "Relocating data reference " << rel.pointer << ": " << instructions[rel.pointer].opcode << "[" << arg_index << "] from " << prev << " to " << iter->second << std::endl;
       });
 
       _data_relocations.emplace_back(rel);
@@ -466,40 +424,39 @@ void vm_unit_t::read(std::istream &input)
   relocation_map_t label_relocations;
 
   if (filehead.version < 8) {
-    std::cerr << "Bytecode version incorrect: expected 8, got " << filehead.version << std::endl;
+    // TODO: Use own exceptions for these things
+    throw std::runtime_error("Invalid bytecode version.");
     return;
   }
-
-  std::cerr << "Instruction base for read: " << instruction_base << ':' << instruction_argv_base << std::endl;
 
   chunk_offsets_t const offsets { input };
 
   if (offsets.seek_to_offset(input, CHUNK_INST)) {
     read_instructions(input);
   } else {
-    std::cerr << "Unable to seek to instruction table." << std::endl;
+    throw std::runtime_error("Unable to seek to instruction table.");
   }
 
   if (offsets.seek_to_offset(input, CHUNK_IMPT)) {
     read_imports(input, label_relocations);
   } else {
-    std::cerr << "Unable to seek to imported labels table." << std::endl;
+    throw std::runtime_error("Unable to seek to imported labels table.");
   }
 
   if (offsets.seek_to_offset(input, CHUNK_EXPT)) {
     read_exports(input, instruction_base, label_relocations);
   } else {
-    std::cerr << "Unable to seek to exported labels table." << std::endl;
+    throw std::runtime_error("Unable to seek to exported labels table.");
   }
 
   if (label_relocations.size() > 0) {
     if (offsets.seek_to_offset(input, CHUNK_LREL)) {
       read_label_relocations(input, instruction_base, label_relocations);
     } else {
-      std::cerr << "Unable to seek to relocated labels table." << std::endl;
+      throw std::runtime_error("Unable to seek to relocated labels table.");
     }
   } else {
-    std::cerr << "No local labels require relocation." << std::endl;
+    throw std::runtime_error("No local labels require relocation.");
   }
 
   extern_relocations_t extern_relocations;
@@ -507,15 +464,13 @@ void vm_unit_t::read(std::istream &input)
   if (offsets.seek_to_offset(input, CHUNK_EXTS)) {
     read_externs(input, extern_relocations);
   } else {
-    std::cerr << "Unable to seek to extern labels table." << std::endl;
+    throw std::runtime_error("Unable to seek to extern labels table.");
   }
 
   if (offsets.seek_to_offset(input, CHUNK_EREL)) {
-    std::cerr << "Reading extern relocations table." << std::endl;
     read_extern_relocations(input, instruction_base, extern_relocations);
-    std::cerr << "Done reading extern relocations table." << std::endl;
   } else {
-    std::cerr << "Unable to seek to relocated labels table." << std::endl;
+    throw std::runtime_error("Unable to seek to relocated labels table.");
   }
 
   relocation_map_t data_relocations;
@@ -524,11 +479,13 @@ void vm_unit_t::read(std::istream &input)
   if (offsets.seek_to_offset(input, CHUNK_DATA)) {
     read_data_table(input, data_base, data_relocations);
   } else {
-    std::cerr << "Unable to seek to data table." << std::endl;
+    throw std::runtime_error("Unable to seek to data table.");
   }
 
   if (offsets.seek_to_offset(input, CHUNK_DREL)) {
     read_data_relocations(input, instruction_base, data_base, data_relocations);
+  } else {
+    throw std::runtime_error("Unable to seek to data relocation table.");
   }
 
   resolve_externs();
@@ -591,13 +548,6 @@ void vm_unit_t::apply_instruction_relocation(
     }
 
     arg = mapped->second;
-
-    std::cerr
-      << "Relocating "
-      << rel.pointer << ": " << instructions[rel.pointer].opcode
-      << "[" << arg_index << "] from "
-      << mapped->first << " to " << mapped->second << std::endl;
-
   });
 }
 
