@@ -426,7 +426,6 @@ void vm_unit_t::read(std::istream &input)
   if (filehead.version < 8) {
     // TODO: Use own exceptions for these things
     throw std::runtime_error("Invalid bytecode version.");
-    return;
   }
 
   chunk_offsets_t const offsets { input };
