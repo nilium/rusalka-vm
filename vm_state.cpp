@@ -875,3 +875,15 @@ void vm_state_t::dump_stack(size_t until) const
     std::clog << "stack[" << index << "]  " << stackval << std::endl;
   }
 }
+
+
+value_t vm_state_t::reg(int32_t off) const
+{
+  return _registers[off];
+}
+
+
+value_t &vm_state_t::reg(int32_t off)
+{
+  return _registers[off];
+}

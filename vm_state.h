@@ -181,8 +181,8 @@ private:
   value_t rp() const { return _registers[R_RP]; }
   value_t &rp() { return _registers[R_RP]; }
 
-  value_t reg(int32_t off) const { return _registers[off]; }
-  value_t &reg(int32_t off) { return _registers[off]; }
+  value_t reg(int32_t off) const;
+  value_t &reg(int32_t off);
 
   value_t stack(int32_t off) const;
   value_t &stack(int32_t off);
