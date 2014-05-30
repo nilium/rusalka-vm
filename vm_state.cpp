@@ -179,7 +179,7 @@ bool vm_state_t::run()
 void vm_state_t::release_all_memblocks()
 {
   for (auto kvpair : _blocks) {
-    if (!(kvpair.second.flags & VM_MEM_SOURCE_DATA)) {
+    if (!(kvpair.second.flags & VM_MEM_STATIC)) {
       std::free(kvpair.second.block);
     }
   }
@@ -264,7 +264,7 @@ void vm_state_t::free_block(int32_t block_id)
 {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
-    if (!(iter->second.flags & VM_MEM_SOURCE_DATA)) {
+    if (!(iter->second.flags & VM_MEM_STATIC)) {
       std::free(iter->second.block);
       _blocks.erase(iter);
     } else {
