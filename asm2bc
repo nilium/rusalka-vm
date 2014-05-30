@@ -26,6 +26,9 @@ require 'set'
 
 
 BYTECODE_VERSION = 8
+MAX_NONVOLATILE_GP_REGISTERS = 8
+FIRST_NONVOLATILE_GP_REGISTER = 4
+LAST_GP_REGISTER = (FIRST_NONVOLATILE_GP_REGISTER + MAX_NONVOLATILE_GP_REGISTERS) - 1
 
 
 module Colors
@@ -127,8 +130,6 @@ def lex(source)
   lexer.run(source).tokens
 end
 
-
-FIRST_ARGUMENT_REGISTER = 4
 
 POS_INT_LITS = [:integer_lit, :integer_exp_lit, :hex_lit, :bin_lit]
 INT_LITS = [:minus] | POS_INT_LITS
@@ -344,7 +345,7 @@ class Parser
   def arg_num
     maybe? do
       accept(:dollar) && accept(:integer_lit, distance: 0) do |tok|
-        RegisterRef[FIRST_ARGUMENT_REGISTER + tok.to_i]
+        RegisterRef[FIRST_NONVOLATILE_GP_REGISTER + tok.to_i]
       end
     end
   end
@@ -494,11 +495,14 @@ class Parser
   # esp
   # rp
   def named_register
-    case accept(:id, content: ['ip', 'ebp', 'esp', 'rp'], &:value)
-    when 'ip'  then RegisterRef[0]
-    when 'ebp' then RegisterRef[1]
-    when 'esp' then RegisterRef[2]
-    when 'rp'  then RegisterRef[3]
+    accept(:id, content: ['ip', 'ebp', 'esp', 'rp'] + @let_names) do |tok|
+      name = tok.value
+      case name
+      when 'ip'  then RegisterRef[0]
+      when 'ebp' then RegisterRef[1]
+      when 'esp' then RegisterRef[2]
+      when 'rp'  then RegisterRef[3]
+      end
     end
   end
 
