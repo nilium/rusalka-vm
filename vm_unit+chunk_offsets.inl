@@ -33,9 +33,9 @@ struct chunk_offsets_t
 
   int32_t offset_for(chunk_id_t id) const
   {
-    for (int32_t index = 0; index < header.count; ++index) {
-      if (offsets[index].id == id) {
-        return offsets[index].offset;
+    for (chunk_offset_t const &chunk_off : offsets) {
+      if (chunk_off.id == id) {
+        return chunk_off.offset;
       }
     }
     return -1;
