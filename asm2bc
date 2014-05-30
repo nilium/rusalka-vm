@@ -521,8 +521,13 @@ class Parser
   end
 
   def swallow_sentinels
-    while accept(:newline, :semicolon)
-    end
+    next while accept(:newline, :semicolon)
+    self
+  end
+
+  def swallow_newlines
+    next while accept(:newline)
+    self
   end
 
   # Reads a line
