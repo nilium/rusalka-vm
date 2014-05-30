@@ -318,12 +318,14 @@ void vm_state_t::exec(const op_t &op)
 {
   value_t value;
 
-  // #ifdef LOG_OP_INFO
-  std::clog << op.opcode();
+  #ifdef LOG_OP_INFO
+  std::clog << std::setw(10) << (ip().i32() - 1) << ": " << std::setw(10) << op.opcode();
   int32_t argidx = 0;
-  for (; argidx < g_opcode_argc[op.opcode()]; ++argidx) std::clog << ' ' << op[argidx];
+  for (; argidx < g_opcode_argc[op.opcode()]; ++argidx) {
+    std::clog << ' ' << op[argidx];
+  }
   std::clog << std::endl;
-  // #endif
+  #endif
 
   switch (op.opcode()) {
   // For all math and bitwise instructions, litflag applies to both LHS and RHS
