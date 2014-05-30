@@ -53,8 +53,8 @@ INSTRUCTION( LOGAND,          LOGAND,       31,         3,    output, input, inp
 INSTRUCTION( LOGOR,           LOGOR,        32,         3,    output, input, input )
 INSTRUCTION( TRAP,            TRAP,         33,         0     )
 INSTRUCTION( SWAP,            SWAP,         34,         2,    output, output )
-INSTRUCTION( MEMDUP,          MEMDUP,       35,         2,    output, input )
-INSTRUCTION( MEMLEN,          MEMLEN,       36,         2,    output, input )
+INSTRUCTION( MEMDUP,          MEMDUP,       35,         3,    output, input, litflag )
+INSTRUCTION( MEMLEN,          MEMLEN,       36,         3,    output, input, litflag )
 INSTRUCTION( PEEK,            PEEK,         37,         5,    output, input, input, input, litflag )  // r(dst), r(mem), lr(offset), lr(kind), litflag
 INSTRUCTION( POKE,            POKE,         38,         5,    regonly, input, input, input, litflag ) // r(mem), lr(value), lr(offset), lr(kind), litflag
 // END INSTRUCTIONS

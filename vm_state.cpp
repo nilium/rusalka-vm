@@ -667,19 +667,23 @@ void vm_state_t::exec(const op_t &op)
     }
   } break;
 
-  // MEMDUP OUT, BLOCKID
+  // MEMDUP OUT, BLOCKID, LITFLAG
   // Allocates a new block of at least the same length as that pointed to by
-  // the register BLOCKID, copies the original block's data to the new block,
-  // and writes the new block id to OUT.
+  // the register or literal BLOCKID, copies the original block's data to the
+  // new block, and writes the new block id to OUT.
+  // Litflags:
+  // 0x2 - blockid
   case MEMDUP: {
-    reg(op[0]).set(duplicate_block(reg(op[1])));
+    reg(op[0]) = duplicate_block(deref(op[1], op[2], 0x2));
   } break;
 
-  // MEMLEN OUT, BLOCKID
+  // MEMLEN OUT, BLOCKID, LITFLAG
   // Writes the length in bytes of the memory block referred to by the contents
-  // of the BLOCKID register to OUT.
+  // of the BLOCKID register or literal to OUT.
+  // Litflags:
+  // 0x2 - blockid
   case MEMLEN: {
-    reg(op[0]).set(block_size(reg(op[1])));
+    reg(op[0]) = block_size(deref(op[1], op[2], 0x2));
   } break;
 
   // LOGAND OUT, LHS, RHS
