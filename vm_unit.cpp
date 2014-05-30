@@ -454,8 +454,6 @@ void vm_unit_t::read(std::istream &input)
     } else {
       throw std::runtime_error("Unable to seek to relocated labels table.");
     }
-  } else {
-    throw std::runtime_error("No local labels require relocation.");
   }
 
   extern_relocations_t extern_relocations;
