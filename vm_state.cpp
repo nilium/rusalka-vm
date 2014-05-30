@@ -799,6 +799,7 @@ void vm_state_t::exec_call(int32_t pointer, int32_t argc)
   value_t const preserved_ip = ip();
   value_t const preserved_ebp = ebp();
   ebp() = esp().i32() - argc;
+  value_t const preserved_esp = ebp();
 
   if (pointer < 0) {
     vm_callback_t *callback = _callbacks[-(pointer + 1)];
@@ -828,6 +829,7 @@ void vm_state_t::exec_call(int32_t pointer, int32_t argc)
 
   ip() = preserved_ip;
   ebp() = preserved_ebp;
+  esp() = preserved_esp;
 }
 
 
