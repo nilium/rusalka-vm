@@ -879,11 +879,33 @@ void vm_state_t::dump_stack(size_t until) const
 
 value_t vm_state_t::reg(int32_t off) const
 {
-  return _registers[off];
+  if (off >= 0) {
+    if (off >= REGISTER_COUNT) {
+      throw std::runtime_error("Invalid register offset.");
+    }
+    return _registers[off];
+  } else {
+    off = esp().i32() + off;
+    if (off < 0) {
+      throw std::runtime_error("Invalid relative stack offset.");
+    }
+    return _stack[off];
+  }
 }
 
 
 value_t &vm_state_t::reg(int32_t off)
 {
-  return _registers[off];
+  if (off >= 0) {
+    if (off >= REGISTER_COUNT) {
+      throw std::runtime_error("Invalid register offset.");
+    }
+    return _registers[off];
+  } else {
+    off = esp().i32() + off;
+    if (off < 0) {
+      throw std::runtime_error("Invalid relative stack offset.");
+    }
+    return _stack[off];
+  }
 }
