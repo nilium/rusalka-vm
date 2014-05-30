@@ -534,7 +534,9 @@ class Parser
   def line
     swallow_sentinels
     unless eof?
-      @data << (label || statement || error)
+      next_data = (label || statement || error)
+      @data << next_data unless @data.last.__id__ == next_data.__id__
+      next_data
     end
   end
 
