@@ -836,12 +836,14 @@ void vm_state_t::exec_call(int32_t pointer, int32_t argc)
 bool vm_state_t::check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const
 {
   int32_t const bsize = block_size(block_id);
+  int32_t const end = offset + size;
 
   return
     offset >= 0 &&
-    size > 0 &&
-    (offset + size) < bsize &&
-    (offset + size) > offset;
+    size >= 0 &&
+    size <= bsize &&
+    end <= bsize &&
+    end >= offset;
 }
 
 
