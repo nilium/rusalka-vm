@@ -87,9 +87,9 @@ struct value_t final
 
   bool operator == (value_t other) const { return value == other.value; }
   bool operator != (value_t other) const { return !(*this == other); }
-  bool operator <= (value_t other) const { return value >= other.value; }
+  bool operator <= (value_t other) const { return value <= other.value; }
   bool operator < (value_t other) const { return value < other.value; }
-  bool operator >= (value_t other) const { return value <= other.value; }
+  bool operator >= (value_t other) const { return value >= other.value; }
   bool operator > (value_t other) const { return value > other.value; }
 };
 
