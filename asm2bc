@@ -127,7 +127,8 @@ FIRST_ARGUMENT_REGISTER = 4
 POS_INT_LITS = [:integer_lit, :integer_exp_lit, :hex_lit, :bin_lit]
 INT_LITS = [:minus] | POS_INT_LITS
 FLOAT_LITS = [:float_lit, :float_exp_lit, :minus]
-STRING_LITS = [:double_string_lit, :single_string_lit]
+STRING_LITS = [:double_string_lit]
+CHAR_LITS = [:single_string_lit]
 
 
 Unit = Struct.new(:name, :prefix)
@@ -351,6 +352,14 @@ class Parser
     end || arg_num
   end
 
+  def char
+    accept(CHAR_LITS) do |tok|
+      data = tok.value
+      raise "Character literals may only cover a single char" if data.length != 1
+      data.encode(Encoding::UTF_8).codepoints[0]
+    end
+  end
+
   # String literals
   def string
     accept(STRING_LITS) do |tok|
@@ -496,6 +505,7 @@ class Parser
     label_ref ||
     import ||
     numeric ||
+    char ||
     string ||
     error
   end
