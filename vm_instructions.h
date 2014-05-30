@@ -42,7 +42,7 @@ INSTRUCTION( LE,              LE,           20,         4,    input, input, inpu
 INSTRUCTION( LT,              LT,           21,         4,    input, input, input, litflag )
 INSTRUCTION( JUMP,            JUMP,         22,         2,    input, litflag )
 INSTRUCTION( PUSH,            PUSH,         23,         1,    input )
-INSTRUCTION( POP,             POP,          24,         1,    input )
+INSTRUCTION( POP,             POP,          24,         1,    output )
 INSTRUCTION( LOAD,            LOAD,         25,         3,    output, input, litflag )
 INSTRUCTION( CALL,            CALL,         26,         3,    input, input, litflag )
 INSTRUCTION( RETURN,          RETURN,       27,         0     )
