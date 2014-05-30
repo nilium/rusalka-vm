@@ -56,6 +56,12 @@ module Colors
 end
 
 
+def logical_xor(a, b)
+  args = [a, b]
+  args.any? && !args.all?
+end
+
+
 ###############################################################################
 #  Parsing vm_instructions.h                                                  #
 ###############################################################################
@@ -510,10 +516,14 @@ class Parser
     error
   end
 
-  # Reads a line
-  def line
+  def swallow_sentinels
     while accept(:newline, :semicolon)
     end
+  end
+
+  # Reads a line
+  def line
+    swallow_sentinels
     unless eof?
       @data << (label || statement || error)
     end
@@ -553,12 +563,12 @@ class Parser
   end
 
   CONDITIONAL_OPS = {
-    :equality       => [:eq, 0],          # EQ arg0 arg1 1; JUMP @__end_jump__
-    :not_equal      => [:eq, 1],          # EQ arg0 arg1 0; JUMP @__end_jump__
-    :greater_equal  => [:lt, 1],          # LT arg0 arg1 0; JUMP @__end_jump__
-    :greater_than   => [:le, 1],          # LE arg0 arg1 0; JUMP @__end_jump__
-    :less_than      => [:lt, 0],          # LT arg0 arg1 1; JUMP @__end_jump__
-    :lesser_equal   => [:le, 0]          # LE arg0 arg1 1; JUMP @__end_jump__
+    :equality       => [:eq, 1],          # EQ arg0 arg1 1; JUMP @__end_jump__
+    :not_equal      => [:eq, 0],          # EQ arg0 arg1 0; JUMP @__end_jump__
+    :greater_equal  => [:lt, 0],          # LT arg0 arg1 0; JUMP @__end_jump__
+    :greater_than   => [:le, 0],          # LE arg0 arg1 0; JUMP @__end_jump__
+    :less_than      => [:lt, 1],          # LT arg0 arg1 1; JUMP @__end_jump__
+    :lesser_equal   => [:le, 1]           # LE arg0 arg1 1; JUMP @__end_jump__
   }
 
   def conditional
@@ -568,7 +578,7 @@ class Parser
         is_loop         = label_pre == 'for'
         invert          = !!accept(:bang)
         arg0            = value
-        multi_line      = false
+        is_block        = false
         loop_label_id   = nil
         loop_jump_instr = nil
 
@@ -579,12 +589,11 @@ class Parser
         end
 
         comp_instr = accept(CONDITIONAL_OPS.keys) do |tok|
-          name, flag  = CONDITIONAL_OPS[tok.kind]
-          arg1        = self.value
+          name, flag = CONDITIONAL_OPS[tok.kind]
+          arg1       = self.value
+          is_block   = !!accept(:curl_open)
 
-          multi_line = !!accept(:curl_open)
-          implicit_invert = !(multi_line || is_loop)
-          flag = 1 - flag if (invert || implicit_invert) && !(invert && implicit_invert)
+          flag = 1 - flag if logical_xor(is_block || is_loop, invert)
 
           lits = 0
           lits |= 0x1 unless arg0.kind_of?(RegisterRef)
@@ -595,7 +604,7 @@ class Parser
           end
         end
 
-        if multi_line || is_loop
+        if is_block || is_loop
           @data << comp_instr
 
           label_id = Label[@prefix, "__#{label_pre}_end_#{unique_uuid}", :local]
@@ -603,9 +612,10 @@ class Parser
           @data << jump_instr
           @instructions << jump_instr
 
-          if multi_line
+          if is_block
             until accept(:curl_close)
               line
+              swallow_sentinels
             end
           else
             line
@@ -616,11 +626,6 @@ class Parser
             @instructions << loop_jump_instr
           end
 
-          # accept(:id, content: 'else') do
-          #   register_label_statement(LabelStmt[label_id])
-          #
-          #   else_label_id = Label[@prefix, "__else_#{unique_uuid}"]
-          # end ||
           register_label_statement(LabelStmt[label_id])
         else
           comp_instr
