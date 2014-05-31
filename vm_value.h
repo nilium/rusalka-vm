@@ -28,7 +28,9 @@ struct value_t final
 {
   double  value;
 
-  value_t() : value(0.0) {}
+  value_t() = default;
+  value_t(value_t const &v) = default;
+
   explicit value_t(double v)   : value(v) {}
   explicit value_t(float v)    : value((double)v) {}
   explicit value_t(int64_t v)  : value((double)v) {}
@@ -39,7 +41,6 @@ struct value_t final
   explicit value_t(uint16_t v) : value((double)v) {}
   explicit value_t(int8_t v)   : value((double)v) {}
   explicit value_t(uint8_t v)  : value((double)v) {}
-  value_t(value_t const &v)  : value(v.value) {}
 
   double   f64() const  { return value; }
   float    f32() const  { return (float)value; }
