@@ -595,6 +595,7 @@ class Parser
   def conditional
     maybe? do
       accept(:id, content: ['if', 'for']) do |tok|
+        last_instr      = nil
         label_pre       = tok.value
         is_loop         = label_pre == 'for'
         invert          = !!accept(:bang)
@@ -609,9 +610,10 @@ class Parser
           loop_jump_instr = Instruction[:jump, [LabelRef[loop_label_id], 0x1]]
         end
 
-        comp_instr = accept(CONDITIONAL_OPS.keys) do |tok|
+        last_instr = comp_instr = accept(CONDITIONAL_OPS.keys) do |tok|
           name, flag = CONDITIONAL_OPS[tok.kind]
           arg1       = self.value
+          swallow_newlines
           is_block   = !!accept(:curl_open)
 
           flag = 1 - flag if logical_xor(is_block || is_loop, invert)
@@ -620,37 +622,34 @@ class Parser
           lits |= 0x1 unless arg0.kind_of?(RegisterRef)
           lits |= 0x2 unless arg1.kind_of?(RegisterRef)
 
-          Instruction[name, [arg0, arg1, flag, lits]].tap do |k|
-            @instructions << k
-          end
+          generate_instruction(name, arg0, arg1, flag, lits)
         end
 
         if is_block || is_loop
-          @data << comp_instr
-
           label_id = Label[@prefix, "__#{label_pre}_end_#{unique_uuid}", :local]
-          jump_instr = Instruction[:jump, [LabelRef[label_id], 0x1]]
-          @data << jump_instr
-          @instructions << jump_instr
+          generate_instruction(:jump, LabelRef[label_id], 0x1)
+
+          swallow_sentinels
 
           if is_block
-            until accept(:curl_close)
-              line
+            until accept(:curl_close) { swallow_sentinels }
+              last_instr = line
               swallow_sentinels
             end
           else
-            line
+            last_instr = instruction || error("Expected instruction")
           end
 
           if is_loop
-            @data << loop_jump_instr
-            @instructions << loop_jump_instr
+            add_instruction loop_jump_instr
           end
 
-          register_label_statement(LabelStmt[label_id])
+          last_instr = register_label_statement(LabelStmt[label_id])
         else
-          comp_instr
+          last_instr = instruction || error("Expected instruction")
         end
+
+        last_instr
       end
     end
   end
