@@ -105,4 +105,11 @@ value_t make_value(T x)
 }
 
 
+static_assert(std::is_trivial<value_t>::value,
+  "Value must be trivial");
+
+static_assert(std::is_standard_layout<value_t>::value,
+  "Value must be standard layout");
+
+
 #endif /* end __VM_VALUE_H__ include guard */
