@@ -340,32 +340,32 @@ void vm_state_t::exec(const op_t &op)
   // ADD OUT, LHS, RHS, LITFLAG
   // Addition (fp64).
   case ADD: {
-    reg(op[0]).set(deref(op[1], op[3], 0x2).f64() + deref(op[2], op[3], 0x4).f64());
+    reg(op[0]) = deref(op[1], op[3], 0x2).f64() + deref(op[2], op[3], 0x4).f64();
   } break;
 
   // SUB OUT, LHS, RHS, LITFLAG
   // Subtraction (fp64).
   case SUB: {
-    reg(op[0]).set(deref(op[1], op[3], 0x2).f64() - deref(op[2], op[3], 0x4).f64());
+    reg(op[0]) = deref(op[1], op[3], 0x2).f64() - deref(op[2], op[3], 0x4).f64();
   } break;
 
   // DIV OUT, LHS, RHS, LITFLAG
   // Floating point division.
   case DIV: {
-    reg(op[0]).set(deref(op[1], op[3], 0x2).f64() / deref(op[2], op[3], 0x4).f64());
+    reg(op[0]) = deref(op[1], op[3], 0x2).f64() / deref(op[2], op[3], 0x4).f64();
   } break;
 
   // IDIV OUT, LHS, RHS, LITFLAG
   // Integer division (64-bit signed -- rationale: 64-bit is used as the result
   // will never be out of range of a 64-bit float).
   case IDIV: {
-    reg(op[0]).set(deref(op[1], op[3], 0x2).i64() / deref(op[2], op[3], 0x4).i64());
+    reg(op[0]) = deref(op[1], op[3], 0x2).i64() / deref(op[2], op[3], 0x4).i64();
   } break;
 
   // MUL OUT, LHS, RHS, LITFLAG
   // Multiplication (fp64).
   case MUL: {
-    reg(op[0]).set(deref(op[1], op[3], 0x2).f64() * deref(op[2], op[3], 0x4).f64());
+    reg(op[0]) = deref(op[1], op[3], 0x2).f64() * deref(op[2], op[3], 0x4).f64();
   } break;
 
   // POW OUT, LHS, RHS, LITFLAG
@@ -386,37 +386,37 @@ void vm_state_t::exec(const op_t &op)
   // IMOD OUT, LHS, RHS, LITFLAG
   // Signed integer modulo (32-bit).
   case IMOD: {
-    reg(op[0]).set(deref(op[1], op[3], 0x2).i32() % deref(op[2], op[3], 0x4).i32());
+    reg(op[0]) = deref(op[1], op[3], 0x2).i64() % deref(op[2], op[3], 0x4).i64();
   } break;
 
   // NEG OUT, IN
   // Negation (fp64).
   case NEG: {
-    reg(op[0]).set(-reg(op[1]).f64());
+    reg(op[0]) = -reg(op[1]).f64();
   } break;
 
   // NOT OUT, IN
   // Bitwise not (unsigned 32-bit).
   case NOT: {
-    reg(op[0]).set(~(reg(op[1]).ui32()));
+    reg(op[0]) = ~reg(op[1]).ui32();
   } break;
 
   // OR OUT, LHS, RHS, LITFLAG
   // Bitwise or (unsigned 32-bit).
   case OR: {
-    reg(op[0]).set(deref(op[1], op[2], 0x2).ui32() | deref(op[2], op[3], 0x4).ui32());
+    reg(op[0]) = deref(op[1], op[2], 0x2).ui32() | deref(op[2], op[3], 0x4).ui32();
   } break;
 
   // AND OUT, LHS, RHS, LITFLAG
   // Bitwise and (unsigned 32-bit).
   case AND: {
-    reg(op[0]).set(deref(op[1], op[2], 0x2).ui32() & deref(op[2], op[3], 0x4).ui32());
+    reg(op[0]) = deref(op[1], op[2], 0x2).ui32() & deref(op[2], op[3], 0x4).ui32();
   } break;
 
   // XOR OUT, LHS, RHS, LITFLAG
   // Bitwise xor (unsigned 32-bit).
   case XOR: {
-    reg(op[0]).set(deref(op[1], op[2], 0x2).ui32() ^ deref(op[2], op[3], 0x4).ui32());
+    reg(op[0]) = deref(op[1], op[2], 0x2).ui32() ^ deref(op[2], op[3], 0x4).ui32();
   } break;
 
   // ARITHSHIFT OUT, LHS, RHS, LITFLAG
