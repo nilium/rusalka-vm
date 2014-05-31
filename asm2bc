@@ -685,7 +685,7 @@ class Parser
         end
       end
 
-      Instruction[name, args].tap { |k| @instructions << k } if done || terminator
+      generate_instruction(name, *args) if done || terminator
     end
   end
 
