@@ -475,7 +475,7 @@ void vm_state_t::exec(const op_t &op)
   // Nearest integral value using FE_TONEAREST.
   case ROUND: {
     with_rounding(FE_TONEAREST, [&] {
-      reg(op[0]) = std::round(reg(op[1]).f64());
+      reg(op[0]) = std::nearbyint(reg(op[1]).f64());
     });
   } break;
 
@@ -483,7 +483,7 @@ void vm_state_t::exec(const op_t &op)
   // Nearest integral value using FE_TOWARDZERO.
   case RINT: {
     with_rounding(FE_TOWARDZERO, [&] {
-      reg(op[0]) = std::round(reg(op[1]).f64());
+      reg(op[0]) = std::nearbyint(reg(op[1]).f64());
     });
   } break;
 
