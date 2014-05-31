@@ -52,6 +52,24 @@ static int32_t const MEMOP_SIZE[MEMOP_MAX] {
 
 
 /*
+  Sets the rounding mode and then calls func; the previous rounding mode is
+  restored after the call completes.
+*/
+template <typename FN>
+static void with_rounding(int const round_mode, FN &&func) noexcept
+{
+  int const previous = std::fegetround();
+  if (previous != round_mode) {
+    std::fesetround(round_mode);
+    func();
+    std::fesetround(previous);
+  } else {
+    func();
+  }
+}
+
+
+/*
   TODO: handle proper stack unwinding on trap somehow. Currently, it can really
   screw with the VM if there are nested run() calls (e.g., an imported function
   calls back into the vm before returning).
@@ -456,15 +474,17 @@ void vm_state_t::exec(const op_t &op)
   // ROUND OUT, IN
   // Nearest integral value using FE_TONEAREST.
   case ROUND: {
-    std::fesetround(FE_TONEAREST);
-    reg(op[0]) = std::round(reg(op[1]).f64());
+    with_rounding(FE_TONEAREST, [&] {
+      reg(op[0]) = std::round(reg(op[1]).f64());
+    });
   } break;
 
   // RINT OUT, IN
   // Nearest integral value using FE_TOWARDZERO.
   case RINT: {
-    std::fesetround(FE_TOWARDZERO);
-    reg(op[0]) = std::round(reg(op[1]).f64());
+    with_rounding(FE_TOWARDZERO, [&] {
+      reg(op[0]) = std::round(reg(op[1]).f64());
+    });
   } break;
 
   // EQ|LE|LT LHS, RHS, RESULT, LITFLAG
