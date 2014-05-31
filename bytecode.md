@@ -40,7 +40,7 @@ At the moment, the bytecode version is always `8`.
 
 #### `OFFS` — Chunk Offsets
 
-The offsets table contains `count` name-offset pairs. Each name refers to a chunk in the unit and the offset is relative to the start of the unit. Because all further chunks are not required to be in the order below (though most likely will be), you should use the offsets in this chunk to always end up at the start of the chunk you want to read.
+The offsets table contains `count` name-offset pairs. Each name refers to a chunk in the unit and the offset is relative to the start of the unit. Because all further chunks are not required to be in the order below, you should use the offsets in this chunk to always end up at the start of the chunk you want to read.
 
 As such, each pair in the chunk can be represented as follows:
 
