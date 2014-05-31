@@ -21,28 +21,67 @@ defdata woop "wooperton"
 
 // main
 .main:
-    call      .fabs 1
-    add       $0 rp 123.456
-    push      $0
-    call      ^print 1
-    push      $0
-    call      ^print 1
+    let accum {
+        pop accum
+        push accum
+        call      .fabs 1
+        add       accum rp 123.456
 
-    load      $2 ~woop
-    push      $2
-    call      ^prints 1
+        push      accum
+        call      ^print 1
 
-    load      $2 "woop"
-    push      $2
-    call      ^prints 1
+        push      accum
+        call      ^print 1
 
+        push accum
+    }
+
+    let string {
+        load      string ~woop
+        push      string
+        call      ^prints 1
+
+        load      string "woop"
+        push      string
+        call      ^prints 1
+    }
+
+/*
     for $0 < 256 {
       add     $0 $0 1.0
       push    $0
       call    ^print 1
     }
+*/
 
-    load      rp $0
+    let buffer {
+        memdup buffer "abz"
+
+        push buffer
+        call ^print 1
+
+        push buffer
+        call ^prints 1
+
+        push buffer
+        push buffer
+        call .rot13 2
+
+        push buffer
+        call ^prints 1
+
+        push buffer
+        push buffer
+        call .rot13 2
+
+        push buffer
+        call ^prints 1
+
+        free buffer
+    }
+
+    pop rp
+    round      rp rp
     return
 
 // fabs(f). Just import a freakin' fabs function, this is stupid since I can't
@@ -53,3 +92,52 @@ defdata woop "wooperton"
     if rp < 0.0
       neg     rp rp
     return
+
+// function rot13(mem_in, mem_out) -> bytes written
+.rot13: let* mem_in, mem_out, length {
+    pop mem_in
+    pop mem_out
+
+    let* length_out {
+        memlen length     mem_in
+        memlen length_out mem_out
+
+        if length_out < length
+            load length length_out
+    }
+
+    let* index, char, base {
+        load index 0
+        for index < length {
+            peek char mem_in index 0
+
+            if 'a' <= char {
+                if char <= 'z' {
+                    load base 'a'
+                    jump @__rot13__apply_rotate
+                }
+            }
+
+            if 'A' <= char {
+                if char <= 'Z' {
+                    load base 'A'
+                    jump @__rot13__apply_rotate
+                }
+            }
+
+            jump @__rot13__continue
+
+            @__rot13__apply_rotate:
+            sub char char base
+            add char char 13
+            imod char char 26
+            add char char base
+
+            @__rot13__continue:
+            poke mem_out char index 0
+            add index index 1
+        }
+    }
+    load rp length
+    return
+}
