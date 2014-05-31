@@ -260,6 +260,8 @@ class Parser
     @string_mappings = {}
     @data_mappings   = {}
     @import_count    = 0
+    @let_names       = nil
+    @let_refs        = nil
   end
 
   # Looks up a reference and returns the value.
@@ -494,6 +496,7 @@ class Parser
   # ebp
   # esp
   # rp
+  # any let-named variable
   def named_register
     accept(:id, content: ['ip', 'ebp', 'esp', 'rp'] + @let_names) do |tok|
       name = tok.value
@@ -502,6 +505,7 @@ class Parser
       when 'ebp' then RegisterRef[1]
       when 'esp' then RegisterRef[2]
       when 'rp'  then RegisterRef[3]
+      else @let_refs[name]
       end
     end
   end
@@ -583,6 +587,72 @@ class Parser
     add_instruction Instruction[name, args]
   end
 
+  RESERVED_NAMES = ['ip', 'ebp', 'esp', 'rp']
+
+  def let_block
+    maybe? do
+      swallow_sentinels
+
+      return nil unless accept(:id, content: 'let')
+
+      preserve_all = !!accept(:bang, distance: 0)
+      preserve_none = !preserve_all && !!accept(:asterisk, distance: 0)
+      names = []
+      last_instr = nil
+
+      unless accept(:curl_open)
+
+        swallow_newlines
+
+        next while accept(:id) do |tok|
+          name = tok.value
+          raise "Name #{tok.value} is reserved" if RESERVED_NAMES.include? name
+          raise "Name #{tok.value} already defined" if @let_refs.include? name
+          names << name
+          swallow_newlines
+          accept(:comma) { swallow_newlines }
+        end
+
+        swallow_sentinels
+      end
+
+      raise "Expected opening brace" unless accept(:curl_open)
+
+      name_regnum = FIRST_NONVOLATILE_GP_REGISTER + @let_names.length
+      names.each_with_index do |name, index|
+        regnum = name_regnum + index
+        ref = RegisterRef[regnum]
+        @let_refs[name] = ref
+
+        next if preserve_none
+        if preserve_all || regnum > LAST_GP_REGISTER
+          last_instr = generate_instruction(:push, ref)
+        end
+      end
+      @let_names += names
+
+      swallow_sentinels
+      until accept(:curl_close) { swallow_sentinels }
+        last_instr = line
+        swallow_sentinels
+      end
+
+      @let_names.pop(names.length)
+      names.reverse.each do |name|
+        ref = @let_refs[name]
+        raise "Consistency error: named register became undefined" unless ref
+        @let_refs.delete name
+
+        next if preserve_none
+        if preserve_all || ref.index > LAST_GP_REGISTER
+          last_instr = generate_instruction(:pop, ref)
+        end
+      end
+
+      last_instr
+    end
+  end
+
   CONDITIONAL_OPS = {
     :equality       => [:eq, 1],          # EQ arg0 arg1 1; JUMP @__end_jump__
     :not_equal      => [:eq, 0],          # EQ arg0 arg1 0; JUMP @__end_jump__
@@ -656,7 +726,7 @@ class Parser
 
   # Instruction and data statements
   def statement
-    defdata || conditional || instruction
+    defdata || let_block || conditional || instruction
   end
 
   # OPNAME VALUE* TERM
@@ -719,6 +789,8 @@ class Parser
     @current = nil
     @line = 0
     @column = 0
+    @let_names = []
+    @let_refs = {}
     __run__
   ensure
     @prefix = nil
