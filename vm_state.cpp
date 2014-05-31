@@ -59,13 +59,9 @@ template <typename FN>
 static void with_rounding(int const round_mode, FN &&func) noexcept
 {
   int const previous = std::fegetround();
-  if (previous != round_mode) {
-    std::fesetround(round_mode);
-    func();
-    std::fesetround(previous);
-  } else {
-    func();
-  }
+  std::fesetround(round_mode);
+  func();
+  std::fesetround(previous);
 }
 
 
