@@ -943,7 +943,19 @@ class Parser
   def instruction_data
     data =
       @instructions.map do |instr|
-        [Op::OPS[instr.name], *instr.args.map { |arg| lookup(arg).to_f }].pack('l<E*')
+        opcode = Op::OPS[instr.name]
+        raise "Opcode may not be less than 0" if opcode < 0
+        raise "Opcode may not be greater than 2^16" if opcode > 0xFFFF
+        flags = 0
+        args = instr.args.map { |arg| lookup(arg) }
+        if ::Op::OP_ARGS[instr.name].last == :litflag
+          raise "Litflag must be an integer" if !args.last.kind_of?(Integer)
+          raise "Litflag does not fit in 16 bits" if args.last > 0xFFFF
+          raise "Litflag may not be less than 0" if args.last < 0
+          flags = args.pop & 0xFFFF
+        end
+        args.map!(&:to_f)
+        [opcode, flags, *args].pack('S<S<E*')
       end.join
 
     "#{[@instructions.length].pack('l<')}#{data}"
