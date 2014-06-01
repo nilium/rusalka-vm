@@ -154,6 +154,12 @@ class RegisterRef
 end
 
 
+REG_IP  = RegisterRef[0].freeze
+REG_EBP = RegisterRef[1].freeze
+REG_ESP = RegisterRef[2].freeze
+REG_RP  = RegisterRef[3].freeze
+
+
 class Label
   attr_reader :name, :mangled, :kind
 
@@ -501,10 +507,10 @@ class Parser
     accept(:id, content: ['ip', 'ebp', 'esp', 'rp'] + @let_names) do |tok|
       name = tok.value
       case name
-      when 'ip'  then RegisterRef[0]
-      when 'ebp' then RegisterRef[1]
-      when 'esp' then RegisterRef[2]
-      when 'rp'  then RegisterRef[3]
+      when 'ip'  then REG_IP
+      when 'ebp' then REG_EBP
+      when 'esp' then REG_ESP
+      when 'rp'  then REG_RP
       else @let_refs[name]
       end
     end
