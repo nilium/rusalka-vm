@@ -62,6 +62,7 @@ class vm_unit_t
   struct instruction_ptr_t
   {
     opcode_t  opcode;
+    uint16_t  litflag;
     int32_t   arg_pointer;
   };
 

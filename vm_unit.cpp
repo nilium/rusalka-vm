@@ -107,16 +107,18 @@ vm_unit_t::~vm_unit_t()
 
 void vm_unit_t::read_instruction(std::istream &input)
 {
-  opcode_t const opcode = static_cast<opcode_t>(read_primitive<int32_t>(input));
+  opcode_t const opcode = static_cast<opcode_t>(read_primitive<uint16_t>(input));
+  uint16_t const litflag = read_primitive<uint16_t>(input);
   int32_t arg_base = static_cast<int32_t>(instruction_argv.size());
 
   instructions.emplace_back(
     instruction_ptr_t {
       opcode,
+      litflag,
       arg_base // curse unsigneds to death
     });
 
-  int32_t const argc = g_opcode_argc[opcode];
+  int32_t const argc = g_opcode_argc[opcode] - (opcode_has_litflag(opcode) ? 1 : 0);
 
   for (int32_t counter = 0; counter < argc; ++counter) {
     value_t arg = read_primitive<value_t>(input);
@@ -494,8 +496,13 @@ void vm_unit_t::debug_write_instructions(std::ostream &out) const
 {
   size_t inum = 0;
   for (auto const &ins : instructions) {
+    bool has_litflag = opcode_has_litflag(ins.opcode);
     out << (inum++) << ": " << ins.opcode;
-    for (int32_t arg_idx = 0; arg_idx < g_opcode_argc[ins.opcode]; ++arg_idx) {
+    if (has_litflag && ins.litflag) {
+      out << "#" << std::hex << ins.litflag << std::dec;
+    }
+    int32_t argc = g_opcode_argc[ins.opcode] - (has_litflag ? 1 : 0);
+    for (int32_t arg_idx = 0; arg_idx < argc; ++arg_idx) {
       out << " " << instruction_argv[ins.arg_pointer + arg_idx];
     }
     out << std::endl;

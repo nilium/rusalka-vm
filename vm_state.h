@@ -248,7 +248,7 @@ public:
   vm_function_t<vm_state_t> function(const char *name);
   vm_function_t<vm_state_t> function(int32_t pointer);
 
-  value_t deref(value_t input, value_t flag, uint32_t mask = ~0u) const;
+  value_t deref(value_t input, uint16_t flag, uint32_t mask = ~0u) const;
 };
 
 

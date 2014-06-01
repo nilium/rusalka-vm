@@ -35,6 +35,7 @@ public:
   vm_unit_t const &unit;
   int32_t const ip;
 
+  uint16_t litflag() const;
   opcode_t opcode() const;
   value_t operator [] (int32_t index) const;
 };

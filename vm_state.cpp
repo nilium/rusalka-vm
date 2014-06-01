@@ -312,9 +312,9 @@ const void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) const
 }
 
 
-value_t vm_state_t::deref(value_t input, value_t flag, uint32_t mask) const
+value_t vm_state_t::deref(value_t input, uint16_t flag, uint32_t mask) const
 {
-  return (flag.ui32() & mask) ? input : reg(input.i32());
+  return (flag & mask) ? input : reg(input.i32());
 }
 
 
@@ -331,12 +331,23 @@ constexpr T vm_shift(T num, int32_t shift)
 void vm_state_t::exec(const op_t &op)
 {
   value_t value;
+  uint16_t const litflag = op.litflag();
 
   #ifdef LOG_OP_INFO
+  bool has_litflag = opcode_has_litflag(op.opcode());
   std::clog << std::setw(10) << (ip().i32() - 1) << ": " << std::setw(10) << op.opcode();
   int32_t argidx = 0;
-  for (; argidx < g_opcode_argc[op.opcode()]; ++argidx) {
-    std::clog << ' ' << op[argidx];
+  for (; argidx < g_opcode_argc[op.opcode()] - (has_litflag ? 1 : 0); ++argidx) {
+    std::clog << "    ";
+    if (has_litflag) {
+      if ((litflag & (0x1 << argidx)) != 0) {
+        std::clog << op[argidx].f64();
+      } else {
+        std::clog << "r" << op[argidx].i32() << "(" << deref(op[argidx], litflag, 0x1 << argidx).f64() << ')';
+      }
+    } else {
+      std::clog << "r" << op[argidx].i32() << "(" << reg(op[argidx]).f64() << ')';
+    }
   }
   std::clog << std::endl;
   #endif
@@ -354,53 +365,53 @@ void vm_state_t::exec(const op_t &op)
   // ADD OUT, LHS, RHS, LITFLAG
   // Addition (fp64).
   case ADD: {
-    reg(op[0]) = deref(op[1], op[3], 0x2).f64() + deref(op[2], op[3], 0x4).f64();
+    reg(op[0]) = deref(op[1], litflag, 0x2).f64() + deref(op[2], litflag, 0x4).f64();
   } break;
 
   // SUB OUT, LHS, RHS, LITFLAG
   // Subtraction (fp64).
   case SUB: {
-    reg(op[0]) = deref(op[1], op[3], 0x2).f64() - deref(op[2], op[3], 0x4).f64();
+    reg(op[0]) = deref(op[1], litflag, 0x2).f64() - deref(op[2], litflag, 0x4).f64();
   } break;
 
   // DIV OUT, LHS, RHS, LITFLAG
   // Floating point division.
   case DIV: {
-    reg(op[0]) = deref(op[1], op[3], 0x2).f64() / deref(op[2], op[3], 0x4).f64();
+    reg(op[0]) = deref(op[1], litflag, 0x2).f64() / deref(op[2], litflag, 0x4).f64();
   } break;
 
   // IDIV OUT, LHS, RHS, LITFLAG
   // Integer division (64-bit signed -- rationale: 64-bit is used as the result
   // will never be out of range of a 64-bit float).
   case IDIV: {
-    reg(op[0]) = deref(op[1], op[3], 0x2).i64() / deref(op[2], op[3], 0x4).i64();
+    reg(op[0]) = deref(op[1], litflag, 0x2).i64() / deref(op[2], litflag, 0x4).i64();
   } break;
 
   // MUL OUT, LHS, RHS, LITFLAG
   // Multiplication (fp64).
   case MUL: {
-    reg(op[0]) = deref(op[1], op[3], 0x2).f64() * deref(op[2], op[3], 0x4).f64();
+    reg(op[0]) = deref(op[1], litflag, 0x2).f64() * deref(op[2], litflag, 0x4).f64();
   } break;
 
   // POW OUT, LHS, RHS, LITFLAG
   // Power (fp64).
   case POW: {
-    reg(op[0]) = std::pow(deref(op[1], op[3], 0x2).f64(), deref(op[2], op[3], 0x4).f64());
+    reg(op[0]) = std::pow(deref(op[1], litflag, 0x2).f64(), deref(op[2], litflag, 0x4).f64());
   } break;
 
   // MOD OUT, LHS, RHS, LITFLAG
   // Floating point modulo.
   case MOD: {
     reg(op[0]) = std::fmod(
-        deref(op[1], op[3], 0x2).f64(),
-        deref(op[2], op[3], 0x4).f64()
+        deref(op[1], litflag, 0x2).f64(),
+        deref(op[2], litflag, 0x4).f64()
       );
   } break;
 
   // IMOD OUT, LHS, RHS, LITFLAG
   // Signed integer modulo (32-bit).
   case IMOD: {
-    reg(op[0]) = deref(op[1], op[3], 0x2).i64() % deref(op[2], op[3], 0x4).i64();
+    reg(op[0]) = deref(op[1], litflag, 0x2).i64() % deref(op[2], litflag, 0x4).i64();
   } break;
 
   // NEG OUT, IN
@@ -418,19 +429,19 @@ void vm_state_t::exec(const op_t &op)
   // OR OUT, LHS, RHS, LITFLAG
   // Bitwise or (unsigned 32-bit).
   case OR: {
-    reg(op[0]) = deref(op[1], op[2], 0x2).ui32() | deref(op[2], op[3], 0x4).ui32();
+    reg(op[0]) = deref(op[1], litflag, 0x2).ui32() | deref(op[2], litflag, 0x4).ui32();
   } break;
 
   // AND OUT, LHS, RHS, LITFLAG
   // Bitwise and (unsigned 32-bit).
   case AND: {
-    reg(op[0]) = deref(op[1], op[2], 0x2).ui32() & deref(op[2], op[3], 0x4).ui32();
+    reg(op[0]) = deref(op[1], litflag, 0x2).ui32() & deref(op[2], litflag, 0x4).ui32();
   } break;
 
   // XOR OUT, LHS, RHS, LITFLAG
   // Bitwise xor (unsigned 32-bit).
   case XOR: {
-    reg(op[0]) = deref(op[1], op[2], 0x2).ui32() ^ deref(op[2], op[3], 0x4).ui32();
+    reg(op[0]) = deref(op[1], litflag, 0x2).ui32() ^ deref(op[2], litflag, 0x4).ui32();
   } break;
 
   // ARITHSHIFT OUT, LHS, RHS, LITFLAG
@@ -439,8 +450,8 @@ void vm_state_t::exec(const op_t &op)
   // RHS < 0  -> Right shift.
   // RHS == 0 -> Cast to signed 32-bit int.
   case ARITHSHIFT: {
-    const int32_t input = deref(op[1], op[3], 0x2);
-    const int32_t shift = deref(op[2], op[3], 0x4);
+    const int32_t input = deref(op[1], litflag, 0x2);
+    const int32_t shift = deref(op[2], litflag, 0x4);
     reg(op[0]) = vm_shift(input, shift);
   } break;
 
@@ -450,8 +461,8 @@ void vm_state_t::exec(const op_t &op)
   // RHS < 0  -> Right shift.
   // RHS == 0 -> Cast to unsigned 32-bit int.
   case BITSHIFT: {
-    const uint32_t input = deref(op[1], op[3], 0x2);
-    const int32_t shift = deref(op[2], op[3], 0x4);
+    const uint32_t input = deref(op[1], litflag, 0x2);
+    const int32_t shift = deref(op[2], litflag, 0x4);
     reg(op[0]) = vm_shift(input, shift);
   } break;
 
@@ -496,19 +507,19 @@ void vm_state_t::exec(const op_t &op)
   // 0x1 - LHS is a literal
   // 0x2 - RHS is a literal
   case EQ: {
-    if ((deref(op[0], op[3], 0x1) == deref(op[1], op[3], 0x2)) != (op[2].i32() != 0)) {
+    if ((deref(op[0], litflag, 0x1) == deref(op[1], litflag, 0x2)) != (op[2].i32() != 0)) {
       ip() = ip().i32() + 1;
     }
   } break;
 
   case LT: {
-    if ((deref(op[0], op[3], 0x1) < deref(op[1], op[3], 0x2)) != (op[2].i32() != 0)) {
+    if ((deref(op[0], litflag, 0x1) < deref(op[1], litflag, 0x2)) != (op[2].i32() != 0)) {
       ip() = ip().i32() + 1;
     }
   } break;
 
   case LE: {
-    if ((deref(op[0], op[3], 0x1) <= deref(op[1], op[3], 0x2)) != (op[2].i32() != 0)) {
+    if ((deref(op[0], litflag, 0x1) <= deref(op[1], litflag, 0x2)) != (op[2].i32() != 0)) {
       ip() = ip().i32() + 1;
     }
   } break;
@@ -518,7 +529,7 @@ void vm_state_t::exec(const op_t &op)
   // Litflags:
   // 0x1 - POINTER is a literal address.
   case JUMP: {
-    ip() = deref(op[0], op[1], 0x1);
+    ip() = deref(op[0], litflag, 0x1);
   } break;
 
   // PUSH REG
@@ -538,7 +549,7 @@ void vm_state_t::exec(const op_t &op)
   // Litflags:
   // 0x2 - IN is a literal.
   case LOAD: {
-    reg(op[0]) = deref(op[1], op[2], 0x2);
+    reg(op[0]) = deref(op[1], litflag, 0x2);
   } break;
 
   // CALL POINTER, ARGC, LITFLAG
@@ -549,7 +560,7 @@ void vm_state_t::exec(const op_t &op)
   // 0x1 - POINTER is a literal address.
   // 0x2 - ARGC is a literal integer.
   case CALL: {
-    exec_call(deref(op[0], op[2], 0x1), deref(op[1], op[2], 0x2));
+    exec_call(deref(op[0], litflag, 0x1), deref(op[1], litflag, 0x2));
   } break;
 
   // RETURN
@@ -563,7 +574,7 @@ void vm_state_t::exec(const op_t &op)
   // Litflags:
   // 0x4 - Size
   case REALLOC: {
-    reg(op[0]) = realloc_block(op[1], deref(op[2], op[3], 0x4));
+    reg(op[0]) = realloc_block(op[1], deref(op[2], litflag, 0x4));
   } break;
 
   // FREE BLOCKID
@@ -583,9 +594,9 @@ void vm_state_t::exec(const op_t &op)
   //  0x8 - type
   case PEEK: {
     value_t &out = reg(op[0]);
-    int32_t const block_id = deref(op[1], op[4], 0x2);
-    int32_t const offset = deref(op[2], op[4], 0x4);
-    memop_typed_t const type = (memop_typed_t)deref(op[3], op[4], 0x8).i32();
+    int32_t const block_id = deref(op[1], litflag, 0x2);
+    int32_t const offset = deref(op[2], litflag, 0x4);
+    memop_typed_t const type = (memop_typed_t)deref(op[3], litflag, 0x8).i32();
     int8_t const *ro_block = reinterpret_cast<int8_t const *>(get_block(block_id, VM_MEM_READABLE));
 
     if (!(ro_block && check_block_bounds(block_id, offset, MEMOP_SIZE[type]))) {
@@ -622,9 +633,9 @@ void vm_state_t::exec(const op_t &op)
   // 0x8 - TYPE
   case POKE: {
     int32_t const block_id = reg(op[0]);
-    value = deref(op[1], op[4], 0x2);
-    int32_t const offset = deref(op[2], op[4], 0x4);
-    memop_typed_t const type = static_cast<memop_typed_t>(deref(op[3], op[4], 0x8).i32());
+    value = deref(op[1], litflag, 0x2);
+    int32_t const offset = deref(op[2], litflag, 0x4);
+    memop_typed_t const type = static_cast<memop_typed_t>(deref(op[3], litflag, 0x8).i32());
     int8_t *rw_block = reinterpret_cast<int8_t *>(get_block(block_id, VM_MEM_WRITABLE));
 
     if (!(rw_block && check_block_bounds(block_id, offset, MEMOP_SIZE[type]))) {
@@ -658,12 +669,11 @@ void vm_state_t::exec(const op_t &op)
   // 0x08 - in offset
   // 0x10 - size
   case MEMMOVE: {
-    const value_t flags = op[5];
     int32_t const dst_block_id = reg(op[0]);
-    int32_t const dst_offset = deref(op[1], flags, 0x2);
-    int32_t const src_block_id = deref(reg(op[2]), flags, 0x4);
-    int32_t const src_offset = deref(op[3], flags, 0x8);
-    int32_t const size = deref(op[4], flags, 0x10);
+    int32_t const dst_offset = deref(op[1], litflag, 0x2);
+    int32_t const src_block_id = deref(reg(op[2]), litflag, 0x4);
+    int32_t const src_offset = deref(op[3], litflag, 0x8);
+    int32_t const size = deref(op[4], litflag, 0x10);
 
     if (size > 0 && dst_offset >= 0 && src_offset >= 0) {
       int8_t *block_out;
@@ -693,7 +703,7 @@ void vm_state_t::exec(const op_t &op)
   // Litflags:
   // 0x2 - blockid
   case MEMDUP: {
-    reg(op[0]) = duplicate_block(deref(op[1], op[2], 0x2));
+    reg(op[0]) = duplicate_block(deref(op[1], litflag, 0x2));
   } break;
 
   // MEMLEN OUT, BLOCKID, LITFLAG
@@ -702,7 +712,7 @@ void vm_state_t::exec(const op_t &op)
   // Litflags:
   // 0x2 - blockid
   case MEMLEN: {
-    reg(op[0]) = block_size(deref(op[1], op[2], 0x2));
+    reg(op[0]) = block_size(deref(op[1], litflag, 0x2));
   } break;
 
   // LOGAND OUT, LHS, RHS

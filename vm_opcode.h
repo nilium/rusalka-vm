@@ -25,7 +25,7 @@
 
 
 /* _L -> reg op literal */
-enum opcode_t : int32_t
+enum opcode_t : uint16_t
 {
 #define INSTRUCTION(OPCODE, ASM_NAME, CODE, NUM_ARGS, ARG_INFO... ) OPCODE = CODE,
 #include "vm_instructions.h"
