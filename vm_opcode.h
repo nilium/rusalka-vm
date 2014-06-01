@@ -38,5 +38,6 @@ extern const int32_t g_opcode_argc[OP_COUNT];
 
 
 std::ostream &operator << (std::ostream &out, opcode_t v);
+bool opcode_has_litflag(opcode_t op);
 
 #endif /* end __VM_OPCODE_H__ include guard */
