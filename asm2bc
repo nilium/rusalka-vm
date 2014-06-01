@@ -1037,13 +1037,13 @@ def write_data(parser, io)
   chunks = [
     Chunk[:VERS, version_data],
     Chunk[:OFFS, 0],
-    Chunk[:DATA, parser.data_blocks],
     Chunk[:INST, parser.instruction_data],
     Chunk[:IMPT, parser.imports_data],
     Chunk[:EXPT, parser.exports_data],
-    Chunk[:EXTS, parser.externs_data],
     Chunk[:LREL, parser.label_relocation_table],
+    Chunk[:EXTS, parser.externs_data],
     Chunk[:EREL, parser.extern_relocation_table],
+    Chunk[:DATA, parser.data_blocks],
     Chunk[:DREL, parser.data_relocation_table],
   ]
 
