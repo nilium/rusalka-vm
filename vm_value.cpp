@@ -33,3 +33,12 @@ std::ostream &operator << (std::ostream &out, value_t v)
     << std::dec << std::noshowbase
     << ">";
 }
+
+
+value_t value_t::special(uint64_t sig48)
+{
+  value_t result;
+  result.bits_ = SPECIAL_BITS | (sig48 & SPECIAL_CONTENT_MASK);
+  return result;
+}
+

@@ -26,7 +26,18 @@
 
 struct value_t final
 {
-  double  value;
+  enum : uint64_t {
+    NAN_MASK             = ~0x8000000000000000ULL,
+    NAN_BITS             =  0x7FF8000000000000ULL,
+    SPECIAL_BITS         =  0xFFFB000000000000ULL,
+    SPECIAL_MASK         =  0xFFFF000000000000ULL,
+    SPECIAL_CONTENT_MASK = ~SPECIAL_MASK,
+  };
+
+  union {
+    uint64_t bits_;
+    double  value;
+  };
 
   value_t() = default;
   value_t(value_t const &v) = default;
@@ -85,6 +96,12 @@ struct value_t final
   value_t &operator = (uint16_t v)  { set(v); return *this; }
   value_t &operator = (int8_t v)    { set(v); return *this; }
   value_t &operator = (uint8_t v)   { set(v); return *this; }
+
+  bool is_nan() const { return (bits_ & NAN_MASK) == NAN_BITS; }
+  bool is_special() const { return (bits_ & SPECIAL_MASK) == SPECIAL_BITS; }
+  uint64_t special_bits() const { return bits_ & ~(SPECIAL_MASK); }
+
+  static value_t special(uint64_t sig48);
 
   bool operator == (value_t other) const { return value == other.value; }
   bool operator != (value_t other) const { return !(*this == other); }
