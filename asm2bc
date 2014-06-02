@@ -440,7 +440,7 @@ class Parser
 
   # Numerics
   def numeric
-    named_register || number || bitset
+    named_register || named_constant || number || bitset
   end
 
   # ^NAME
@@ -497,6 +497,28 @@ class Parser
       end
       register_label_statement LabelStmt[Label[@prefix, name, kind]]
     end
+  end
+
+  MEMOP_TYPES = {
+    'MEMOP_UINT8'   => 0,
+    'MEMOP_INT8'    => 1,
+    'MEMOP_UINT16'  => 2,
+    'MEMOP_INT16'   => 3,
+    'MEMOP_UINT32'  => 4,
+    'MEMOP_INT32'   => 5,
+    'MEMOP_UINT64'  => 6,
+    'MEMOP_INT64'   => 7,
+    'MEMOP_FLOAT32' => 8,
+    'MEMOP_FLOAT64' => 9,
+    'DBL_EPSILON'   => Float::EPSILON,
+    'DBL_MIN'       => Float::MIN,
+    'DBL_MAX'       => Float::MAX,
+    'DBL_NAN'       => Float::NAN,
+    'DBL_POS_INF'   => Float::INFINITY,
+  }
+
+  def named_constant
+    accept(:id, content: MEMOP_TYPES.keys) { |tok| MEMOP_TYPES[tok.value] }
   end
 
   # ip
@@ -594,7 +616,7 @@ class Parser
     add_instruction Instruction[name, args]
   end
 
-  RESERVED_NAMES = ['ip', 'ebp', 'esp', 'rp']
+  RESERVED_NAMES = ['ip', 'ebp', 'esp', 'rp', *MEMOP_TYPES.keys]
 
   def let_block
     maybe? do
