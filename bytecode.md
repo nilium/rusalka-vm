@@ -75,11 +75,14 @@ The data itself is a string of `data_size_bytes`. The data is not required to co
 The instructions table contains `count` instructions. Each instruction is an integer opcode followed by its operands.
 
     struct instruction_entry_t {
-        int32_t opcode;
+        uint16_t opcode;
+        uint16_t litflag;
         double operands[ARGC];
     }
 
-Because each opcode has a fixed number of arguments, there is no operand count provided for each instruction.
+Because each opcode has a fixed number of arguments, there is no operand count provided for each instruction. In the case of operands which take a litflag, the litflag is technically considered an operand but is provided as an unsigned 16-bit bitmask. As such, it does not count towards the argument count for an instruction.
+
+Litflags are simply bitmasks where each bit represents an operand. If the bit is set, the operand is a literal or constant (i.e., does not refer to a register). If the bit is unset, the operand refers to a register. All output operands are registers regardless of whether the operand's litflag bit is set.
 
 All operands are little-endian 64-bit floats, or doubles. When treated as integers, these are cast to signed 32-bit integers, as otherwise the last 12 bits of a 64-bit integer would be cut off. They may also be cast to unsigned 32-bit integers for bitwise instructions. For integer division, a special exception to this rule is made where the doubles may be cast to signed 64-bit integers. See the IDIV implementation for the rationale behind that.
 
