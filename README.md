@@ -1,8 +1,8 @@
 # Rusalka Virtual Machine
 
 The Rusalka VM is a small personal project of mine to implement a fairly simple
-virtual machine -- not one that intends to mimic hardware, but one that simply
-provides instructions that are hopefully useful.
+register-based virtual machine -- not one that intends to mimic hardware, but
+one that simply provides instructions that are hopefully useful.
 
 Perhaps the VM will one day be aptly named. Right now, it's a pretty big hack
 and in need of profiling (and a well-defined calling convention). Toy with it
