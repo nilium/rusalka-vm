@@ -5,6 +5,7 @@
 #include "vm_unit+io.inl"
 #include "vm_unit+chunk_offsets.inl"
 #include "vm_opcode.h"
+#include "vm_exception.h"
 #include <set>
 
 
@@ -427,7 +428,7 @@ void vm_unit_t::read(std::istream &input)
 
   if (filehead.version < 8) {
     // TODO: Use own exceptions for these things
-    throw std::runtime_error("Invalid bytecode version.");
+    throw vm_unsupported_unit_version("Invalid bytecode version.");
   }
 
   chunk_offsets_t const offsets { input };
@@ -435,26 +436,26 @@ void vm_unit_t::read(std::istream &input)
   if (offsets.seek_to_offset(input, CHUNK_INST)) {
     read_instructions(input);
   } else {
-    throw std::runtime_error("Unable to seek to instruction table.");
+    throw vm_bad_unit("Unable to seek to instruction table.");
   }
 
   if (offsets.seek_to_offset(input, CHUNK_IMPT)) {
     read_imports(input, label_relocations);
   } else {
-    throw std::runtime_error("Unable to seek to imported labels table.");
+    throw vm_bad_unit("Unable to seek to imported labels table.");
   }
 
   if (offsets.seek_to_offset(input, CHUNK_EXPT)) {
     read_exports(input, instruction_base, label_relocations);
   } else {
-    throw std::runtime_error("Unable to seek to exported labels table.");
+    throw vm_bad_unit("Unable to seek to exported labels table.");
   }
 
   if (label_relocations.size() > 0) {
     if (offsets.seek_to_offset(input, CHUNK_LREL)) {
       read_label_relocations(input, instruction_base, label_relocations);
     } else {
-      throw std::runtime_error("Unable to seek to relocated labels table.");
+      throw vm_bad_unit("Unable to seek to relocated labels table.");
     }
   }
 
@@ -463,13 +464,13 @@ void vm_unit_t::read(std::istream &input)
   if (offsets.seek_to_offset(input, CHUNK_EXTS)) {
     read_externs(input, extern_relocations);
   } else {
-    throw std::runtime_error("Unable to seek to extern labels table.");
+    throw vm_bad_unit("Unable to seek to extern labels table.");
   }
 
   if (offsets.seek_to_offset(input, CHUNK_EREL)) {
     read_extern_relocations(input, instruction_base, extern_relocations);
   } else {
-    throw std::runtime_error("Unable to seek to relocated labels table.");
+    throw vm_bad_unit("Unable to seek to relocated labels table.");
   }
 
   relocation_map_t data_relocations;
@@ -478,13 +479,13 @@ void vm_unit_t::read(std::istream &input)
   if (offsets.seek_to_offset(input, CHUNK_DATA)) {
     read_data_table(input, data_base, data_relocations);
   } else {
-    throw std::runtime_error("Unable to seek to data table.");
+    throw vm_bad_unit("Unable to seek to data table.");
   }
 
   if (offsets.seek_to_offset(input, CHUNK_DREL)) {
     read_data_relocations(input, instruction_base, data_base, data_relocations);
   } else {
-    throw std::runtime_error("Unable to seek to data relocation table.");
+    throw vm_bad_unit("Unable to seek to data relocation table.");
   }
 
   resolve_externs();
