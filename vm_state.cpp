@@ -745,7 +745,7 @@ void vm_state_t::exec(const op_t &op)
   } break;
 
   case OP_COUNT: ;
-    // throw std::runtime_error("invalid opcode");
+    throw vm_bad_opcode("Invalid opcode");
   }
 
   #ifdef LOG_STATE_CHANGES
