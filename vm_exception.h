@@ -10,9 +10,11 @@
     KLASSNAME (std::string const &what_arg) : SUPERKLASSNAME(what_arg) { /* nop */ } \
   }
 
+
 // Base VM exception classes
 VM_DECLARE_EXCEPTION(vm_runtime_error, std::runtime_error);
 VM_DECLARE_EXCEPTION(vm_logic_error, std::logic_error);
+
 
 // Thrown if bytecode attempts to access a register that doesn't exist.
 VM_DECLARE_EXCEPTION(vm_bad_register, vm_logic_error);
@@ -24,6 +26,9 @@ VM_DECLARE_EXCEPTION(vm_memory_access_error, vm_logic_error);
 // peek/poke/memdup/memmove block zero.
 VM_DECLARE_EXCEPTION(vm_null_access_error, vm_memory_access_error);
 
+
+// Thrown if bytecode contains an unrecognized opcode.
+VM_DECLARE_EXCEPTION(vm_bad_opcode, vm_runtime_error);
 // Generic unit loading error
 VM_DECLARE_EXCEPTION(vm_bad_unit, vm_runtime_error);
 // Exception thrown specifically for units that are of an unsupported
