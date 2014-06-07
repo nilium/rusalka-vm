@@ -23,6 +23,7 @@
 #include <iomanip>
 
 #define VM_KEEP_DATA_MACROS
+#include "vm_exception.h"
 #include "vm_state.h"
 
 
@@ -918,13 +919,13 @@ value_t vm_state_t::reg(int32_t off) const
 {
   if (off >= 0) {
     if (off >= REGISTER_COUNT) {
-      throw std::runtime_error("Invalid register offset.");
+      throw vm_bad_register("Invalid register offset.");
     }
     return _registers[off];
   } else {
     off = esp().i32() + off;
     if (off < 0) {
-      throw std::runtime_error("Invalid relative stack offset.");
+      throw vm_bad_register("Invalid relative stack offset.");
     }
     return _stack[off];
   }
@@ -935,13 +936,13 @@ value_t &vm_state_t::reg(int32_t off)
 {
   if (off >= 0) {
     if (off >= REGISTER_COUNT) {
-      throw std::runtime_error("Invalid register offset.");
+      throw vm_bad_register("Invalid register offset.");
     }
     return _registers[off];
   } else {
     off = esp().i32() + off;
     if (off < 0) {
-      throw std::runtime_error("Invalid relative stack offset.");
+      throw vm_bad_register("Invalid relative stack offset.");
     }
     return _stack[off];
   }
