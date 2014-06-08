@@ -208,8 +208,7 @@ int32_t vm_state_t::realloc_block(int32_t block_id, int32_t size)
     memblock_map_t::iterator iter = _blocks.find(block_id);
 
     if (iter == _blocks.cend()) {
-      std::abort();
-      return 0;
+      throw vm_memory_access_error("No block found for given block_id");
     }
 
     src = iter->second.block;
@@ -224,9 +223,7 @@ int32_t vm_state_t::realloc_block(int32_t block_id, int32_t size)
   };
 
   if (block.block == nullptr) {
-    // TODO: replace std::abort calls with sane handling for realloc failure
-    std::abort();
-    return 0;
+    throw vm_memory_access_error("Unable to reallocate block");
   }
 
   _blocks[block_id] = block;
