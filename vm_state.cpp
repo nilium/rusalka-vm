@@ -543,9 +543,9 @@ void vm_state_t::exec(const op_t &op)
   } break;
 
   // CALL POINTER, ARGC, LITFLAG
-  // Executes a call to the function at the given pointer. ARGC indicated the
+  // Executes a call to the function at the given pointer. ARGC indicates the
   // number of arguments on the stack for the receiving function, and is
-  // the
+  // used to adjust esp/ebp accordingly.
   // Litflags:
   // 0x1 - POINTER is a literal address.
   // 0x2 - ARGC is a literal integer.
@@ -553,7 +553,7 @@ void vm_state_t::exec(const op_t &op)
     exec_call(deref(op[0], litflag, 0x1), deref(op[1], litflag, 0x2));
   } break;
 
-  // RETURN
+  // RETURN -- exits the current frame/sequence
   case RETURN: {
     esp() = ebp();
     --_sequence;
