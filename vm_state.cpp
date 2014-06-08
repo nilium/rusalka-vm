@@ -604,8 +604,10 @@ void vm_state_t::exec(const op_t &op)
     memop_typed_t const type = (memop_typed_t)deref(op[3], litflag, 0x8).i32();
     int8_t const *ro_block = reinterpret_cast<int8_t const *>(get_block(block_id, VM_MEM_READABLE));
 
-    if (!(ro_block && check_block_bounds(block_id, offset, MEMOP_SIZE[type]))) {
-      std::abort();
+    if (!ro_block) {
+      throw vm_null_access_error("Attempt to read from null block");
+    } else if (!check_block_bounds(block_id, offset, MEMOP_SIZE[type])) {
+      throw vm_memory_access_error("Attempt to read outside block bounds");
     }
 
     ro_block += offset;
@@ -622,7 +624,8 @@ void vm_state_t::exec(const op_t &op)
     case MEMOP_INT64:   out = *(int64_t const *)ro_block;  break;
     case MEMOP_FLOAT32: out = *(float const *)ro_block;    break;
     case MEMOP_FLOAT64: out = *(double const *)ro_block;   break;
-    default: /* invalid type */ std::abort(); break;
+    default: /* invalid type */
+      throw vm_memory_access_error("Invalid type code for memory read");
     }
   } break;
 
@@ -643,8 +646,10 @@ void vm_state_t::exec(const op_t &op)
     memop_typed_t const type = static_cast<memop_typed_t>(deref(op[3], litflag, 0x8).i32());
     int8_t *rw_block = reinterpret_cast<int8_t *>(get_block(block_id, VM_MEM_WRITABLE));
 
-    if (!(rw_block && check_block_bounds(block_id, offset, MEMOP_SIZE[type]))) {
-      std::abort();
+    if (!rw_block) {
+      throw vm_null_access_error("Attempt to write to null block");
+    } else if (!check_block_bounds(block_id, offset, MEMOP_SIZE[type])) {
+      throw vm_memory_access_error("Attempt to write outside block bounds");
     }
 
     rw_block += offset;
@@ -661,7 +666,8 @@ void vm_state_t::exec(const op_t &op)
     case MEMOP_INT64:   *(int64_t *)rw_block  = value.i64();  break;
     case MEMOP_FLOAT32: *(float *)rw_block    = value.f32();  break;
     case MEMOP_FLOAT64: *(double *)rw_block   = value.value;  break;
-    default: /* invalid type */ std::abort(); break;
+    default: /* invalid type */
+      throw vm_memory_access_error("Invalid type code for memory write");
     }
   } break;
 
@@ -686,14 +692,18 @@ void vm_state_t::exec(const op_t &op)
 
       // check dst block
       block_out = reinterpret_cast<int8_t *>(get_block(dst_block_id, VM_MEM_READ_WRITE));
-      if (!(block_out && check_block_bounds(dst_block_id, dst_offset, size))) {
-        std::abort();
+      if (!block_out) {
+        throw vm_null_access_error("Attempt to use null block as memmove output");
+      } else if (!(block_out && check_block_bounds(dst_block_id, dst_offset, size))) {
+        throw vm_memory_access_error("memmove operation is out of bounds for destination block");
       }
       block_out += dst_offset;
 
       block_in = reinterpret_cast<int8_t const *>(get_block(src_block_id, VM_MEM_READABLE));
-      if (!(block_in && check_block_bounds(src_block_id, src_offset, size))) {
-        std::abort();
+      if (!block_in) {
+        throw vm_null_access_error("Attempt to use null block as memmove input");
+      } else if (!(block_in && check_block_bounds(src_block_id, src_offset, size))) {
+        throw vm_memory_access_error("memmove operation is out of bounds for source block");
       }
       block_in += src_offset;
 
