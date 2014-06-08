@@ -66,7 +66,7 @@ defdata woop "wooperton"
         push buffer
         call ^prints 1
 
-        realloc buffer 0 0
+        free buffer
     }
 
     pop rp
