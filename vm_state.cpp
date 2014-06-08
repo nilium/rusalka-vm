@@ -559,20 +559,20 @@ void vm_state_t::exec(const op_t &op)
     --_sequence;
   } break;
 
-  // REALLOC OUT, IN, SIZE, LITFLAG
+  // REALLOC INOUT, IN, SIZE, LITFLAG
   // Reallocates a block of SIZE bytes and writes its ID to the OUT register.
   // Litflags:
+  // 0x2 - Block is zero
   // 0x4 - Size
   case REALLOC: {
-    reg(op[0]) = realloc_block(op[1], deref(op[2], litflag, 0x4));
-  } break;
-
-  // FREE BLOCKID
-  // Frees the block whose ID is held in the given register and zeroes the
-  // register.
-  case FREE: {
-    free_block(reg(op[0]));
-    reg(op[0]) = 0.0;
+    int32_t const block_id = (litflag & 0x2) ? 0 : op[1].i32();
+    int32_t const size = deref(op[2], litflag, 0x4);
+    if (size > 0) {
+      reg(op[0]) = realloc_block(block_id, size);
+    } else {
+      free_block(reg(op[0]));
+      reg(op[0]) = 0.0;
+    }
   } break;
 
   // PEEK OUT, LR(BLOCKID), LR(OFFSET), LR(TYPE), LITFLAG
@@ -705,32 +705,10 @@ void vm_state_t::exec(const op_t &op)
     reg(op[0]) = block_size(deref(op[1], litflag, 0x2));
   } break;
 
-  // LOGAND OUT, LHS, RHS
-  // Performs a logical `and` (&&) with the contents LHS and RHS registers and
-  // stores the result in OUT.
-  case LOGAND: {
-    reg(op[0]).set(reg(op[1]).f64() && reg(op[2]).f64());
-  } break;
-
-  // LOGOR OUT, LHS, RHS
-  // Performs a logical `or` (||) with the contents LHS and RHS registers and
-  // stores the result in OUT.
-  case LOGOR: {
-    reg(op[0]).set(reg(op[1]).f64() || reg(op[2]).f64());
-  } break;
-
   // TRAP
   // Sets the trap flag and returns to the caller. Next run resets the flag.
   case TRAP: {
     _trap = 1;
-  } break;
-
-  // SWAP R0, R1
-  // Swaps contents of registers at R0 and R1.
-  case SWAP: {
-    value = reg(op[0]);
-    reg(op[0]) = reg(op[1]);
-    reg(op[1]) = value;
   } break;
 
   case OP_COUNT: ;
