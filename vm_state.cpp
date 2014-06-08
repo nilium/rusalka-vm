@@ -555,7 +555,6 @@ void vm_state_t::exec(const op_t &op)
 
   // RETURN -- exits the current frame/sequence
   case RETURN: {
-    esp() = ebp();
     --_sequence;
   } break;
 
