@@ -788,6 +788,12 @@ value_t &vm_state_t::stack(int32_t loc)
 
 void vm_state_t::exec_call(int32_t pointer, int32_t argc)
 {
+  if (argc < 0) {
+    throw vm_invalid_argument_count("Encountered argument count less than 0");
+  } else if (argc > esp().i32()) {
+    throw vm_invalid_argument_count("Encountered argument count greater than ESP");
+  }
+
   // preserve nonvolatile registers
   std::array<value_t, R_NONVOLATILE_REGISTERS> nonvolatile_reg;
   auto first_preserved = std::begin(_registers) + R_FIRST_NONVOLATILE;
