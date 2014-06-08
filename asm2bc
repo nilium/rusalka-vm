@@ -620,8 +620,10 @@ class Parser
 
   RESERVED_NAMES = ['ip', 'ebp', 'esp', 'rp', *MEMOP_TYPES.keys]
 
-  def generate_unwind!
-    @let_unwinds.each(&:call)
+  def generate_unwind!(down, force)
+    (!down ? @let_unwinds.reverse : @let_unwinds).each do |unwind|
+      unwind[down, force]
+    end
   end
 
   def with_named_variables(names, preserve: :volatiles, skip_final_unwind: false)
@@ -629,42 +631,38 @@ class Parser
     preserve_all  = preserve == :all
     preserve_none = preserve == :none
 
-    names.each_with_index do |name, index|
+    names.each_with_index do |name, index; ref, regnum|
       regnum = name_regnum + index
       ref = RegisterRef[regnum]
       @let_refs[name] = ref
-
-      next if preserve_none
-      if preserve_all || regnum > LAST_GP_REGISTER
-        generate_instruction(:push, ref)
-      end
     end
 
     @let_names += names
-    unwind = nil
+    unwind = -> (down, force = false; instr_name, ordered_names) do
+      return unless force || !preserve_none
 
-    unless preserve_none
-      unwind = -> do
-        names.reverse.each do |name|
-          ref = @let_refs[name]
-          if preserve_all || ref.index > LAST_GP_REGISTER
-            generate_instruction(:pop, ref)
-          end
+      instr_name = down ? :pop : :push
+      ordered_names = down ? names.reverse : names
+
+      ordered_names.each do |name; ref|
+        ref = @let_refs[name]
+        if preserve_all || ref.index > LAST_GP_REGISTER
+          generate_instruction(instr_name, ref)
         end
       end
-
-      @let_unwinds << unwind
     end
+
+    @let_unwinds.unshift unwind
+    unwind[false, false]
+
 
     begin
       result = yield
     ensure
       @let_names.pop(names.length)
 
-      unless preserve_none
-        raise "Invalid unwind proc popped" unless @let_unwinds.pop == unwind
-        unwind.call unless skip_final_unwind
-      end
+      raise "Invalid unwind proc popped" unless @let_unwinds.shift == unwind
+      unwind[true, false] unless skip_final_unwind
 
       names.reverse.each do |name|
         ref = @let_refs[name]
@@ -867,9 +865,14 @@ class Parser
         end
       end
 
-      generate_unwind! if name == :return
-
-      generate_instruction(name, *args) if done || terminator
+      generator do
+        case name
+        when :return  then generate_unwind!(true, false)
+        when :call    then generate_unwind!(false, true)
+        end
+        generate_instruction(name, *args) if done || terminator
+        generate_unwind!(true, true) if name == :call
+      end
     end
   end
 
