@@ -183,7 +183,7 @@ bool vm_state_t::run()
 void vm_state_t::release_all_memblocks()
 {
   for (auto kvpair : _blocks) {
-    if (!(kvpair.second.flags & VM_MEM_STATIC)) {
+    if (!(kvpair.second.flags & VM_MEM_STATIC) && kvpair.second.block) {
       std::free(kvpair.second.block);
     }
   }
