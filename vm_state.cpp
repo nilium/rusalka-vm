@@ -263,15 +263,19 @@ int32_t vm_state_t::block_size(int32_t block_id) const
 
 void vm_state_t::free_block(int32_t block_id)
 {
-  memblock_map_t::const_iterator iter = _blocks.find(block_id);
-  if (iter != _blocks.cend()) {
-    if (!(iter->second.flags & VM_MEM_STATIC)) {
-      std::free(iter->second.block);
-      _blocks.erase(iter);
-    } else {
-      std::abort();
-    }
+  if (block_id == 0) {
+    throw vm_null_access_error("Attempt to free null block");
   }
+
+  memblock_map_t::const_iterator iter = _blocks.find(block_id);
+  if (iter == _blocks.cend()) {
+    throw vm_memory_access_error("Attempt to free nonexistent block");
+  } else if (iter->second.flags & VM_MEM_STATIC) {
+    throw vm_memory_permission_error("Attempt to free static memory block");
+  }
+
+  std::free(iter->second.block);
+  _blocks.erase(iter);
 }
 
 
