@@ -786,7 +786,7 @@ value_t vm_state_t::call_function_nt(int32_t pointer, int32_t num_args)
 value_t vm_state_t::stack(int32_t loc) const
 {
   if (loc < 0) {
-    std::abort();
+    throw vm_stack_access_error("Attempt to access stack location < 0");
   } else if (static_cast<size_t>(loc) >= _stack.size()) {
     return value_t { 0 };
   }
@@ -798,7 +798,7 @@ value_t vm_state_t::stack(int32_t loc) const
 value_t &vm_state_t::stack(int32_t loc)
 {
   if (loc < 0) {
-    std::abort();
+    throw vm_stack_access_error("Attempt to access stack location < 0");
   } else if (static_cast<size_t>(loc) >= _stack.size()) {
     _stack.resize(loc + 1);
   }
@@ -884,6 +884,11 @@ void vm_state_t::push(value_t value)
 value_t vm_state_t::pop(bool copy_only)
 {
   int32_t stack_top = esp().i32() - 1;
+  if (stack_top < ebp().i32()) {
+    throw vm_stack_underflow("Attempt to pop from stack when ESP is EBP");
+  } else if (stack_top < 0) {
+    throw vm_stack_underflow("Attempt to pop from stack when stack is empty");
+  }
   value_t result = stack(stack_top);
   if (!copy_only) {
     esp() = stack_top;
