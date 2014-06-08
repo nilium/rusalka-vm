@@ -33,6 +33,8 @@ VM_DECLARE_EXCEPTION(vm_memory_access_error, vm_logic_error);
 // Exception specifically used when there's an attempt to
 // peek/poke/memdup/memmove block zero.
 VM_DECLARE_EXCEPTION(vm_null_access_error, vm_memory_access_error);
+// Exception thrown when a CALL instruction has an argc < 0 or > esp.
+VM_DECLARE_EXCEPTION(vm_invalid_argument_count, vm_logic_error);
 
 
 // Thrown if bytecode contains an unrecognized opcode.
