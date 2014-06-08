@@ -567,13 +567,17 @@ void vm_state_t::exec(const op_t &op)
   case REALLOC: {
     int32_t const block_id = (litflag & 0x2) ? 0 : op[1].i32();
     int32_t const size = deref(op[2], litflag, 0x4);
-    if (size > 0) {
-      reg(op[0]) = realloc_block(block_id, size);
-    } else {
-      free_block(reg(op[0]));
-      reg(op[0]) = 0.0;
-    }
+    reg(op[0]) = realloc_block(block_id, size);
   } break;
+
+  // FREE BLOCKID
+  // Frees the block whose ID is held in the given register and zeroes the
+  // register.
+  case FREE: {
+    free_block(reg(op[0]));
+    reg(op[0]) = 0.0;
+  } break;
+
 
   // PEEK OUT, LR(BLOCKID), LR(OFFSET), LR(TYPE), LITFLAG
   // Peeks a value of type TYPE from the block at the given OFFSET and writes
