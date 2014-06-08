@@ -21,23 +21,6 @@ Please include a decent explanation of your changes to help folks read them
 
 # License
 
-The Rusalka VM is licensed under the GNU General Public License v3. It can be
-read in full in COPYING. Otherwise, here is a copy of the license header that
-applies to the project:
-
-> Copyright (c) 2013 Noel Raymond Cower.
-> 
-> This file is part of Rusalka VM.
-> 
-> Rusalka VM is free software: you can redistribute it and/or modify
-> it under the terms of the GNU General Public License as published by
-> the Free Software Foundation, either version 3 of the License, or
-> (at your option) any later version.
-> 
-> Rusalka VM is distributed in the hope that it will be useful,
-> but WITHOUT ANY WARRANTY; without even the implied warranty of
-> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> GNU General Public License for more details.
-> 
-> You should have received a copy of the GNU General Public License
-> along with Rusalka VM.  If not, see <http://www.gnu.org/licenses/>.
+The Rusalka VM is licensed under the Boost Software License, Version 1.0.
+The license can be read in full in the accompanying LICENSE_1_0.txt file
+or at <http://www.boost.org/LICENSE_1_0.txt>.
