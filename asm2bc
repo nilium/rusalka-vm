@@ -26,9 +26,15 @@ require 'set'
 
 
 BYTECODE_VERSION = 8
+MAX_REGISTERS = 256
+RESERVED_REGISTERS = 4
+
 MAX_NONVOLATILE_GP_REGISTERS = 8
 FIRST_NONVOLATILE_GP_REGISTER = 4
-LAST_GP_REGISTER = (FIRST_NONVOLATILE_GP_REGISTER + MAX_NONVOLATILE_GP_REGISTERS) - 1
+LAST_NONVOLATILE_GP_REGISTER = (FIRST_NONVOLATILE_GP_REGISTER + MAX_NONVOLATILE_GP_REGISTERS) - 1
+
+FIRST_VOLATILE_GP_REGISTER = LAST_NONVOLATILE_GP_REGISTER + 1
+LAST_VOLATILE_GP_REGISTER = MAX_REGISTERS - (MAX_NONVOLATILE_GP_REGISTERS + RESERVED_REGISTERS) - 1
 
 
 module Colors
@@ -142,6 +148,7 @@ Unit = Struct.new(:name, :prefix)
 Instruction = Struct.new(:name, :args)
 DefDataStmt = Struct.new(:name, :string, :mangled)
 RegisterRef = Struct.new(:index)
+NamedRegister = Struct.new(:name, :ref)
 AnonDataStmt = Struct.new(:id, :prefix)
 DataRef = Struct.new(:name, :lookup)
 LabelRef = Struct.new(:label)
@@ -626,27 +633,54 @@ class Parser
     end
   end
 
-  def with_named_variables(names, preserve: :volatiles, skip_final_unwind: false)
-    name_regnum   = FIRST_NONVOLATILE_GP_REGISTER + @let_names.length
+  def with_named_variables(named_regs, preserve: :volatiles, skip_final_unwind: false)
     preserve_all  = preserve == :all
     preserve_none = preserve == :none
 
-    names.each_with_index do |name, index; ref, regnum|
-      regnum = name_regnum + index
-      ref = RegisterRef[regnum]
-      @let_refs[name] = ref
+    counter = FIRST_NONVOLATILE_GP_REGISTER
+    while @let_refs.has_value?(RegisterRef[counter])
+      counter += 1
+
+      if MAX_REGISTERS <= counter
+        raise "Unable to allocate further registers"
+      end
     end
 
-    @let_names += names
+    named_regs.each_with_index do |namereg, index; ref|
+      if @let_refs.include?(namereg.name)
+        raise "Name #{namereg.name.inspect} is already in use"
+      end
+
+      if namereg.ref
+        ref = namereg.ref
+        if @let_refs.has_value?(ref)
+          raise "Register #{ref.index} is already in use by #{@let_refs.key(ref).inspect}"
+        elsif ref.index < FIRST_NONVOLATILE_GP_REGISTER
+          raise "Register #{ref.index} is a reserved register"
+        end
+      else
+        begin
+          ref = RegisterRef[counter.tap { counter += 1 }]
+        end while @let_refs.has_value?(ref) && counter < MAX_REGISTERS
+
+        if @let_refs.has_value?(ref) || MAX_REGISTERS <= counter
+          raise "Unable to allocate register for #{name} -- too many variables defined"
+        end
+      end
+
+      @let_refs[namereg.name] = ref
+    end
+
+    @let_names += named_regs.map(&:name)
     unwind = -> (down, force = false; instr_name, ordered_names) do
-      return unless force || !preserve_none
+      return if !force && preserve_none
 
       instr_name = down ? :pop : :push
-      ordered_names = down ? names.reverse : names
+      ordered_names = down ? named_regs.reverse : named_regs
 
-      ordered_names.each do |name; ref|
-        ref = @let_refs[name]
-        if preserve_all || ref.index > LAST_GP_REGISTER
+      ordered_names.each do |namereg; ref|
+        ref = @let_refs[namereg.name]
+        if preserve_all || ref.index > LAST_NONVOLATILE_GP_REGISTER
           generate_instruction(instr_name, ref)
         end
       end
@@ -655,19 +689,18 @@ class Parser
     @let_unwinds.unshift unwind
     unwind[false, false]
 
-
     begin
       result = yield
     ensure
-      @let_names.pop(names.length)
+      @let_names.pop(named_regs.length)
 
-      raise "Invalid unwind proc popped" unless @let_unwinds.shift == unwind
+      raise "Invalid unwind proc shifted" unless @let_unwinds.shift == unwind
       unwind[true, false] unless skip_final_unwind
 
-      names.reverse.each do |name|
-        ref = @let_refs[name]
-        raise "Consistency error: named register became undefined" unless ref
-        @let_refs.delete name
+      named_regs.reverse.each do |namereg|
+        ref = @let_refs[namereg.name]
+        raise "Consistency error: named register #{namereg.name.inspect} became undefined" unless ref
+        @let_refs.delete namereg.name
       end
     end
 
@@ -690,12 +723,22 @@ class Parser
     names = output_ary || []
     next while accept(:id) do |token|
       name = token.value
-      process[name] if block_given?
+      name = process[name] || name if block_given?
       names << name
       swallow_newlines
       accept(:comma) { swallow_newlines }
     end
     names
+  end
+
+  def named_register_list(output_ary: nil)
+    name_list(output_ary: output_ary) do |name|
+      raise "Name #{tok.value} is reserved" if RESERVED_NAMES.include? name
+
+      in_braces(open: :paren_open, close: :paren_close) do
+        NamedRegister[name, register || error("Expected register reference")]
+      end || NamedRegister[name, nil]
+    end
   end
 
   def run_until
@@ -707,6 +750,15 @@ class Parser
     end
     swallow_sentinels
     r
+  end
+
+  def in_braces(*args, open: :paren_open, close: :paren_close)
+    accept(open) do |; result|
+      swallow_newlines
+      result = yield(*args)
+      swallow_newlines && accept(close) || error("Expected closing token: #{close}")
+      swallow_newlines && result
+    end
   end
 
   def let_block
@@ -721,11 +773,7 @@ class Parser
       names = []
 
       unless accept(:curl_open)
-        name_list(output_ary: names) do |name|
-          raise "Name #{tok.value} is reserved" if RESERVED_NAMES.include? name
-          raise "Name #{tok.value} already defined" if @let_refs.include? name
-        end
-
+        named_register_list(output_ary: names)
         swallow_newlines
       end
 
@@ -812,9 +860,9 @@ class Parser
     accept(:id, content: 'function') do
       name = swallow_newlines && accept(:id, &:value)
       swallow_newlines && accept(:paren_open) || error("Expected opening parenthesis for arguments")
-      arg_names = name_list
+      arg_names = named_register_list
       local_names = []
-      name_list(output_ary: local_names) if swallow_newlines && accept(:semicolon)
+      named_register_list(output_ary: local_names) if swallow_newlines && accept(:semicolon)
       swallow_newlines && accept(:paren_close) || error("Expected closing parenthesis for arguments")
 
       swallow_newlines && accept(:curl_open) || error("Expected opening brace")
@@ -823,8 +871,8 @@ class Parser
       register_label_statement LabelStmt[func_label]
 
       generator(arg_names + local_names, named: :with_named_variables, preserve: :none, skip_final_unwind: true) do
-        arg_names.each do |name|
-          generate_instruction :pop, @let_refs[name]
+        arg_names.each do |namereg|
+          generate_instruction :pop, @let_refs[namereg.name]
         end
 
         @close_stack << :curl_close
