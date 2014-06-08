@@ -685,12 +685,12 @@ class Parser
     @data.last
   end
 
-  def name_list(output_ary: nil, &validate)
+  def name_list(output_ary: nil, &process)
     swallow_newlines
     names = output_ary || []
     next while accept(:id) do |token|
       name = token.value
-      validate[name] if block_given?
+      process[name] if block_given?
       names << name
       swallow_newlines
       accept(:comma) { swallow_newlines }
