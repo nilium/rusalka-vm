@@ -281,24 +281,34 @@ void vm_state_t::free_block(int32_t block_id)
 
 void *vm_state_t::get_block(int32_t block_id, uint32_t permissions)
 {
-  if (block_id == 0) {
+  if (permissions == VM_MEM_NO_PERMISSIONS) {
+    throw vm_memory_permission_error("No permissions provided -- request is impossible");
+  } else if (block_id == 0) {
     return nullptr;
   }
 
   auto block = _blocks.at(block_id);
-  if (permissions != VM_MEM_NO_PERMISSIONS && !(block.flags & permissions)) {
-    std::abort();
+  if (!(block.flags & permissions)) {
+    throw vm_memory_permission_error("Attempt to access block with inadequate permissions");
   }
+
   return block.block;
 }
 
 
 const void *vm_state_t::get_block(int32_t block_id, uint32_t permissions) const
 {
-  auto block = _blocks.at(block_id);
-  if (permissions != VM_MEM_NO_PERMISSIONS && !(block.flags & permissions)) {
-    std::abort();
+  if (permissions == VM_MEM_NO_PERMISSIONS) {
+    throw vm_memory_permission_error("No permissions provided -- request is impossible");
+  } else if (block_id == 0) {
+    return nullptr;
   }
+
+  auto block = _blocks.at(block_id);
+  if (!(block.flags & permissions)) {
+    throw vm_memory_permission_error("Attempt to access block with inadequate permissions");
+  }
+
   return block.block;
 }
 
