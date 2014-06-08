@@ -574,8 +574,9 @@ void vm_state_t::exec(const op_t &op)
   // Frees the block whose ID is held in the given register and zeroes the
   // register.
   case FREE: {
-    free_block(reg(op[0]));
-    reg(op[0]) = 0.0;
+    value_t &to_free = reg(op[0]);
+    free_block(to_free);
+    to_free = 0.0;
   } break;
 
 
