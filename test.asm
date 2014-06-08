@@ -66,7 +66,7 @@ defdata woop "wooperton"
         push buffer
         call ^prints 1
 
-        free buffer
+        realloc buffer 0 0
     }
 
     pop rp
@@ -76,6 +76,9 @@ defdata woop "wooperton"
 // fabs(f). Just import a freakin' fabs function, this is stupid since I can't
 // just bitwise-and a double's sign bit since integers are strictly 32-bit
 // and therefore cannot touch the latter 32 bits of a double.
+// Additionally, because this pops directly to rp, the function syntax used
+// by rot13 below actually won't work because aliasing reserved registers is
+// forbidden by asm2bc.
 .fabs:
     pop       rp
     if rp < 0.0
@@ -83,50 +86,48 @@ defdata woop "wooperton"
     return
 
 // function rot13(mem_in, mem_out) -> bytes written
-.rot13: let* mem_in, mem_out, length {
-    pop mem_in
-    pop mem_out
-
+// function rot13(mem_in, mem_out) -> bytes written
+// .rot13: let* mem_in, mem_out, length {
+function rot13(mem_in, mem_out; index, char, base, length) {
     let* length_out {
         memlen length     mem_in
         memlen length_out mem_out
-
         if length_out < length
             load length length_out
     }
 
-    let* index, char, base {
-        load index 0
-        for index < length {
-            peek char mem_in index 0
+    load index 0
+    for index < length {
+        peek char mem_in index MEMOP_UINT8
 
-            if 'a' <= char {
-                if char <= 'z' {
-                    load base 'a'
-                    jump @__rot13__apply_rotate
-                }
+        if 'a' <= char {
+            if char <= 'z' {
+                load base 'a'
+                jump @__rot13__apply_rotate
             }
-
-            if 'A' <= char {
-                if char <= 'Z' {
-                    load base 'A'
-                    jump @__rot13__apply_rotate
-                }
-            }
-
-            jump @__rot13__continue
-
-            @__rot13__apply_rotate:
-            sub char char base
-            add char char 13
-            imod char char 26
-            add char char base
-
-            @__rot13__continue:
-            poke mem_out char index 0
-            add index index 1
         }
+
+        if 'A' <= char {
+            if char <= 'Z' {
+                load base 'A'
+                jump @__rot13__apply_rotate
+            }
+        }
+
+        jump @__rot13__continue
+
+        @__rot13__apply_rotate:
+        sub char char base
+        add char char 13
+        imod char char 26
+        add char char base
+
+        @__rot13__continue:
+        poke mem_out char index MEMOP_UINT8
+        add index index 1
     }
+
     load rp length
     return
 }
+
