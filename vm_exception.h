@@ -28,8 +28,13 @@ VM_DECLARE_EXCEPTION(vm_logic_error, std::logic_error);
 VM_DECLARE_EXCEPTION(vm_bad_register, vm_logic_error);
 // Thrown if pop is called when ebp == esp
 VM_DECLARE_EXCEPTION(vm_stack_underflow, vm_logic_error);
+// Thrown if accessing a stack index < 0.
+VM_DECLARE_EXCEPTION(vm_stack_access_error, vm_logic_error);
 // Used when peek/poke/memmove something outside the bounds of a block.
 VM_DECLARE_EXCEPTION(vm_memory_access_error, vm_logic_error);
+// Thrown if the permissions on a memory block don't satisfy the access
+// requested for a block.
+VM_DECLARE_EXCEPTION(vm_memory_permission_error, vm_memory_access_error);
 // Exception specifically used when there's an attempt to
 // peek/poke/memdup/memmove block zero.
 VM_DECLARE_EXCEPTION(vm_null_access_error, vm_memory_access_error);
