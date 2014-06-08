@@ -267,6 +267,7 @@ class Parser
     @data_mappings   = {}
     @import_count    = 0
     @let_names       = nil
+    @let_unwinds     = nil
     @let_refs        = nil
     @close_stack     = []
   end
@@ -484,6 +485,7 @@ class Parser
 
     @label_mappings[stmt.label.mangled] = @instructions.length
     @labels[stmt.label.mangled] = stmt.label
+    @data << stmt unless @data.include?(stmt)
 
     stmt
   end
@@ -618,70 +620,124 @@ class Parser
 
   RESERVED_NAMES = ['ip', 'ebp', 'esp', 'rp', *MEMOP_TYPES.keys]
 
-  def let_block
-    maybe? do
-      swallow_sentinels
+  def generate_unwind!
+    @let_unwinds.each(&:call)
+  end
 
-      return nil unless accept(:id, content: 'let')
+  def with_named_variables(names, preserve: :volatiles, skip_final_unwind: false)
+    name_regnum   = FIRST_NONVOLATILE_GP_REGISTER + @let_names.length
+    preserve_all  = preserve == :all
+    preserve_none = preserve == :none
 
-      preserve_all = !!accept(:bang, distance: 0)
-      preserve_none = !preserve_all && !!accept(:asterisk, distance: 0)
-      names = []
-      last_instr = nil
+    names.each_with_index do |name, index|
+      regnum = name_regnum + index
+      ref = RegisterRef[regnum]
+      @let_refs[name] = ref
 
-      unless accept(:curl_open)
-
-        swallow_newlines
-
-        next while accept(:id) do |tok|
-          name = tok.value
-          raise "Name #{tok.value} is reserved" if RESERVED_NAMES.include? name
-          raise "Name #{tok.value} already defined" if @let_refs.include? name
-          names << name
-          swallow_newlines
-          accept(:comma) { swallow_newlines }
-        end
-
-        swallow_sentinels
+      next if preserve_none
+      if preserve_all || regnum > LAST_GP_REGISTER
+        generate_instruction(:push, ref)
       end
+    end
 
-      raise "Expected opening brace" unless accept(:curl_open)
+    @let_names += names
+    unwind = nil
 
-      name_regnum = FIRST_NONVOLATILE_GP_REGISTER + @let_names.length
-      names.each_with_index do |name, index|
-        regnum = name_regnum + index
-        ref = RegisterRef[regnum]
-        @let_refs[name] = ref
-
-        next if preserve_none
-        if preserve_all || regnum > LAST_GP_REGISTER
-          last_instr = generate_instruction(:push, ref)
+    unless preserve_none
+      unwind = -> do
+        names.reverse.each do |name|
+          ref = @let_refs[name]
+          if preserve_all || ref.index > LAST_GP_REGISTER
+            generate_instruction(:pop, ref)
+          end
         end
       end
-      @let_names += names
-      @close_stack << :curl_close
 
-      swallow_sentinels
-      until accept(:curl_close) { swallow_sentinels }
-        last_instr = line
-        swallow_sentinels
-      end
+      @let_unwinds << unwind
+    end
 
-      @close_stack.pop
-
+    begin
+      result = yield
+    ensure
       @let_names.pop(names.length)
+
+      unless preserve_none
+        raise "Invalid unwind proc popped" unless @let_unwinds.pop == unwind
+        unwind.call unless skip_final_unwind
+      end
+
       names.reverse.each do |name|
         ref = @let_refs[name]
         raise "Consistency error: named register became undefined" unless ref
         @let_refs.delete name
+      end
+    end
 
-        next if preserve_none
-        if preserve_all || ref.index > LAST_GP_REGISTER
-          last_instr = generate_instruction(:pop, ref)
+    result
+  end
+
+  def generator(*args, named: nil, **kwargs, &block)
+    raise "No proc name or block given" unless !named.nil? || block_given?
+    if named.nil?
+      yield(self, *args)
+    else
+      args << kwargs unless kwargs.empty?
+      self.__send__(named, *args, &block)
+    end
+    @data.last
+  end
+
+  def name_list(output_ary: nil, &validate)
+    swallow_newlines
+    names = output_ary || []
+    next while accept(:id) do |token|
+      name = token.value
+      validate[name] if block_given?
+      names << name
+      swallow_newlines
+      accept(:comma) { swallow_newlines }
+    end
+    names
+  end
+
+  def run_until
+    r = nil
+    swallow_sentinels
+    until yield
+      r = line
+      swallow_sentinels
+    end
+    swallow_sentinels
+    r
+  end
+
+  def let_block
+    accept(:id, content: 'let') do
+      mode =
+        case
+        when !!accept(:bang, distance: 0) then :all
+        when !!accept(:asterisk, distance: 0) then :none
+        else :volatiles
         end
+
+      names = []
+
+      unless accept(:curl_open)
+        name_list(output_ary: names) do |name|
+          raise "Name #{tok.value} is reserved" if RESERVED_NAMES.include? name
+          raise "Name #{tok.value} already defined" if @let_refs.include? name
+        end
+
+        swallow_newlines
       end
 
-      last_instr
+      raise "Expected opening brace" unless accept(:curl_open)
+
+      generator(names, named: :with_named_variables, preserve: mode) do
+        @close_stack << :curl_close
+        run_until { accept(:curl_close) }
+        @close_stack.pop
+      end
     end
   end
 
@@ -695,38 +751,37 @@ class Parser
   }
 
   def conditional
-    maybe? do
-      accept(:id, content: ['if', 'for']) do |tok|
-        last_instr      = nil
-        label_pre       = tok.value
-        is_loop         = label_pre == 'for'
-        invert          = !!accept(:bang)
-        arg0            = value
-        is_block        = false
-        loop_label_id   = nil
-        loop_jump_instr = nil
+    accept(:id, content: ['if', 'for']) do |tok|
+      label_pre       = tok.value
+      is_loop         = label_pre == 'for'
+      invert          = !!accept(:bang)
+      arg0            = value
+      is_block        = false
+      loop_label_id   = nil
+      loop_jump_instr = nil
 
-        if is_loop
-          loop_label_id = Label[@prefix, "__#{label_pre}_start_#{unique_uuid}", :local]
-          @data << register_label_statement(LabelStmt[loop_label_id])
-          loop_jump_instr = Instruction[:jump, [LabelRef[loop_label_id], 0x1]]
-        end
+      if is_loop
+        loop_label_id = Label[@prefix, "__#{label_pre}_start_#{unique_uuid}", :local]
+        register_label_statement(LabelStmt[loop_label_id])
+        loop_jump_instr = Instruction[:jump, [LabelRef[loop_label_id], 0x1]]
+      end
 
-        last_instr = comp_instr = accept(CONDITIONAL_OPS.keys) do |tok|
-          name, flag = CONDITIONAL_OPS[tok.kind]
-          arg1       = self.value
-          swallow_newlines
-          is_block   = !!accept(:curl_open)
+      comp_instr = accept(CONDITIONAL_OPS.keys) do |tok|
+        name, flag = CONDITIONAL_OPS[tok.kind]
+        arg1       = self.value
+        swallow_newlines
+        is_block   = !!accept(:curl_open)
 
-          flag = 1 - flag if logical_xor(is_block || is_loop, invert)
+        flag = 1 - flag if logical_xor(is_block || is_loop, invert)
 
-          lits = 0
-          lits |= 0x1 unless arg0.kind_of?(RegisterRef)
-          lits |= 0x2 unless arg1.kind_of?(RegisterRef)
+        lits = 0
+        lits |= 0x1 unless arg0.kind_of?(RegisterRef)
+        lits |= 0x2 unless arg1.kind_of?(RegisterRef)
 
-          generate_instruction(name, arg0, arg1, flag, lits)
-        end
+        generate_instruction(name, arg0, arg1, flag, lits)
+      end
 
+      generator do
         @close_stack << :curl_close if is_block
 
         if is_block || is_loop
@@ -736,33 +791,54 @@ class Parser
           swallow_sentinels
 
           if is_block
-            until accept(:curl_close) { swallow_sentinels }
-              last_instr = line
-              swallow_sentinels
-            end
+            run_until { accept(:curl_close) }
           else
-            last_instr = instruction || error("Expected instruction")
+            line
           end
 
           if is_loop
             add_instruction loop_jump_instr
           end
 
-          last_instr = register_label_statement(LabelStmt[label_id])
+          register_label_statement(LabelStmt[label_id])
         else
-          last_instr = instruction || error("Expected instruction")
+          instruction || error("Expected instruction")
         end
 
         @close_stack.pop if is_block
+      end
+    end
+  end
 
-        last_instr
+  def function_def
+    accept(:id, content: 'function') do
+      name = swallow_newlines && accept(:id, &:value)
+      swallow_newlines && accept(:paren_open) || error("Expected opening parenthesis for arguments")
+      arg_names = name_list
+      local_names = []
+      name_list(output_ary: local_names) if swallow_newlines && accept(:semicolon)
+      swallow_newlines && accept(:paren_close) || error("Expected closing parenthesis for arguments")
+
+      swallow_newlines && accept(:curl_open) || error("Expected opening brace")
+
+      func_label = Label[@prefix, name, :export]
+      register_label_statement LabelStmt[func_label]
+
+      generator(arg_names + local_names, named: :with_named_variables, preserve: :none, skip_final_unwind: true) do
+        arg_names.each do |name|
+          generate_instruction :pop, @let_refs[name]
+        end
+
+        @close_stack << :curl_close
+        run_until { accept(:curl_close) }
+        @close_stack.pop
       end
     end
   end
 
   # Instruction and data statements
   def statement
-    defdata || let_block || conditional || instruction
+    defdata || function_def || let_block || conditional || instruction
   end
 
   # OPNAME VALUE* TERM
@@ -790,6 +866,8 @@ class Parser
           end
         end
       end
+
+      generate_unwind! if name == :return
 
       generate_instruction(name, *args) if done || terminator
     end
@@ -826,6 +904,7 @@ class Parser
     @line = 0
     @column = 0
     @let_names = []
+    @let_unwinds = []
     @let_refs = {}
     @close_stack = []
     __run__
@@ -835,7 +914,7 @@ class Parser
   end
 
   def __run__
-    line until eof?
+    run_until { eof? }
   end
 
 
