@@ -180,7 +180,7 @@ bool vm_state_t::run()
 }
 
 
-void vm_state_t::release_all_memblocks()
+void vm_state_t::release_all_memblocks() noexcept
 {
   for (auto kvpair : _blocks) {
     if (!(kvpair.second.flags & VM_MEM_STATIC) && kvpair.second.block) {
