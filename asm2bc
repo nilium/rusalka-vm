@@ -837,7 +837,7 @@ class Parser
 
           register_label_statement(LabelStmt[label_id])
         else
-          instruction || error("Expected instruction")
+          swallow_sentinels && instruction || error("Expected instruction")
         end
 
         @close_stack.pop if is_block
