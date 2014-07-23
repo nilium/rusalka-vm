@@ -9,7 +9,6 @@
 #ifndef __VM_STATE_H__
 #define __VM_STATE_H__
 
-#include <cassert>
 #include <climits>
 #include <cstdlib>
 #include <cstdint>
