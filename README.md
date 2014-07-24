@@ -8,6 +8,9 @@ Perhaps the VM will one day be aptly named. Right now, it's a pretty big hack
 and in need of profiling (and a well-defined calling convention). Toy with it
 as you like.
 
+To read a bit about Rusalka's design and implementation, see my blog post over
+on Spifftastic: <http://spifftastic.net/post/2014/07/on-the-rusalka-virtual-machine/>
+
 
 # Contributing
 
