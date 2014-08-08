@@ -56,7 +56,7 @@ struct vm_instruction_t
 class vm_unit_t
 {
   friend class op_t;
-  friend class vm_state_t;
+  friend class vm_state;
 
   struct relocation_ptr_t
   {
