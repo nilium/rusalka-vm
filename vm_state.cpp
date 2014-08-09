@@ -11,7 +11,6 @@
 #include <iostream>
 #include <iomanip>
 
-#define VM_KEEP_DATA_MACROS
 #include "vm_exception.h"
 #include "vm_state.h"
 

@@ -19,8 +19,6 @@
 #include <iostream>
 #include <iomanip>
 
-#define VM_KEEP_DATA_MACROS
-
 
 
 namespace {
