@@ -123,8 +123,6 @@ public:
     bind_callback(name, std::strlen(name), function);
   }
 
-  void set_callback(int32_t id, vm_callback_t *callback);
-
   vm_thread &make_thread(size_t stack_size = 8192);
 
 };
