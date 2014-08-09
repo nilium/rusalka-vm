@@ -104,10 +104,7 @@ class vm_thread
 
   void exec_call(int32_t instr, int32_t argc);
 
-public:
-
   vm_thread(vm_state &state, size_t stack_size = 8192);
-  ~vm_thread() = default;
 
   vm_thread(vm_thread const &) = default;
   vm_thread &operator = (vm_thread const &) = default;
@@ -115,6 +112,9 @@ public:
   vm_thread(vm_thread &&) = default;
   vm_thread &operator = (vm_thread &&) = default;
 
+public:
+
+  ~vm_thread() = default;
 
   // Debugging functions
   void dump_registers(size_t count = REGISTER_COUNT) const;

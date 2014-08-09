@@ -17,6 +17,7 @@
 #include <bitset>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <vector>
 
 #include "_types.h"
@@ -25,6 +26,7 @@
 #include "vm_opcode.h"
 #include "vm_function.h"
 #include "vm_unit.h"
+#include "vm_thread.h"
 
 
 /*** Macros to configure the VM ***/
@@ -71,9 +73,12 @@ class vm_state
   using memblock_map_t = std::map<int32_t, memblock_t>;
   using stack_t = std::vector<value_t>;
   using callbacks_t = std::vector<vm_callback_t *>;
+  using thread_pointer = std::unique_ptr<vm_thread>;
+  using thread_stores = std::vector<thread_pointer>;
 
-  callbacks_t _callbacks;
-  memblock_map_t _blocks;
+  thread_stores _threads {};
+  callbacks_t _callbacks {};
+  memblock_map_t _blocks {};
   int32_t _block_counter = 1;
 
   int32_t unused_block_id();
@@ -119,6 +124,8 @@ public:
   }
 
   void set_callback(int32_t id, vm_callback_t *callback);
+
+  vm_thread &make_thread(size_t stack_size = 8192);
 
 };
 

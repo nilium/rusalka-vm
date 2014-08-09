@@ -67,13 +67,13 @@ int main(int argc, char const *argv[])
   vm.set_unit(std::move(unit));
   vm.bind_callback("print", printfn);
   vm.bind_callback("prints", printsfn);
-  vm_thread thread {vm};
+  vm_thread &thread = vm.make_thread();
   double fv = thread.function("__main__")(-123.456);
   std::clog << "Returned: " << fv << std::endl;
 
   #ifdef LOG_FINAL_STATE
-  vm.dump_registers();
-  vm.dump_stack();
+  thread.dump_registers();
+  thread.dump_stack();
   #endif
 
   return 0;

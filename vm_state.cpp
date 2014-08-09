@@ -257,3 +257,22 @@ bool vm_state::check_block_bounds(int32_t block_id, int32_t offset, int32_t size
     end <= bsize &&
     end >= offset;
 }
+
+
+
+vm_thread &vm_state::make_thread(size_t stack_size)
+{
+  thread_pointer ptr { new vm_thread(*this, stack_size) };
+  vm_thread *raw = ptr.get();
+
+  auto const end = _threads.end();
+  auto first_null = std::find_if(_threads.begin(), end, std::logical_not<thread_pointer> {});
+
+  if (first_null == end) {
+    _threads.emplace_back(std::move(ptr));
+  } else {
+    std::swap(*first_null, ptr);
+  }
+
+  return *raw;
+}
