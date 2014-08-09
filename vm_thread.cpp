@@ -12,6 +12,8 @@
 #include "vm_opcode.h"
 #include "vm_exception.h"
 
+#include <algorithm>
+#include <functional>
 #include <cfenv>
 #include <cmath>
 #include <iostream>
@@ -764,4 +766,18 @@ value_t &vm_thread::reg(int32_t off)
     }
     return _stack[off];
   }
+}
+
+
+int vm_thread::thread_index() const
+{
+  auto const start = std::begin(_process._threads);
+  auto const end = std::end(_process._threads);
+  auto const pointer = std::find_if(start, end, [this](vm_state::thread_pointer const &p) {
+    return p.get() == this;
+  });
+  if (pointer == end) {
+    return -1;
+  }
+  return static_cast<int>(std::distance(start, pointer));
 }

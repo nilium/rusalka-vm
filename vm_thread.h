@@ -154,6 +154,8 @@ public:
 
   vm_state &process() { return _process; }
   vm_state const &process() const { return _process; }
+
+  int thread_index() const;
 };
 
 
