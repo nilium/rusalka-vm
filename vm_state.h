@@ -133,6 +133,9 @@ public:
     return bind_callback(name, std::strlen(name), function, context);
   }
 
+  vm_thread &thread_by_index(int32_t thread_index);
+  vm_thread const &thread_by_index(int32_t thread_index) const;
+
   vm_thread &make_thread(size_t stack_size = 8192);
 
 };

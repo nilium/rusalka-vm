@@ -262,6 +262,20 @@ bool vm_state::check_block_bounds(int32_t block_id, int32_t offset, int32_t size
 
 
 
+vm_thread &vm_state::thread_by_index(int32_t thread_index)
+{
+  return *_threads[thread_index];
+}
+
+
+
+vm_thread const &vm_state::thread_by_index(int32_t thread_index) const
+{
+  return *_threads[thread_index];
+}
+
+
+
 vm_thread &vm_state::make_thread(size_t stack_size)
 {
   thread_pointer ptr { new vm_thread(*this, stack_size) };
