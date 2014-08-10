@@ -562,6 +562,9 @@ void vm_thread::exec(const op_t &op)
   // stack of foo -> bar -> baz, foo -> bar is lost). Upon return, the thread
   // exits.
   case DEFER: {
+    reg(op[0]) = -1;
+    vm_thread &thread = _process.fork_thread(*this);
+    reg(op[0]) = thread.thread_index();
   } break;
 
   // JOIN OUT, THREAD
