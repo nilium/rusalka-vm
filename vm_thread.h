@@ -104,7 +104,7 @@ class vm_thread
 
   void exec_call(int32_t instr, int32_t argc);
 
-  vm_thread(vm_state &state, size_t stack_size = 8192);
+  vm_thread(vm_state &state, size_t stack_size);
 
   vm_thread(vm_thread const &) = default;
   vm_thread &operator = (vm_thread const &) = default;
