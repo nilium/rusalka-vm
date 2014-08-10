@@ -571,6 +571,11 @@ void vm_thread::exec(const op_t &op)
   // Runs any given thread index and assigns that thread's resulting RP to OUT.
   // Upon completion, THREAD is destroyed.
   case JOIN: {
+    int32_t const thread_index = reg(op[0]);
+    vm_thread &thread = _process.thread_by_index(thread_index);
+    thread.run();
+    reg(op[1]) = thread.return_value();
+    _process.destroy_thread(thread_index);
   } break;
 
   case OP_COUNT: ;
