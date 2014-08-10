@@ -118,6 +118,7 @@ public:
 
 private:
   bool check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const;
+  void load_thread(thread_pointer &&thread);
 
   int32_t realloc_block_with_flags(int32_t block_id, int32_t size, uint32_t flags);
   // Returns the block for the given ID -- does not do flag checking of any kind.
