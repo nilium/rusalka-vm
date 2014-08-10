@@ -303,6 +303,13 @@ void vm_state::load_thread(thread_pointer &&thread)
 
 
 
+void vm_state::destroy_thread(int32_t index)
+{
+  _threads.at(index).reset(nullptr);
+}
+
+
+
 vm_thread &vm_state::thread_by_index(int32_t thread_index)
 {
   return *_threads[thread_index];
