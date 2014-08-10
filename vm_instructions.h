@@ -43,4 +43,6 @@ INSTRUCTION( MEMDUP,          MEMDUP,       32,         3,    output, input, lit
 INSTRUCTION( MEMLEN,          MEMLEN,       33,         3,    output, input, litflag )
 INSTRUCTION( PEEK,            PEEK,         34,         5,    output, input, input, input, litflag )  // r(dst), r(mem), lr(offset), lr(kind), litflag
 INSTRUCTION( POKE,            POKE,         35,         5,    regonly, input, input, input, litflag ) // r(mem), lr(value), lr(offset), lr(kind), litflag
+INSTRUCTION( DEFER,           DEFER,        36,         1,    output )
+INSTRUCTION( JOIN,            JOIN,         37,         2,    output, regonly )
 // END INSTRUCTIONS

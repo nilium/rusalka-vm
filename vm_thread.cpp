@@ -548,6 +548,28 @@ void vm_thread::exec(const op_t &op)
     _trap = 1;
   } break;
 
+  // DEFER OUT
+  // Copies the current thread to a new thread and returns an index to it. This
+  // thread is not currently running and must be started using JOIN.
+  //
+  // The output register of the calling thread is set to the new thread's index
+  // to be passed to JOIN while the new thread's output register is set to -1.
+  // The output register should be checked to determine if the thread is the
+  // caller or callee of the instruction.
+  //
+  // The resulting deferred thread's call stack is only valid for the function
+  // it's currently in (i.e., if the call to defer happens in baz in a call
+  // stack of foo -> bar -> baz, foo -> bar is lost). Upon return, the thread
+  // exits.
+  case DEFER: {
+  } break;
+
+  // JOIN OUT, THREAD
+  // Runs any given thread index and assigns that thread's resulting RP to OUT.
+  // Upon completion, THREAD is destroyed.
+  case JOIN: {
+  } break;
+
   case OP_COUNT: ;
     throw vm_bad_opcode("Invalid opcode");
   }
