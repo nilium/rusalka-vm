@@ -64,7 +64,7 @@ void vm_state::prepare_unit()
   _block_counter = 1;
   _source_size = _unit.instructions.size();
   _callbacks.resize(_unit.imports.size());
-  std::fill(_callbacks.begin(), _callbacks.end(), nullptr);
+  std::fill(_callbacks.begin(), _callbacks.end(), callback_info { nullptr, nullptr });
   vm_unit_t::data_id_ary_t new_ids;
   new_ids.resize(_unit._data_blocks.size(), 0);
   _unit.each_data([&](int32_t index, int32_t id, int32_t size, void const *ptr, bool &stop) {
@@ -78,14 +78,17 @@ void vm_state::prepare_unit()
 
 
 
-void vm_state::bind_callback(const char *name, int length, vm_callback_t *function)
+vm_bound_fn vm_state::bind_callback(const char *name, int length, vm_callback_t *function, void *context)
 {
   std::string name_str(name, length);
   auto imported = _unit.imports.find(name_str);
   if (imported != _unit.imports.cend()) {
     const int32_t idx = -(imported->second + 1);
-    _callbacks.at(idx) = function;
+    _callbacks.at(idx) = callback_info { function, context };
+    return vm_bound_fn { true, imported->second };
   }
+
+  return  vm_bound_fn { false, 0 };
 }
 
 

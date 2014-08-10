@@ -12,7 +12,7 @@
 #include <fstream>
 
 
-value_t printfn(vm_thread &vm, int32_t argc, const value_t *argv)
+value_t printfn(vm_thread &vm, int32_t argc, const value_t *argv, void*)
 {
   std::cerr << "PRINTI: ";
   for (; argc > 0; --argc, ++argv) {
@@ -22,7 +22,7 @@ value_t printfn(vm_thread &vm, int32_t argc, const value_t *argv)
   return value_t { 0 };
 }
 
-value_t printsfn(vm_thread &vm, int32_t argc, const value_t *argv)
+value_t printsfn(vm_thread &vm, int32_t argc, const value_t *argv, void*)
 {
   std::cerr << "PRINTS: ";
   for (; argc > 0; --argc, ++argv) {

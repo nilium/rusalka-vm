@@ -70,9 +70,19 @@ class vm_state
     void *block;
   };
 
+  struct callback_info
+  {
+    vm_callback_t *callback;
+    void *context;
+
+    value_t invoke(vm_thread &thread, int argc, value_t const *argv) const {
+      return callback(thread, argc, argv, context);
+    }
+  };
+
   using memblock_map_t = std::map<int32_t, memblock_t>;
   using stack_t = std::vector<value_t>;
-  using callbacks_t = std::vector<vm_callback_t *>;
+  using callbacks_t = std::vector<callback_info>;
   using thread_pointer = std::unique_ptr<vm_thread>;
   using thread_stores = std::vector<thread_pointer>;
 
@@ -117,10 +127,10 @@ public:
 
   vm_found_fn find_function_pointer(const char *name) const;
 
-  void bind_callback(const char *name, int length, vm_callback_t *function);
-  void bind_callback(const char *name, vm_callback_t *function)
+  vm_bound_fn bind_callback(const char *name, int length, vm_callback_t *function, void *context = nullptr);
+  vm_bound_fn bind_callback(const char *name, vm_callback_t *function, void *context = nullptr)
   {
-    bind_callback(name, std::strlen(name), function);
+    return bind_callback(name, std::strlen(name), function, context);
   }
 
   vm_thread &make_thread(size_t stack_size = 8192);

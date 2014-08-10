@@ -652,18 +652,18 @@ void vm_thread::exec_call(int32_t pointer, int32_t argc)
   value_t const preserved_esp = ebp();
 
   if (pointer < 0) {
-    vm_callback_t *callback = _process._callbacks[-(pointer + 1)];
+    auto callback = _process._callbacks[-(pointer + 1)];
     ++_sequence;
 
     if (argc <= 0) {
-      rp() = callback(*this, 0, nullptr);
+      rp() = callback.invoke(*this, 0, nullptr);
     } else {
       stack_t argv;
       argv.reserve(argc);
       for (int32_t argi = 0; argi < argc; ++argi) {
         argv.push_back(pop());
       }
-      rp() = callback(*this, argc, &argv[0]);
+      rp() = callback.invoke(*this, argc, &argv[0]);
     }
 
     --_sequence;
