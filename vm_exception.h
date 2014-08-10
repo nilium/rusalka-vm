@@ -40,6 +40,8 @@ VM_DECLARE_EXCEPTION(vm_memory_permission_error, vm_memory_access_error);
 VM_DECLARE_EXCEPTION(vm_null_access_error, vm_memory_access_error);
 // Exception thrown when a CALL instruction has an argc < 0 or > esp.
 VM_DECLARE_EXCEPTION(vm_invalid_argument_count, vm_logic_error);
+// Exception thrown for using a thread with the wrong process.
+VM_DECLARE_EXCEPTION(vm_wrong_process, vm_logic_error);
 
 
 // Thrown if bytecode contains an unrecognized opcode.
