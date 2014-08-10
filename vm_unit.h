@@ -170,7 +170,7 @@ public:
   vm_unit_t();
   vm_unit_t(vm_unit_t const &m);
   vm_unit_t(vm_unit_t &&m);
-  ~vm_unit_t();
+  ~vm_unit_t() = default;
 
   vm_unit_t &operator = (vm_unit_t const &m);
   vm_unit_t &operator = (vm_unit_t &&m);

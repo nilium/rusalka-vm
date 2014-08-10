@@ -108,12 +108,6 @@ vm_unit_t &vm_unit_t::operator = (vm_unit_t &&m)
 }
 
 
-vm_unit_t::~vm_unit_t()
-{
-  /* nop */
-}
-
-
 void vm_unit_t::read_instruction(std::istream &input)
 {
   opcode_t const opcode = static_cast<opcode_t>(read_primitive<uint16_t>(input));
