@@ -147,6 +147,8 @@ public:
   vm_state const &process() const { return _process; }
 
   int thread_index() const;
+
+  value_t return_value() const { return rp(); }
 };
 
 
