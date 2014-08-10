@@ -80,11 +80,14 @@ class vm_state
     }
   };
 
+  using found_memblock = vm_find_result<memblock_t>;
   using memblock_map_t = std::map<int32_t, memblock_t>;
   using stack_t = std::vector<value_t>;
   using callbacks_t = std::vector<callback_info>;
   using thread_pointer = std::unique_ptr<vm_thread>;
   using thread_stores = std::vector<thread_pointer>;
+
+  static memblock_t const NO_BLOCK;
 
   thread_stores _threads {};
   callbacks_t _callbacks {};
@@ -115,6 +118,10 @@ public:
 
 private:
   bool check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const;
+
+  int32_t realloc_block_with_flags(int32_t block_id, int32_t size, uint32_t flags);
+  // Returns the block for the given ID -- does not do flag checking of any kind.
+  found_memblock get_block_info(int32_t block_id) const;
 
 public:
   int32_t realloc_block(int32_t block, int32_t size);

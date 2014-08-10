@@ -35,6 +35,10 @@
 */
 
 
+vm_state::memblock_t const vm_state::NO_BLOCK { 0, 0, nullptr };
+
+
+
 vm_state::~vm_state()
 {
   release_all_memblocks();
@@ -68,9 +72,13 @@ void vm_state::prepare_unit()
   vm_unit_t::data_id_ary_t new_ids;
   new_ids.resize(_unit._data_blocks.size(), 0);
   _unit.each_data([&](int32_t index, int32_t id, int32_t size, void const *ptr, bool &stop) {
-    int32_t new_id = unused_block_id();
-    memblock_t block { size, VM_MEM_SOURCE_DATA, const_cast<void *>(ptr) };
-    _blocks.emplace(new_id, block);
+    int32_t new_id = realloc_block_with_flags(VM_NULL_BLOCK, size, VM_MEM_SOURCE_DATA);
+    auto found = get_block_info(new_id);
+    if (!found.ok) {
+      return;
+    }
+
+    std::memcpy(found.value.block, ptr, size);
     new_ids[index] = new_id;
   });
   _unit.relocate_static_data(new_ids);
@@ -116,7 +124,7 @@ int32_t vm_state::unused_block_id()
 
 
 
-int32_t vm_state::realloc_block(int32_t block_id, int32_t size)
+int32_t vm_state::realloc_block_with_flags(int32_t block_id, int32_t size, uint32_t flags)
 {
   void *src = nullptr;
   if (block_id != 0) {
@@ -133,7 +141,7 @@ int32_t vm_state::realloc_block(int32_t block_id, int32_t size)
 
   memblock_t block {
     size,
-    VM_MEM_WRITABLE | VM_MEM_READABLE,
+    flags,
     std::realloc(src, static_cast<size_t>(size))
   };
 
@@ -143,6 +151,13 @@ int32_t vm_state::realloc_block(int32_t block_id, int32_t size)
 
   _blocks[block_id] = block;
   return block_id;
+}
+
+
+
+int32_t vm_state::realloc_block(int32_t block_id, int32_t size)
+{
+  return realloc_block_with_flags(block_id, size, VM_MEM_WRITABLE | VM_MEM_READABLE);
 }
 
 
@@ -198,6 +213,16 @@ void vm_state::free_block(int32_t block_id)
 
 
 
+auto vm_state::get_block_info(int32_t block_id) const -> found_memblock {
+  auto const block_iter = _blocks.find(block_id);
+  if (block_iter == _blocks.end()) {
+    return { false, NO_BLOCK };
+  }
+  return { true, block_iter->second };
+}
+
+
+
 void *vm_state::get_block(int32_t block_id, uint32_t permissions)
 {
   if (permissions == VM_MEM_NO_PERMISSIONS) {
@@ -206,12 +231,14 @@ void *vm_state::get_block(int32_t block_id, uint32_t permissions)
     return nullptr;
   }
 
-  auto block = _blocks.at(block_id);
-  if (!(block.flags & permissions)) {
+  auto found_block = get_block_info(block_id);
+  if (!found_block.ok) {
+    return nullptr;
+  } else if (!(found_block.value.flags & permissions)) {
     throw vm_memory_permission_error("Attempt to access block with inadequate permissions");
   }
 
-  return block.block;
+  return found_block.value.block;
 }
 
 
