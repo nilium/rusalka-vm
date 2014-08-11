@@ -125,19 +125,10 @@ public:
 
 
   template <class... ARGS>
-  value_t call_function(const char *name, ARGS&&... args)
-  {
-    const auto pointer = find_function_pointer(name);
-    // if (!pointer.ok) throw std::runtime_error("no such function");
-    return call_function(pointer.value, args...);
-  }
+  value_t call_function(const char *name, ARGS&&... args);
 
   template <class... ARGS>
-  value_t call_function(int32_t pointer, ARGS&&... args)
-  {
-    const int32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
-    return call_function_nt(pointer, argc);
-  }
+  value_t call_function(int32_t pointer, ARGS&&... args);
 
   value_t call_function(const char *name);
 
@@ -157,6 +148,25 @@ public:
 
   int thread_index() const;
 };
+
+
+
+template <class... ARGS>
+value_t vm_thread::call_function(const char *name, ARGS&&... args)
+{
+  const auto pointer = find_function_pointer(name);
+  // if (!pointer.ok) throw std::runtime_error("no such function");
+  return call_function(pointer.value, args...);
+}
+
+
+
+template <class... ARGS>
+value_t vm_thread::call_function(int32_t pointer, ARGS&&... args)
+{
+  const int32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
+  return call_function_nt(pointer, argc);
+}
 
 
 #endif /* end __VM_THREAD_H__ include guard */
