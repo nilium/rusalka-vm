@@ -331,3 +331,17 @@ vm_thread &vm_state::make_thread(size_t stack_size)
   load_thread(std::move(ptr));
   return *raw;
 }
+
+
+
+vm_thread &vm_state::fork_thread(vm_thread const &thread)
+{
+  if (&thread._process != this) {
+    throw vm_wrong_process("Thread process doesn't match this process.");
+  }
+
+  thread_pointer ptr { new vm_thread(thread) };
+  vm_thread *raw = ptr.get();
+  load_thread(std::move(ptr));
+  return *raw;
+}

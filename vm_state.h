@@ -146,6 +146,7 @@ public:
   vm_thread const &thread_by_index(int32_t thread_index) const;
 
   vm_thread &make_thread(size_t stack_size = 8192);
+  vm_thread &fork_thread(vm_thread const &thread);
 
 };
 
