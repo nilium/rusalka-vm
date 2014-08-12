@@ -799,8 +799,8 @@ value_t &vm_thread::reg(int32_t off)
 
 int vm_thread::thread_index() const
 {
-  auto const start = std::begin(_process._threads);
-  auto const end = std::end(_process._threads);
+  auto const start = _process._threads.cbegin();
+  auto const end = _process._threads.cend();
   auto const pointer = std::find_if(start, end, [this](vm_state::thread_pointer const &p) {
     return p.get() == this;
   });
