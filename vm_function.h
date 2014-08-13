@@ -16,36 +16,43 @@
 #include "vm_value.h"
 
 
-template <typename VM_TYPE>
+class vm_thread;
+
+
+template <class... ARGS>
+value_t vm_invoke_function(vm_thread &thread, int32_t pointer, ARGS &&... args);
+
+
 class vm_function_t
 {
-  VM_TYPE &_vm;
+  vm_thread &_thread;
   int32_t _pointer;
 
-  vm_function_t(VM_TYPE &vm, int32_t pointer)
-  : _vm(vm)
+  vm_function_t(vm_thread &thread, int32_t pointer)
+  : _thread(thread)
   , _pointer(pointer)
   {
     // nop
   }
 
-  friend VM_TYPE;
+  friend vm_thread;
 
 public:
   vm_function_t(const vm_function_t &other) = default;
   vm_function_t() = delete;
 
   template <class... ARGS>
-  value_t operator()(ARGS&&... args)
-  {
-    return _vm.call_function(_pointer, std::forward<ARGS>(args)...);
-  }
-
-  value_t operator()()
-  {
-    return _vm.call_function(_pointer, 0);
-  }
+  value_t operator()(ARGS&&... args);
+  value_t operator() ();
 };
+
+
+
+template <class... ARGS>
+value_t vm_function_t::operator()(ARGS&&... args)
+{
+  return vm_invoke_function(_thread, _pointer, std::forward<ARGS>(args)...);
+}
 
 
 #endif /* end __VM_FUNCTION_H__ include guard */

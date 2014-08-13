@@ -138,8 +138,8 @@ public:
   value_t call_function_nt(int32_t pointer, int32_t argc, const value_t *argv);
   value_t call_function_nt(int32_t pointer, int32_t argc);
 
-  vm_function_t<vm_thread> function(const char *name);
-  vm_function_t<vm_thread> function(int32_t pointer);
+  vm_function_t function(const char *name);
+  vm_function_t function(int32_t pointer);
 
   value_t deref(value_t input, uint16_t flag, uint32_t mask = ~0u) const;
 
@@ -168,6 +168,13 @@ value_t vm_thread::call_function(int32_t pointer, ARGS&&... args)
 {
   const int32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
   return call_function_nt(pointer, argc);
+}
+
+
+template <class... ARGS>
+value_t vm_invoke_function(vm_thread &thread, int32_t pointer, ARGS &&... args)
+{
+  return thread.call_function(pointer, std::forward<ARGS>(args)...);
 }
 
 
