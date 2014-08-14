@@ -56,19 +56,9 @@ class vm_thread
 
 
   template <class T, class... ARGS>
-  int32_t load_registers(int32_t index, T &&first, ARGS&&... args)
-  {
-    push(make_value(std::forward<T>(first)));
-    return load_registers(index + 1, std::forward<ARGS>(args)...);
-  }
-
+  int32_t load_registers(int32_t index, T &&first, ARGS&&... args);
   template <class T>
-  int32_t load_registers(int32_t index, T &&first)
-  {
-    push(make_value(std::forward<T>(first)));
-    return index + 1;
-  }
-
+  int32_t load_registers(int32_t index, T &&first);
   int32_t load_registers(int32_t index) const
   {
     return index;
@@ -169,6 +159,25 @@ value_t vm_thread::call_function(int32_t pointer, ARGS&&... args)
   const int32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
   return call_function_nt(pointer, argc);
 }
+
+
+
+template <class T, class... ARGS>
+int32_t vm_thread::load_registers(int32_t index, T &&first, ARGS&&... args)
+{
+  push(make_value(std::forward<T>(first)));
+  return load_registers(index + 1, std::forward<ARGS>(args)...);
+}
+
+
+
+template <class T>
+int32_t vm_thread::load_registers(int32_t index, T &&first)
+{
+  push(make_value(std::forward<T>(first)));
+  return index + 1;
+}
+
 
 
 template <class... ARGS>
