@@ -44,7 +44,7 @@ The offsets table contains `count` name-offset pairs. Each name refers to a chun
 
 As such, each pair in the chunk can be represented as follows:
 
-    struct chunk_offset_t {
+    struct chunk_offset {
         int32_t chunk_name;
         int32_t offset_from_start;
     };
@@ -60,7 +60,7 @@ The data table contains `count` entries describing data blocks in the unit. Thes
 
 Each entry can be represented as such:
 
-    struct data_block_entry_t {
+    struct data_block_entry {
         int32_t data_size_bytes;
         char    data[data_size_bytes];
     };
@@ -74,7 +74,7 @@ The data itself is a string of `data_size_bytes`. The data is not required to co
 
 The instructions table contains `count` instructions. Each instruction is an integer opcode followed by its operands.
 
-    struct instruction_entry_t {
+    struct instruction_entry {
         uint16_t opcode;
         uint16_t litflag;
         double operands[ARGC];
@@ -95,7 +95,7 @@ The imports table contains `count` entries with the addresses and names of impor
 
 Each entry is structured as such:
 
-    struct label_table_entry_t {
+    struct label_table_entry {
         int32_t address;
         int32_t name_size_bytes;
         char    name[name_size_bytes];
@@ -110,7 +110,7 @@ Imported label names are not null-terminated.
 
 The exports table contains `count` entries with the addresses and names of exported labels defined in the unit. This does not include extern labels as they are considered undefined until another unit provides the required labels. As such, these are only labels _in_ the unit. They may require relocation.
 
-Entries in this table are structured the same as the imports table (`IMPT`). See the `label_table_entry_t` definition.
+Entries in this table are structured the same as the imports table (`IMPT`). See the `label_table_entry` definition.
 
 The address of exported labels is always zero or greater. A label with address 0 points to the first instruction in the unit, for example, while an address of 8 points to the 7th instruction.
 
@@ -134,7 +134,7 @@ All relocation tables follow the same format: they contain `count` instruction p
 
 As such, all relocation table entries are represented in C as such:
 
-    struct relocation_entry_t {
+    struct relocation_entry {
         int32_t instruction_pointer;
         uint32_t operands_mask;
     }
