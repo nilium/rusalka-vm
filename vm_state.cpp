@@ -35,7 +35,7 @@
 */
 
 
-vm_state::memblock_t const vm_state::NO_BLOCK { 0, 0, nullptr };
+vm_state::memblock const vm_state::NO_BLOCK { 0, 0, nullptr };
 
 
 
@@ -139,7 +139,7 @@ int32_t vm_state::realloc_block_with_flags(int32_t block_id, int32_t size, uint3
     block_id = unused_block_id();
   }
 
-  memblock_t block {
+  memblock block {
     size,
     flags,
     std::realloc(src, static_cast<size_t>(size))

@@ -63,7 +63,7 @@ constexpr int32_t VM_NULL_BLOCK = 0;
 
 class vm_state
 {
-  struct memblock_t
+  struct memblock
   {
     int32_t size;
     uint32_t flags;
@@ -80,14 +80,14 @@ class vm_state
     }
   };
 
-  using found_memblock = vm_find_result<memblock_t>;
-  using memblock_map_t = std::map<int32_t, memblock_t>;
+  using found_memblock = vm_find_result<memblock>;
+  using memblock_map_t = std::map<int32_t, memblock>;
   using stack_t = std::vector<vm_value>;
   using callbacks_t = std::vector<callback_info>;
   using thread_pointer = std::unique_ptr<vm_thread>;
   using thread_stores = std::vector<thread_pointer>;
 
-  static memblock_t const NO_BLOCK;
+  static memblock const NO_BLOCK;
 
   thread_stores _threads {};
   callbacks_t _callbacks {};
