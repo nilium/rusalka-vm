@@ -110,7 +110,7 @@ vm_unit_t &vm_unit_t::operator = (vm_unit_t &&m)
 
 void vm_unit_t::read_instruction(std::istream &input)
 {
-  opcode_t const opcode = static_cast<opcode_t>(read_primitive<uint16_t>(input));
+  vm_opcode const opcode = static_cast<vm_opcode>(read_primitive<uint16_t>(input));
   uint16_t const litflag = read_primitive<uint16_t>(input);
   int32_t arg_base = static_cast<int32_t>(instruction_argv.size());
 

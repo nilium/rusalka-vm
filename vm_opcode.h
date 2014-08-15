@@ -14,7 +14,7 @@
 
 
 /* _L -> reg op literal */
-enum opcode_t : uint16_t
+enum vm_opcode : uint16_t
 {
 #define INSTRUCTION(OPCODE, ASM_NAME, CODE, NUM_ARGS, ARG_INFO... ) OPCODE = CODE,
 #include "vm_instructions.h"
@@ -26,7 +26,7 @@ enum opcode_t : uint16_t
 extern const int32_t g_opcode_argc[OP_COUNT];
 
 
-std::ostream &operator << (std::ostream &out, opcode_t v);
-bool opcode_has_litflag(opcode_t op);
+std::ostream &operator << (std::ostream &out, vm_opcode v);
+bool opcode_has_litflag(vm_opcode op);
 
 #endif /* end __VM_OPCODE_H__ include guard */

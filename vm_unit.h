@@ -41,7 +41,7 @@ enum chunk_id_t : int32_t
 struct vm_instruction
 {
   const vm_value *argv;
-  opcode_t opcode;
+  vm_opcode opcode;
   // Pointer to argv data for the opcode. Opcodes have a fixed number of
   // arguments, so it's imperative that you never read more arguments than
   // are provided by the instruction/for the opcode.
@@ -49,7 +49,7 @@ struct vm_instruction
   // Convenience member operator for vm_op compatibility.
   vm_value operator[] (int index) const { return argv[index]; }
 
-  operator opcode_t () const { return opcode; }
+  operator vm_opcode () const { return opcode; }
 };
 
 
@@ -69,7 +69,7 @@ class vm_unit_t
 
   struct instruction_ptr_t
   {
-    opcode_t  opcode;
+    vm_opcode opcode;
     uint16_t  litflag;
     int32_t   arg_pointer;
   };

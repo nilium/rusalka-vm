@@ -63,7 +63,7 @@ const int32_t g_opcode_argc[OP_COUNT] {
 };
 
 
-bool opcode_has_litflag(opcode_t op)
+bool opcode_has_litflag(vm_opcode op)
 {
   switch (op) {
   #define INSTRUCTION(OPCODE, ASM_NAME, CODE, NUM_ARGS, ARG_INFO... ) \
@@ -75,7 +75,7 @@ bool opcode_has_litflag(opcode_t op)
 }
 
 
-std::ostream &operator << (std::ostream &out, opcode_t v)
+std::ostream &operator << (std::ostream &out, vm_opcode v)
 {
   switch (v) {
   #define INSTRUCTION(OPCODE, ASM_NAME, CODE, ARGS, ARG_INFO... ) \

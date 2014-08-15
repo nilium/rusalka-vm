@@ -25,17 +25,17 @@ public:
   int32_t const ip;
 
   uint16_t litflag() const;
-  opcode_t opcode() const;
+  vm_opcode opcode() const;
   vm_value operator [] (int32_t index) const;
 };
 
-// static_assert(sizeof(opcode_t) == sizeof(vm_value),
-//   "the size of opcode_t must be the same as vm_value");
+// static_assert(sizeof(vm_opcode) == sizeof(vm_value),
+//   "the size of vm_opcode must be the same as vm_value");
 
-// static_assert(sizeof(vm_op) == sizeof(opcode_t),
-//   "the size of vm_op must be that of opcode_t");
+// static_assert(sizeof(vm_op) == sizeof(vm_opcode),
+//   "the size of vm_op must be that of vm_opcode");
 
-// static_assert(offsetof(vm_op, argv) == sizeof(opcode_t),
+// static_assert(offsetof(vm_op, argv) == sizeof(vm_opcode),
 //   "offset of vm_op::argv must be the same as the size of vm_op");
 
 #endif /* end __VM_OP_H__ include guard */

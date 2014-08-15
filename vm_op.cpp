@@ -10,7 +10,7 @@
 #include "vm_unit.h"
 
 
-opcode_t vm_op::opcode() const
+vm_opcode vm_op::opcode() const
 {
   return unit.instructions[ip].opcode;
 }
