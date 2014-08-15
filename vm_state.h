@@ -48,7 +48,7 @@ class vm_state;
 class vm_thread;
 
 
-enum memblock_flags_t : uint32_t
+enum vm_memblock_flags : uint32_t
 {
   VM_MEM_NO_PERMISSIONS = 0x0,
   VM_MEM_READABLE = 0x1,
