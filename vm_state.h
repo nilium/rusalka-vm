@@ -75,14 +75,14 @@ class vm_state
     vm_callback_t *callback;
     void *context;
 
-    value_t invoke(vm_thread &thread, int argc, value_t const *argv) const {
+    vm_value invoke(vm_thread &thread, int argc, vm_value const *argv) const {
       return callback(thread, argc, argv, context);
     }
   };
 
   using found_memblock = vm_find_result<memblock_t>;
   using memblock_map_t = std::map<int32_t, memblock_t>;
-  using stack_t = std::vector<value_t>;
+  using stack_t = std::vector<vm_value>;
   using callbacks_t = std::vector<callback_info>;
   using thread_pointer = std::unique_ptr<vm_thread>;
   using thread_stores = std::vector<thread_pointer>;

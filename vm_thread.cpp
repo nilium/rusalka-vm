@@ -123,7 +123,7 @@ bool vm_thread::run()
 
 
 
-value_t vm_thread::deref(value_t input, uint16_t flag, uint32_t mask) const
+vm_value vm_thread::deref(vm_value input, uint16_t flag, uint32_t mask) const
 {
   return (flag & mask) ? input : reg(input.i32());
 }
@@ -143,7 +143,7 @@ constexpr T vm_shift(T num, int32_t shift)
 
 void vm_thread::exec(const op_t &op)
 {
-  value_t value;
+  vm_value value;
   uint16_t const litflag = op.litflag();
 
   #ifdef LOG_OP_INFO
@@ -396,7 +396,7 @@ void vm_thread::exec(const op_t &op)
   // Frees the block whose ID is held in the given register and zeroes the
   // register.
   case FREE: {
-    value_t &to_free = reg(op[0]);
+    vm_value &to_free = reg(op[0]);
     _process.free_block(to_free);
     to_free = 0.0;
   } break;
@@ -410,7 +410,7 @@ void vm_thread::exec(const op_t &op)
   //  0x4 - offset
   //  0x8 - type
   case PEEK: {
-    value_t &out = reg(op[0]);
+    vm_value &out = reg(op[0]);
     int32_t const block_id = deref(op[1], litflag, 0x2);
     int32_t const offset = deref(op[2], litflag, 0x4);
     memop_typed_t const type = (memop_typed_t)deref(op[3], litflag, 0x8).i32();
@@ -597,7 +597,7 @@ vm_found_fn vm_thread::find_function_pointer(const char *name) const
 
 
 
-value_t vm_thread::call_function(const char *name)
+vm_value vm_thread::call_function(const char *name)
 {
   const auto pointer = find_function_pointer(name);
   // if (!pointer.ok) throw std::runtime_error("no such function");
@@ -607,7 +607,7 @@ value_t vm_thread::call_function(const char *name)
 
 
 
-value_t vm_thread::call_function_nt(const char *name, int32_t argc, const value_t *argv)
+vm_value vm_thread::call_function_nt(const char *name, int32_t argc, const vm_value *argv)
 {
   const auto pointer = find_function_pointer(name);
   // if (!pointer.ok) throw std::runtime_error("no such function");
@@ -616,7 +616,7 @@ value_t vm_thread::call_function_nt(const char *name, int32_t argc, const value_
 
 
 
-value_t vm_thread::call_function_nt(int32_t pointer, int32_t argc, const value_t *argv)
+vm_value vm_thread::call_function_nt(int32_t pointer, int32_t argc, const vm_value *argv)
 {
   for (int32_t arg_index = 0; arg_index < argc; ++arg_index) {
     push(argv[arg_index]);
@@ -626,7 +626,7 @@ value_t vm_thread::call_function_nt(int32_t pointer, int32_t argc, const value_t
 
 
 
-value_t vm_thread::call_function_nt(int32_t pointer, int32_t num_args)
+vm_value vm_thread::call_function_nt(int32_t pointer, int32_t num_args)
 {
   exec_call(pointer, num_args);
   return rp();
@@ -634,12 +634,12 @@ value_t vm_thread::call_function_nt(int32_t pointer, int32_t num_args)
 
 
 
-value_t vm_thread::stack(int32_t loc) const
+vm_value vm_thread::stack(int32_t loc) const
 {
   if (loc < 0) {
     throw vm_stack_access_error("Attempt to access stack location < 0");
   } else if (static_cast<size_t>(loc) >= _stack.size()) {
-    return value_t { 0 };
+    return vm_value { 0 };
   }
 
   return _stack[loc];
@@ -647,7 +647,7 @@ value_t vm_thread::stack(int32_t loc) const
 
 
 
-value_t &vm_thread::stack(int32_t loc)
+vm_value &vm_thread::stack(int32_t loc)
 {
   if (loc < 0) {
     throw vm_stack_access_error("Attempt to access stack location < 0");
@@ -669,17 +669,17 @@ void vm_thread::exec_call(int32_t pointer, int32_t argc)
   }
 
   // preserve nonvolatile registers
-  std::array<value_t, R_NONVOLATILE_REGISTERS> nonvolatile_reg;
+  std::array<vm_value, R_NONVOLATILE_REGISTERS> nonvolatile_reg;
   auto first_preserved = std::begin(_registers) + R_FIRST_NONVOLATILE;
   auto last_preserved = first_preserved + R_NONVOLATILE_REGISTERS;
   if (R_NONVOLATILE_REGISTERS > 0) {
     std::copy(first_preserved, last_preserved, std::begin(nonvolatile_reg));
   }
 
-  value_t const preserved_ip = ip();
-  value_t const preserved_ebp = ebp();
+  vm_value const preserved_ip = ip();
+  vm_value const preserved_ebp = ebp();
   ebp() = esp().i32() - argc;
-  value_t const preserved_esp = ebp();
+  vm_value const preserved_esp = ebp();
 
   if (pointer < 0) {
     auto callback = _process._callbacks[-(pointer + 1)];
@@ -714,7 +714,7 @@ void vm_thread::exec_call(int32_t pointer, int32_t argc)
 
 
 
-void vm_thread::push(value_t value)
+void vm_thread::push(vm_value value)
 {
   stack(esp().i32()) = value;
   esp() = esp().i32() + 1;
@@ -722,7 +722,7 @@ void vm_thread::push(value_t value)
 
 
 
-value_t vm_thread::pop(bool copy_only)
+vm_value vm_thread::pop(bool copy_only)
 {
   int32_t stack_top = esp().i32() - 1;
   if (stack_top < ebp().i32()) {
@@ -730,7 +730,7 @@ value_t vm_thread::pop(bool copy_only)
   } else if (stack_top < 0) {
     throw vm_stack_underflow("Attempt to pop from stack when stack is empty");
   }
-  value_t result = stack(stack_top);
+  vm_value result = stack(stack_top);
   if (!copy_only) {
     esp() = stack_top;
   }
@@ -743,7 +743,7 @@ void vm_thread::dump_registers(size_t count) const
 {
   uint32_t index = 0;
   for (; index < count && index < REGISTER_COUNT; ++index) {
-    const value_t &regval = _registers[index];
+    const vm_value &regval = _registers[index];
     std::clog << std::setw(2) << index << " -> " << regval << std::endl;
   }
 }
@@ -754,7 +754,7 @@ void vm_thread::dump_stack(size_t until) const
 {
   uint32_t index = 0;
   for (; index < until && index < _stack.size(); ++index) {
-    const value_t &stackval = _stack[index];
+    const vm_value &stackval = _stack[index];
 
     std::clog << "stack[" << index << "]  " << stackval << std::endl;
   }
@@ -762,7 +762,7 @@ void vm_thread::dump_stack(size_t until) const
 
 
 
-value_t vm_thread::reg(int32_t off) const
+vm_value vm_thread::reg(int32_t off) const
 {
   if (off >= 0) {
     if (off >= REGISTER_COUNT) {
@@ -780,7 +780,7 @@ value_t vm_thread::reg(int32_t off) const
 
 
 
-value_t &vm_thread::reg(int32_t off)
+vm_value &vm_thread::reg(int32_t off)
 {
   if (off >= 0) {
     if (off >= REGISTER_COUNT) {

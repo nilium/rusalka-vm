@@ -4,7 +4,7 @@
 class vm_thread;
 class vm_state;
 class op_t;
-struct value_t;
+struct vm_value;
 
 
 template <typename T>
@@ -18,7 +18,7 @@ using vm_bound_fn = vm_found_fn;
 
 
 /// VM callback -- given a thread, argument count, and array of argument values.
-using vm_callback_t = value_t (vm_thread &vm, int32_t argc, value_t const *argv, void *context);
+using vm_callback_t = vm_value (vm_thread &vm, int32_t argc, vm_value const *argv, void *context);
 
 
 #endif /* end ___TYPES_H__ include guard */

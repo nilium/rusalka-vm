@@ -40,14 +40,14 @@ enum chunk_id_t : int32_t
 
 struct vm_instruction_t
 {
-  const value_t *argv;
+  const vm_value *argv;
   opcode_t opcode;
   // Pointer to argv data for the opcode. Opcodes have a fixed number of
   // arguments, so it's imperative that you never read more arguments than
   // are provided by the instruction/for the opcode.
 
   // Convenience member operator for op_t compatibility.
-  value_t operator[] (int index) const { return argv[index]; }
+  vm_value operator[] (int index) const { return argv[index]; }
 
   operator opcode_t () const { return opcode; }
 };
@@ -83,21 +83,21 @@ class vm_unit_t
 
   struct extern_relocation_t
   {
-    value_t pointer;
+    vm_value pointer;
     bool resolved;
   };
 
   using relocation_table_t   = std::vector<relocation_ptr_t>;
-  using relocation_map_t     = std::map<value_t, value_t>;
+  using relocation_map_t     = std::map<vm_value, vm_value>;
   // Externs may be relocated in two ways:
   // 1) The extern might just need to be adjusted because there are prior
   //  unresolved externs, in which case the second field is false (unresolved).
   // 2) The extern might've been resolved in the process of loading the extern
   //  table, so the second field is true (resolved).
-  using extern_relocations_t = std::map<value_t, extern_relocation_t>;
+  using extern_relocations_t = std::map<vm_value, extern_relocation_t>;
 
   using instruction_ptrs_t   = std::vector<instruction_ptr_t>;
-  using instruction_argv_t   = std::vector<value_t>;
+  using instruction_argv_t   = std::vector<vm_value>;
   using label_table_t        = std::map<std::string, int32_t>;
   using data_id_ary_t        = std::vector<int32_t>;
 

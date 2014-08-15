@@ -2,7 +2,7 @@
 #include "vm_thread.h"
 
 
-value_t vm_function_t::operator() ()
+vm_value vm_function_t::operator() ()
 {
   return _thread.call_function(_pointer, 0);
 }

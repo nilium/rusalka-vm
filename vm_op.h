@@ -26,11 +26,11 @@ public:
 
   uint16_t litflag() const;
   opcode_t opcode() const;
-  value_t operator [] (int32_t index) const;
+  vm_value operator [] (int32_t index) const;
 };
 
-// static_assert(sizeof(opcode_t) == sizeof(value_t),
-//   "the size of opcode_t must be the same as value_t");
+// static_assert(sizeof(opcode_t) == sizeof(vm_value),
+//   "the size of opcode_t must be the same as vm_value");
 
 // static_assert(sizeof(op_t) == sizeof(opcode_t),
 //   "the size of op_t must be that of opcode_t");

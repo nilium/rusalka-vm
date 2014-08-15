@@ -124,7 +124,7 @@ void vm_unit_t::read_instruction(std::istream &input)
   int32_t const argc = g_opcode_argc[opcode] - (opcode_has_litflag(opcode) ? 1 : 0);
 
   for (int32_t counter = 0; counter < argc; ++counter) {
-    value_t arg = read_primitive<value_t>(input);
+    vm_value arg = read_primitive<vm_value>(input);
     instruction_argv.push_back(arg);
   }
 }
@@ -156,7 +156,7 @@ void vm_unit_t::read_extern_relocations(
 
     each_in_mask(rel.args_mask, [&](int32_t mask_index) {
       int32_t const arg_index = arg_base + mask_index;
-      value_t &arg = instruction_argv[arg_index];
+      vm_value &arg = instruction_argv[arg_index];
 
       int32_t orig_base = arg;
       int32_t new_base = arg;
@@ -192,7 +192,7 @@ void vm_unit_t::read_label_relocations(
 
     each_in_mask(rel.args_mask, [&](int32_t index) {
       int32_t const arg_index = arg_base + index;
-      value_t &arg = instruction_argv[arg_index];
+      vm_value &arg = instruction_argv[arg_index];
       relocation_map_t::const_iterator iter = relocations.find(arg);
 
       int32_t orig_base = arg;
@@ -224,8 +224,8 @@ void vm_unit_t::read_externs(
     auto export_iter = exports.find(name);
     if (export_iter != exports.end()) {
       relocations.emplace(
-        value_t { index },
-        extern_relocation_t { value_t { export_iter->second }, true }
+        vm_value { index },
+        extern_relocation_t { vm_value { export_iter->second }, true }
         );
       return;
     }
@@ -234,8 +234,8 @@ void vm_unit_t::read_externs(
     if (extern_iter != externs.end()) {
       if (extern_iter->second != index) {
         relocations.emplace(
-          value_t { index },
-          extern_relocation_t { value_t { extern_iter->second }, false }
+          vm_value { index },
+          extern_relocation_t { vm_value { extern_iter->second }, false }
           );
       }
       return;
@@ -244,8 +244,8 @@ void vm_unit_t::read_externs(
     int32_t new_address = static_cast<int32_t>(externs.size());
     if (index != new_address) {
       relocations.emplace(
-        value_t { index },
-        extern_relocation_t { value_t { new_address }, false }
+        vm_value { index },
+        extern_relocation_t { vm_value { new_address }, false }
         );
     }
 
@@ -265,12 +265,12 @@ void vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
       label.address = --last_import;
 
       if (orig_address != label.address) {
-        relocations.emplace(value_t { orig_address }, value_t { label.address });
+        relocations.emplace(vm_value { orig_address }, vm_value { label.address });
       }
     } else if (iter->second == label.address) {
       return;
     } else {
-      relocations.emplace(value_t { label.address }, value_t { iter->second });
+      relocations.emplace(vm_value { label.address }, vm_value { iter->second });
     }
 
     imports.emplace(std::move(label.name), label.address);
@@ -292,12 +292,12 @@ void vm_unit_t::read_exports(
     if (iter != exports.cend()) {
       if (base != 0) {
         address += base;
-        relocations.emplace(value_t { label.address }, value_t { address });
+        relocations.emplace(vm_value { label.address }, vm_value { address });
       }
       return;
     } else if (base != 0) {
       address += base;
-      relocations.emplace(value_t { label.address }, value_t { address });
+      relocations.emplace(vm_value { label.address }, vm_value { address });
     }
 
     exports.emplace(std::move(label.name), address);
@@ -322,7 +322,7 @@ void vm_unit_t::resolve_externs()
       return;
     }
 
-    relocations.emplace(value_t { ext.second }, value_t { iter->second });
+    relocations.emplace(vm_value { ext.second }, vm_value { iter->second });
   }
 
   if (relocations.size() == 0) {
@@ -336,7 +336,7 @@ void vm_unit_t::resolve_externs()
 
     each_in_mask(rel.args_mask, [&](int32_t mask_index) {
       int32_t const arg_index = arg_base + mask_index;
-      value_t &arg = instruction_argv[arg_index];
+      vm_value &arg = instruction_argv[arg_index];
 
       relocation_map_t::const_iterator iter = relocations.find(arg);
 
@@ -379,7 +379,7 @@ void vm_unit_t::read_data_table(
       _data_blocks.emplace_back(data_block_t { block_id, offset, block_size });
 
       if (data_base > 0) {
-        relocations.emplace(value_t { 1 + data_index }, value_t { block_id });
+        relocations.emplace(vm_value { 1 + data_index }, vm_value { block_id });
       }
     });
 }
@@ -402,7 +402,7 @@ void vm_unit_t::read_data_relocations(
       int32_t const arg_base = instructions[rel.pointer].arg_pointer;
 
       each_in_mask(rel.args_mask, [&](int32_t arg_index) {
-        value_t &arg = instruction_argv[arg_base + arg_index];
+        vm_value &arg = instruction_argv[arg_base + arg_index];
         relocation_map_t::const_iterator iter = load_relocations.find(arg);
         if (iter == not_found) {
           return;
@@ -522,8 +522,8 @@ bool vm_unit_t::relocate_static_data(data_id_ary_t const &new_ids)
     data_block_t &block = _data_blocks[index];
 
     auto insertion = relocations.emplace(
-      value_t { block.id },
-      value_t { new_ids[index] }
+      vm_value { block.id },
+      vm_value { new_ids[index] }
       );
 
     block.id = new_ids[index];
@@ -547,7 +547,7 @@ void vm_unit_t::apply_instruction_relocation(
   int32_t const arg_base = instructions[rel.pointer].arg_pointer;
   relocation_map_t::const_iterator not_found = relocations.cend();
   each_in_mask(rel.args_mask, [&](int32_t arg_index) {
-    value_t &arg = instruction_argv[arg_base + arg_index];
+    vm_value &arg = instruction_argv[arg_base + arg_index];
     relocation_map_t::const_iterator mapped = relocations.find(arg);
 
     if (mapped == not_found) {

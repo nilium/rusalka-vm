@@ -13,23 +13,23 @@
 #include <iostream>
 
 
-struct value_t final
+struct vm_value final
 {
   double  value;
 
-  value_t() = default;
-  value_t(value_t const &v) = default;
+  vm_value() = default;
+  vm_value(vm_value const &v) = default;
 
-  explicit value_t(double v)   : value(v) {}
-  explicit value_t(float v)    : value((double)v) {}
-  explicit value_t(int64_t v)  : value((double)v) {}
-  explicit value_t(uint64_t v) : value((double)v) {}
-  explicit value_t(int32_t v)  : value((double)v) {}
-  explicit value_t(uint32_t v) : value((double)v) {}
-  explicit value_t(int16_t v)  : value((double)v) {}
-  explicit value_t(uint16_t v) : value((double)v) {}
-  explicit value_t(int8_t v)   : value((double)v) {}
-  explicit value_t(uint8_t v)  : value((double)v) {}
+  explicit vm_value(double v)   : value(v) {}
+  explicit vm_value(float v)    : value((double)v) {}
+  explicit vm_value(int64_t v)  : value((double)v) {}
+  explicit vm_value(uint64_t v) : value((double)v) {}
+  explicit vm_value(int32_t v)  : value((double)v) {}
+  explicit vm_value(uint32_t v) : value((double)v) {}
+  explicit vm_value(int16_t v)  : value((double)v) {}
+  explicit vm_value(uint16_t v) : value((double)v) {}
+  explicit vm_value(int8_t v)   : value((double)v) {}
+  explicit vm_value(uint8_t v)  : value((double)v) {}
 
   double   f64() const  { return value; }
   float    f32() const  { return (float)value; }
@@ -64,40 +64,40 @@ struct value_t final
   operator int8_t() const   { return (int8_t)value; }
   operator uint8_t() const  { return (uint8_t)value; }
 
-  value_t &operator = (double v)    { set(v); return *this; }
-  value_t &operator = (float v)     { set(v); return *this; }
-  value_t &operator = (int64_t v)   { set(v); return *this; }
-  value_t &operator = (uint64_t v)  { set(v); return *this; }
-  value_t &operator = (int32_t v)   { set(v); return *this; }
-  value_t &operator = (uint32_t v)  { set(v); return *this; }
-  value_t &operator = (int16_t v)   { set(v); return *this; }
-  value_t &operator = (uint16_t v)  { set(v); return *this; }
-  value_t &operator = (int8_t v)    { set(v); return *this; }
-  value_t &operator = (uint8_t v)   { set(v); return *this; }
+  vm_value &operator = (double v)    { set(v); return *this; }
+  vm_value &operator = (float v)     { set(v); return *this; }
+  vm_value &operator = (int64_t v)   { set(v); return *this; }
+  vm_value &operator = (uint64_t v)  { set(v); return *this; }
+  vm_value &operator = (int32_t v)   { set(v); return *this; }
+  vm_value &operator = (uint32_t v)  { set(v); return *this; }
+  vm_value &operator = (int16_t v)   { set(v); return *this; }
+  vm_value &operator = (uint16_t v)  { set(v); return *this; }
+  vm_value &operator = (int8_t v)    { set(v); return *this; }
+  vm_value &operator = (uint8_t v)   { set(v); return *this; }
 
-  bool operator == (value_t other) const { return value == other.value; }
-  bool operator != (value_t other) const { return !(*this == other); }
-  bool operator <= (value_t other) const { return value <= other.value; }
-  bool operator < (value_t other) const { return value < other.value; }
-  bool operator >= (value_t other) const { return value >= other.value; }
-  bool operator > (value_t other) const { return value > other.value; }
+  bool operator == (vm_value other) const { return value == other.value; }
+  bool operator != (vm_value other) const { return !(*this == other); }
+  bool operator <= (vm_value other) const { return value <= other.value; }
+  bool operator < (vm_value other) const { return value < other.value; }
+  bool operator >= (vm_value other) const { return value >= other.value; }
+  bool operator > (vm_value other) const { return value > other.value; }
 };
 
 
-std::ostream &operator << (std::ostream &out, value_t v);
+std::ostream &operator << (std::ostream &out, vm_value v);
 
 
 template <class T>
-value_t make_value(T x)
+vm_value make_value(T x)
 {
-  return value_t { x };
+  return vm_value { x };
 }
 
 
-static_assert(std::is_trivial<value_t>::value,
+static_assert(std::is_trivial<vm_value>::value,
   "Value must be trivial");
 
-static_assert(std::is_standard_layout<value_t>::value,
+static_assert(std::is_standard_layout<vm_value>::value,
   "Value must be standard layout");
 
 

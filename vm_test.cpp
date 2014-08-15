@@ -12,17 +12,17 @@
 #include <fstream>
 
 
-value_t printfn(vm_thread &vm, int32_t argc, const value_t *argv, void*)
+vm_value printfn(vm_thread &vm, int32_t argc, const vm_value *argv, void*)
 {
   std::cerr << "PRINTI: ";
   for (; argc > 0; --argc, ++argv) {
     std::cerr << argv->i32() << ' ';
   }
   std::cerr << std::endl;
-  return value_t { 0 };
+  return vm_value { 0 };
 }
 
-value_t printsfn(vm_thread &vm, int32_t argc, const value_t *argv, void*)
+vm_value printsfn(vm_thread &vm, int32_t argc, const vm_value *argv, void*)
 {
   std::cerr << "PRINTS: ";
   for (; argc > 0; --argc, ++argv) {
@@ -35,7 +35,7 @@ value_t printsfn(vm_thread &vm, int32_t argc, const value_t *argv, void*)
     std::cerr << std::string(ptr, size) << ' ';
   }
   std::cerr << std::endl;
-  return value_t { 0 };
+  return vm_value { 0 };
 }
 
 

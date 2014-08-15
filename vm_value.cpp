@@ -11,7 +11,7 @@
 #include <iomanip>
 
 
-std::ostream &operator << (std::ostream &out, value_t v)
+std::ostream &operator << (std::ostream &out, vm_value v)
 {
   return
     out

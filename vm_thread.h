@@ -46,13 +46,13 @@ class vm_thread
   };
 
 
-  using stack_t = std::vector<value_t>;
+  using stack_t = std::vector<vm_value>;
 
   vm_state &_process;
   int32_t _sequence = 0;
   int32_t _trap = 0;
   stack_t _stack;
-  value_t _registers[REGISTER_COUNT] {};
+  vm_value _registers[REGISTER_COUNT] {};
 
 
   template <class T, class... ARGS>
@@ -71,26 +71,26 @@ class vm_thread
 
   int32_t fetch();
 
-  value_t ip() const { return _registers[R_IP]; }
-  value_t &ip() { return _registers[R_IP]; }
+  vm_value ip() const { return _registers[R_IP]; }
+  vm_value &ip() { return _registers[R_IP]; }
 
-  value_t ebp() const { return _registers[R_EBP]; }
-  value_t &ebp() { return _registers[R_EBP]; }
+  vm_value ebp() const { return _registers[R_EBP]; }
+  vm_value &ebp() { return _registers[R_EBP]; }
 
-  value_t esp() const { return _registers[R_ESP]; }
-  value_t &esp() { return _registers[R_ESP]; }
+  vm_value esp() const { return _registers[R_ESP]; }
+  vm_value &esp() { return _registers[R_ESP]; }
 
-  value_t rp() const { return _registers[R_RP]; }
-  value_t &rp() { return _registers[R_RP]; }
+  vm_value rp() const { return _registers[R_RP]; }
+  vm_value &rp() { return _registers[R_RP]; }
 
-  value_t reg(int32_t off) const;
-  value_t &reg(int32_t off);
+  vm_value reg(int32_t off) const;
+  vm_value &reg(int32_t off);
 
-  value_t stack(int32_t off) const;
-  value_t &stack(int32_t off);
+  vm_value stack(int32_t off) const;
+  vm_value &stack(int32_t off);
 
-  void push(value_t value);
-  value_t pop(bool copy_only = false);
+  void push(vm_value value);
+  vm_value pop(bool copy_only = false);
 
   void exec_call(int32_t instr, int32_t argc);
 
@@ -115,36 +115,36 @@ public:
 
 
   template <class... ARGS>
-  value_t call_function(const char *name, ARGS&&... args);
+  vm_value call_function(const char *name, ARGS&&... args);
 
   template <class... ARGS>
-  value_t call_function(int32_t pointer, ARGS&&... args);
+  vm_value call_function(int32_t pointer, ARGS&&... args);
 
-  value_t call_function(const char *name);
+  vm_value call_function(const char *name);
 
-  value_t call_function_nt(int32_t pointer) { return call_function_nt(pointer, 0); }
+  vm_value call_function_nt(int32_t pointer) { return call_function_nt(pointer, 0); }
 
-  value_t call_function_nt(const char *name, int32_t argc, const value_t *argv);
-  value_t call_function_nt(int32_t pointer, int32_t argc, const value_t *argv);
-  value_t call_function_nt(int32_t pointer, int32_t argc);
+  vm_value call_function_nt(const char *name, int32_t argc, const vm_value *argv);
+  vm_value call_function_nt(int32_t pointer, int32_t argc, const vm_value *argv);
+  vm_value call_function_nt(int32_t pointer, int32_t argc);
 
   vm_function_t function(const char *name);
   vm_function_t function(int32_t pointer);
 
-  value_t deref(value_t input, uint16_t flag, uint32_t mask = ~0u) const;
+  vm_value deref(vm_value input, uint16_t flag, uint32_t mask = ~0u) const;
 
   vm_state &process() { return _process; }
   vm_state const &process() const { return _process; }
 
   int thread_index() const;
 
-  value_t return_value() const { return rp(); }
+  vm_value return_value() const { return rp(); }
 };
 
 
 
 template <class... ARGS>
-value_t vm_thread::call_function(const char *name, ARGS&&... args)
+vm_value vm_thread::call_function(const char *name, ARGS&&... args)
 {
   const auto pointer = find_function_pointer(name);
   // if (!pointer.ok) throw std::runtime_error("no such function");
@@ -154,7 +154,7 @@ value_t vm_thread::call_function(const char *name, ARGS&&... args)
 
 
 template <class... ARGS>
-value_t vm_thread::call_function(int32_t pointer, ARGS&&... args)
+vm_value vm_thread::call_function(int32_t pointer, ARGS&&... args)
 {
   const int32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
   return call_function_nt(pointer, argc);
@@ -181,7 +181,7 @@ int32_t vm_thread::load_registers(int32_t index, T &&first)
 
 
 template <class... ARGS>
-value_t vm_invoke_function(vm_thread &thread, int32_t pointer, ARGS &&... args)
+vm_value vm_invoke_function(vm_thread &thread, int32_t pointer, ARGS &&... args)
 {
   return thread.call_function(pointer, std::forward<ARGS>(args)...);
 }

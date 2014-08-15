@@ -16,7 +16,7 @@ opcode_t op_t::opcode() const
 }
 
 
-value_t op_t::operator [] (int32_t index) const
+vm_value op_t::operator [] (int32_t index) const
 {
   int32_t argv_base = unit.instructions[ip].arg_pointer;
   return unit.instruction_argv[argv_base + index];
