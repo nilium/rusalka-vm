@@ -36,7 +36,7 @@ template <>
 chunk_header_t read_primitive<chunk_header_t>(std::istream &input)
 {
   return chunk_header_t {
-    read_primitive<chunk_id_t>(input),
+    read_primitive<vm_chunk_id>(input),
     read_primitive<int32_t>(input)
   };
 }
@@ -53,7 +53,7 @@ table_header_t read_primitive<table_header_t>(std::istream &input)
 
 
 template <typename Func>
-bool read_table(std::istream &input, chunk_id_t id, Func &&func)
+bool read_table(std::istream &input, vm_chunk_id id, Func &&func)
 {
   table_header_t const itable = read_primitive<table_header_t>(input);
 
@@ -70,7 +70,7 @@ bool read_table(std::istream &input, chunk_id_t id, Func &&func)
 
 
 template <typename InitFunc, typename Func>
-bool read_table(std::istream &input, chunk_id_t id, InitFunc &&init, Func &&func)
+bool read_table(std::istream &input, vm_chunk_id id, InitFunc &&init, Func &&func)
 {
   table_header_t const itable = read_primitive<table_header_t>(input);
 
@@ -91,7 +91,7 @@ bool read_table(std::istream &input, chunk_id_t id, InitFunc &&init, Func &&func
 template <typename Func>
 bool read_table(
   std::istream &input,
-  chunk_id_t id,
+  vm_chunk_id id,
   table_header_t &header_out,
   Func &&func
   )

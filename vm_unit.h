@@ -23,7 +23,7 @@
 #define VM_MAX_UNIT_VERSION 200
 
 
-enum chunk_id_t : int32_t
+enum vm_chunk_id : int32_t
 {
   CHUNK_VERS = 'SREV',
   CHUNK_OFFS = 'SFFO',

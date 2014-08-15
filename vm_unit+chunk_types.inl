@@ -12,7 +12,7 @@
 
 struct chunk_header_t
 {
-  chunk_id_t  id;
+  vm_chunk_id  id;
   int32_t     byte_size;
 };
 
