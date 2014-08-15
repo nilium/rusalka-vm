@@ -13,8 +13,8 @@ struct vm_find_result {
   T value;
 };
 
-using vm_found_fn = vm_find_result<int32_t>;
-using vm_bound_fn = vm_found_fn;
+using vm_found_fn_t = vm_find_result<int32_t>;
+using vm_bound_fn_t = vm_found_fn_t;
 
 
 /// VM callback -- given a thread, argument count, and array of argument values.

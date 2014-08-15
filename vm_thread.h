@@ -111,7 +111,7 @@ public:
   void dump_stack(size_t until = SIZE_MAX) const;
 
 
-  vm_found_fn find_function_pointer(const char *name) const;
+  vm_found_fn_t find_function_pointer(const char *name) const;
 
 
   template <class... ARGS>

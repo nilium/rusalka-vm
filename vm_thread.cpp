@@ -590,7 +590,7 @@ void vm_thread::exec(const vm_op &op)
 
 
 
-vm_found_fn vm_thread::find_function_pointer(const char *name) const
+vm_found_fn_t vm_thread::find_function_pointer(const char *name) const
 {
   return _process.find_function_pointer(name);
 }
@@ -801,7 +801,7 @@ int vm_thread::thread_index() const
 {
   auto const start = _process._threads.cbegin();
   auto const end = _process._threads.cend();
-  auto const pointer = std::find_if(start, end, [this](vm_state::thread_pointer const &p) {
+  auto const pointer = std::find_if(start, end, [this](vm_state::thread_pointer_t const &p) {
     return p.get() == this;
   });
   if (pointer == end) {

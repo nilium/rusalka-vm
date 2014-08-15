@@ -80,16 +80,16 @@ class vm_state
     }
   };
 
-  using found_memblock = vm_find_result<memblock>;
+  using found_memblock_t = vm_find_result<memblock>;
   using memblock_map_t = std::map<int32_t, memblock>;
   using stack_t = std::vector<vm_value>;
   using callbacks_t = std::vector<callback_info>;
-  using thread_pointer = std::unique_ptr<vm_thread>;
-  using thread_stores = std::vector<thread_pointer>;
+  using thread_pointer_t = std::unique_ptr<vm_thread>;
+  using thread_stores_t = std::vector<thread_pointer_t>;
 
   static memblock const NO_BLOCK;
 
-  thread_stores _threads {};
+  thread_stores_t _threads {};
   callbacks_t _callbacks {};
   memblock_map_t _blocks {};
   int32_t _block_counter = 1;
@@ -118,12 +118,12 @@ public:
 
 private:
   bool check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const;
-  void load_thread(thread_pointer &&thread);
+  void load_thread(thread_pointer_t &&thread);
   void destroy_thread(int32_t thread_index);
 
   int32_t realloc_block_with_flags(int32_t block_id, int32_t size, uint32_t flags);
   // Returns the block for the given ID -- does not do flag checking of any kind.
-  found_memblock get_block_info(int32_t block_id) const;
+  found_memblock_t get_block_info(int32_t block_id) const;
 
 public:
   int32_t realloc_block(int32_t block, int32_t size);
@@ -134,10 +134,10 @@ public:
   void *get_block(int32_t block_id, uint32_t permissions);
   const void *get_block(int32_t block_id, uint32_t permissions) const;
 
-  vm_found_fn find_function_pointer(const char *name) const;
+  vm_found_fn_t find_function_pointer(const char *name) const;
 
-  vm_bound_fn bind_callback(const char *name, int length, vm_callback_t *function, void *context = nullptr);
-  vm_bound_fn bind_callback(const char *name, vm_callback_t *function, void *context = nullptr)
+  vm_bound_fn_t bind_callback(const char *name, int length, vm_callback_t *function, void *context = nullptr);
+  vm_bound_fn_t bind_callback(const char *name, vm_callback_t *function, void *context = nullptr)
   {
     return bind_callback(name, std::strlen(name), function, context);
   }

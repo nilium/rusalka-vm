@@ -86,17 +86,17 @@ void vm_state::prepare_unit()
 
 
 
-vm_bound_fn vm_state::bind_callback(const char *name, int length, vm_callback_t *function, void *context)
+vm_bound_fn_t vm_state::bind_callback(const char *name, int length, vm_callback_t *function, void *context)
 {
   std::string name_str(name, length);
   auto imported = _unit.imports.find(name_str);
   if (imported != _unit.imports.cend()) {
     const int32_t idx = -(imported->second + 1);
     _callbacks.at(idx) = callback_info { function, context };
-    return vm_bound_fn { true, imported->second };
+    return vm_bound_fn_t { true, imported->second };
   }
 
-  return  vm_bound_fn { false, 0 };
+  return  vm_bound_fn_t { false, 0 };
 }
 
 
@@ -213,7 +213,7 @@ void vm_state::free_block(int32_t block_id)
 
 
 
-auto vm_state::get_block_info(int32_t block_id) const -> found_memblock {
+auto vm_state::get_block_info(int32_t block_id) const -> found_memblock_t {
   auto const block_iter = _blocks.find(block_id);
   if (block_iter == _blocks.end()) {
     return { false, NO_BLOCK };
@@ -261,15 +261,15 @@ const void *vm_state::get_block(int32_t block_id, uint32_t permissions) const
 
 
 
-vm_found_fn vm_state::find_function_pointer(const char *name) const
+vm_found_fn_t vm_state::find_function_pointer(const char *name) const
 {
   const std::string str_name((name));
   vm_unit::label_table_t::const_iterator iter = _unit.imports.find(name);
   if (iter == _unit.imports.cend() &&
       (iter = _unit.exports.find(name)) == _unit.exports.cend()) {
-    return vm_found_fn { false, 0 };
+    return vm_found_fn_t { false, 0 };
   }
-  return vm_found_fn { true, iter->second };
+  return vm_found_fn_t { true, iter->second };
 }
 
 
@@ -289,7 +289,7 @@ bool vm_state::check_block_bounds(int32_t block_id, int32_t offset, int32_t size
 
 
 
-void vm_state::load_thread(thread_pointer &&thread)
+void vm_state::load_thread(thread_pointer_t &&thread)
 {
   auto const end = _threads.end();
   auto first_null = std::find(_threads.begin(), end, nullptr);
@@ -326,7 +326,7 @@ vm_thread const &vm_state::thread_by_index(int32_t thread_index) const
 
 vm_thread &vm_state::make_thread(size_t stack_size)
 {
-  thread_pointer ptr { new vm_thread(*this, stack_size) };
+  thread_pointer_t ptr { new vm_thread(*this, stack_size) };
   vm_thread *raw = ptr.get();
   load_thread(std::move(ptr));
   return *raw;
@@ -340,7 +340,7 @@ vm_thread &vm_state::fork_thread(vm_thread const &thread)
     throw vm_wrong_process("Thread process doesn't match this process.");
   }
 
-  thread_pointer ptr { new vm_thread(thread) };
+  thread_pointer_t ptr { new vm_thread(thread) };
   vm_thread *raw = ptr.get();
   load_thread(std::move(ptr));
   return *raw;
