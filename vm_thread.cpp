@@ -76,16 +76,16 @@ vm_thread::vm_thread(vm_state &process, size_t stack_size)
 
 
 
-vm_function_t vm_thread::function(const char *name)
+vm_function vm_thread::function(const char *name)
 {
   const auto pointer = find_function_pointer(name);
   // if (!pointer.ok) throw std::runtime_error("no such function");
-  return vm_function_t { *this, pointer.value };
+  return vm_function { *this, pointer.value };
 }
 
-vm_function_t vm_thread::function(int pointer)
+vm_function vm_thread::function(int pointer)
 {
-  return vm_function_t { *this, pointer };
+  return vm_function { *this, pointer };
 }
 
 

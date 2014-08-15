@@ -23,12 +23,12 @@ template <class... ARGS>
 vm_value vm_invoke_function(vm_thread &thread, int32_t pointer, ARGS &&... args);
 
 
-class vm_function_t
+class vm_function
 {
   vm_thread &_thread;
   int32_t _pointer;
 
-  vm_function_t(vm_thread &thread, int32_t pointer)
+  vm_function(vm_thread &thread, int32_t pointer)
   : _thread(thread)
   , _pointer(pointer)
   {
@@ -38,8 +38,8 @@ class vm_function_t
   friend vm_thread;
 
 public:
-  vm_function_t(const vm_function_t &other) = default;
-  vm_function_t() = delete;
+  vm_function(const vm_function &other) = default;
+  vm_function() = delete;
 
   template <class... ARGS>
   vm_value operator()(ARGS&&... args);
@@ -49,7 +49,7 @@ public:
 
 
 template <class... ARGS>
-vm_value vm_function_t::operator()(ARGS&&... args)
+vm_value vm_function::operator()(ARGS&&... args)
 {
   return vm_invoke_function(_thread, _pointer, std::forward<ARGS>(args)...);
 }

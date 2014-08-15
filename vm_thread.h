@@ -128,8 +128,8 @@ public:
   vm_value call_function_nt(int32_t pointer, int32_t argc, const vm_value *argv);
   vm_value call_function_nt(int32_t pointer, int32_t argc);
 
-  vm_function_t function(const char *name);
-  vm_function_t function(int32_t pointer);
+  vm_function function(const char *name);
+  vm_function function(int32_t pointer);
 
   vm_value deref(vm_value input, uint16_t flag, uint32_t mask = ~0u) const;
 
