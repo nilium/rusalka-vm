@@ -16,7 +16,7 @@
 
 struct vm_chunk_offsets
 {
-  struct chunk_offset_t
+  struct chunk_offset
   {
     vm_chunk_id  id;
     int32_t     offset;
@@ -24,14 +24,14 @@ struct vm_chunk_offsets
 
 
   vm_table_header                header;
-  std::vector<chunk_offset_t>   offsets;
+  std::vector<chunk_offset>   offsets;
 
 
   explicit vm_chunk_offsets(std::istream &input)
   {
     read_table(input, CHUNK_OFFS, header, [&](int32_t index) {
       offsets.emplace_back(
-        chunk_offset_t {
+        chunk_offset {
           read_primitive<vm_chunk_id>(input),
           read_primitive<int32_t>(input)
         });
@@ -41,7 +41,7 @@ struct vm_chunk_offsets
 
   int32_t offset_for(vm_chunk_id id) const
   {
-    for (chunk_offset_t const &chunk_off : offsets) {
+    for (chunk_offset const &chunk_off : offsets) {
       if (chunk_off.id == id) {
         return chunk_off.offset;
       }
