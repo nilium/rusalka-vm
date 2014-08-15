@@ -58,7 +58,7 @@ class vm_unit
   friend class vm_op;
   friend class vm_state;
 
-  struct relocation_ptr_t
+  struct relocation_ptr
   {
     // Index of the instruction to relocate relative to the instructions
     // table.
@@ -67,36 +67,36 @@ class vm_unit
     uint32_t args_mask;
   };
 
-  struct instruction_ptr_t
+  struct instruction_ptr
   {
     vm_opcode opcode;
     uint16_t  litflag;
     int32_t   arg_pointer;
   };
 
-  struct data_block_t
+  struct data_block
   {
     int32_t id;
     int32_t offset; // offset into _data
     int32_t size;   // size in bytes of the block
   };
 
-  struct extern_relocation_t
+  struct extern_relocation
   {
     vm_value pointer;
     bool resolved;
   };
 
-  using relocation_table_t   = std::vector<relocation_ptr_t>;
+  using relocation_table_t   = std::vector<relocation_ptr>;
   using relocation_map_t     = std::map<vm_value, vm_value>;
   // Externs may be relocated in two ways:
   // 1) The extern might just need to be adjusted because there are prior
   //  unresolved externs, in which case the second field is false (unresolved).
   // 2) The extern might've been resolved in the process of loading the extern
   //  table, so the second field is true (resolved).
-  using extern_relocations_t = std::map<vm_value, extern_relocation_t>;
+  using extern_relocations_t = std::map<vm_value, extern_relocation>;
 
-  using instruction_ptrs_t   = std::vector<instruction_ptr_t>;
+  using instruction_ptrs_t   = std::vector<instruction_ptr>;
   using instruction_argv_t   = std::vector<vm_value>;
   using label_table_t        = std::map<std::string, int32_t>;
   using data_id_ary_t        = std::vector<int32_t>;
@@ -112,7 +112,7 @@ class vm_unit
   relocation_table_t unresolved_relocations;
 
   std::vector<uint8_t> _data;
-  std::vector<data_block_t> _data_blocks;
+  std::vector<data_block> _data_blocks;
   relocation_table_t _data_relocations;
 
   void read_instruction(std::istream &input);
@@ -157,7 +157,7 @@ class vm_unit
   bool relocate_static_data(data_id_ary_t const &new_ids);
 
   void apply_instruction_relocation(
-    relocation_ptr_t rel,
+    relocation_ptr rel,
     relocation_map_t const &relocations
     );
   void apply_relocation_table(
@@ -202,7 +202,7 @@ void vm_unit::each_data(Func &&fn) const
 {
   int32_t index = 0;
   bool stop = false;
-  for (data_block_t const &blk : _data_blocks) {
+  for (data_block const &blk : _data_blocks) {
     fn(index++, blk.id, blk.size, (void const *)&_data[blk.offset], stop);
     if (stop) {
       return;

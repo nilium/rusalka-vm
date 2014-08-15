@@ -115,7 +115,7 @@ void vm_unit::read_instruction(std::istream &input)
   int32_t arg_base = static_cast<int32_t>(instruction_argv.size());
 
   instructions.emplace_back(
-    instruction_ptr_t {
+    instruction_ptr {
       opcode,
       litflag,
       arg_base // curse unsigneds to death
@@ -150,7 +150,7 @@ void vm_unit::read_extern_relocations(
   read_table(input, CHUNK_EREL, [&](int32_t rel_index) {
     (void)rel_index;
 
-    relocation_ptr_t rel = read_primitive<relocation_ptr_t>(input);
+    relocation_ptr rel = read_primitive<relocation_ptr>(input);
     rel.pointer += instruction_base;
     int32_t const arg_base = instructions[rel.pointer].arg_pointer;
 
@@ -186,7 +186,7 @@ void vm_unit::read_label_relocations(
   relocation_map_t::const_iterator not_found = relocations.cend();
 
   read_table(input, CHUNK_LREL, [&](int32_t rel_index) {
-    relocation_ptr_t rel = read_primitive<relocation_ptr_t>(input);
+    relocation_ptr rel = read_primitive<relocation_ptr>(input);
     rel.pointer += instruction_base;
     int32_t const arg_base = instructions[rel.pointer].arg_pointer;
 
@@ -225,7 +225,7 @@ void vm_unit::read_externs(
     if (export_iter != exports.end()) {
       relocations.emplace(
         vm_value { index },
-        extern_relocation_t { vm_value { export_iter->second }, true }
+        extern_relocation { vm_value { export_iter->second }, true }
         );
       return;
     }
@@ -235,7 +235,7 @@ void vm_unit::read_externs(
       if (extern_iter->second != index) {
         relocations.emplace(
           vm_value { index },
-          extern_relocation_t { vm_value { extern_iter->second }, false }
+          extern_relocation { vm_value { extern_iter->second }, false }
           );
       }
       return;
@@ -245,7 +245,7 @@ void vm_unit::read_externs(
     if (index != new_address) {
       relocations.emplace(
         vm_value { index },
-        extern_relocation_t { vm_value { new_address }, false }
+        extern_relocation { vm_value { new_address }, false }
         );
     }
 
@@ -349,7 +349,7 @@ void vm_unit::resolve_externs()
     });
 
     if (updated_mask) {
-      next_relocations.emplace_back(relocation_ptr_t { rel.pointer, updated_mask });
+      next_relocations.emplace_back(relocation_ptr { rel.pointer, updated_mask });
     }
   }
 
@@ -376,7 +376,7 @@ void vm_unit::read_data_table(
       _data.resize(static_cast<size_t>(offset + block_size));
       input.read((char *)&_data[offset], block_size);
 
-      _data_blocks.emplace_back(data_block_t { block_id, offset, block_size });
+      _data_blocks.emplace_back(data_block { block_id, offset, block_size });
 
       if (data_base > 0) {
         relocations.emplace(vm_value { 1 + data_index }, vm_value { block_id });
@@ -396,7 +396,7 @@ void vm_unit::read_data_relocations(
   read_table(input, CHUNK_DREL, [&](int32_t count) {
       _data_relocations.reserve(_data_relocations.size() + count);
     }, [&](int32_t index) {
-      relocation_ptr_t rel = read_primitive<relocation_ptr_t>(input);
+      relocation_ptr rel = read_primitive<relocation_ptr>(input);
       rel.pointer += instr_base;
 
       int32_t const arg_base = instructions[rel.pointer].arg_pointer;
@@ -519,7 +519,7 @@ bool vm_unit::relocate_static_data(data_id_ary_t const &new_ids)
   relocation_map_t relocations;
 
   for (int32_t index = 0; index < _data_blocks.size(); ++index) {
-    data_block_t &block = _data_blocks[index];
+    data_block &block = _data_blocks[index];
 
     auto insertion = relocations.emplace(
       vm_value { block.id },
@@ -540,7 +540,7 @@ bool vm_unit::relocate_static_data(data_id_ary_t const &new_ids)
 
 
 void vm_unit::apply_instruction_relocation(
-  relocation_ptr_t rel,
+  relocation_ptr rel,
   relocation_map_t const &relocations
   )
 {
