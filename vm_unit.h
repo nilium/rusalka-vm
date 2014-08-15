@@ -38,7 +38,7 @@ enum chunk_id_t : int32_t
 };
 
 
-struct vm_instruction_t
+struct vm_instruction
 {
   const vm_value *argv;
   opcode_t opcode;
@@ -187,7 +187,7 @@ public:
 
   void merge_unit(const vm_unit_t &unit);
 
-  vm_instruction_t instruction(int32_t pointer) const;
+  vm_instruction instruction(int32_t pointer) const;
 
   op_t fetch_op(int32_t ip) const;
 
