@@ -18,7 +18,7 @@
 class vm_unit_t;
 
 
-class op_t
+class vm_op
 {
 public:
   vm_unit_t const &unit;
@@ -32,10 +32,10 @@ public:
 // static_assert(sizeof(opcode_t) == sizeof(vm_value),
 //   "the size of opcode_t must be the same as vm_value");
 
-// static_assert(sizeof(op_t) == sizeof(opcode_t),
-//   "the size of op_t must be that of opcode_t");
+// static_assert(sizeof(vm_op) == sizeof(opcode_t),
+//   "the size of vm_op must be that of opcode_t");
 
-// static_assert(offsetof(op_t, argv) == sizeof(opcode_t),
-//   "offset of op_t::argv must be the same as the size of op_t");
+// static_assert(offsetof(vm_op, argv) == sizeof(opcode_t),
+//   "offset of vm_op::argv must be the same as the size of vm_op");
 
 #endif /* end __VM_OP_H__ include guard */

@@ -570,8 +570,8 @@ void vm_unit_t::apply_relocation_table(
 }
 
 
-op_t vm_unit_t::fetch_op(int32_t ip) const
+vm_op vm_unit_t::fetch_op(int32_t ip) const
 {
-  return op_t { *this, ip };
+  return vm_op { *this, ip };
 }
 

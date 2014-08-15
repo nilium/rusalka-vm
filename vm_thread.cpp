@@ -141,7 +141,7 @@ constexpr T vm_shift(T num, int32_t shift)
 
 
 
-void vm_thread::exec(const op_t &op)
+void vm_thread::exec(const vm_op &op)
 {
   vm_value value;
   uint16_t const litflag = op.litflag();

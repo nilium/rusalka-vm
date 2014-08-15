@@ -9,7 +9,7 @@
 #include "vm_function.h"
 
 
-class op_t;
+class vm_op;
 class vm_state;
 
 
@@ -65,7 +65,7 @@ class vm_thread
   }
 
 
-  void exec(const op_t &op);
+  void exec(const vm_op &op);
   bool run(int32_t from_ip);
   bool run();
 

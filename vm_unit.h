@@ -46,7 +46,7 @@ struct vm_instruction
   // arguments, so it's imperative that you never read more arguments than
   // are provided by the instruction/for the opcode.
 
-  // Convenience member operator for op_t compatibility.
+  // Convenience member operator for vm_op compatibility.
   vm_value operator[] (int index) const { return argv[index]; }
 
   operator opcode_t () const { return opcode; }
@@ -55,7 +55,7 @@ struct vm_instruction
 
 class vm_unit_t
 {
-  friend class op_t;
+  friend class vm_op;
   friend class vm_state;
 
   struct relocation_ptr_t
@@ -189,7 +189,7 @@ public:
 
   vm_instruction instruction(int32_t pointer) const;
 
-  op_t fetch_op(int32_t ip) const;
+  vm_op fetch_op(int32_t ip) const;
 
   template <typename Func>
   void each_data(Func &&fn) const;

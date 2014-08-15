@@ -3,7 +3,7 @@
 
 class vm_thread;
 class vm_state;
-class op_t;
+class vm_op;
 struct vm_value;
 
 

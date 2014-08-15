@@ -10,20 +10,20 @@
 #include "vm_unit.h"
 
 
-opcode_t op_t::opcode() const
+opcode_t vm_op::opcode() const
 {
   return unit.instructions[ip].opcode;
 }
 
 
-vm_value op_t::operator [] (int32_t index) const
+vm_value vm_op::operator [] (int32_t index) const
 {
   int32_t argv_base = unit.instructions[ip].arg_pointer;
   return unit.instruction_argv[argv_base + index];
 }
 
 
-uint16_t op_t::litflag() const
+uint16_t vm_op::litflag() const
 {
   return unit.instructions[ip].litflag;
 }
