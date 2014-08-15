@@ -48,7 +48,7 @@ auto with(T &&obj, FN fn) -> decltype(fn(obj))
 
 int main(int argc, char const *argv[])
 {
-  vm_unit_t unit;
+  vm_unit unit;
 
   std::cerr << "Unit is valid: " << unit.is_valid() << std::endl;
 

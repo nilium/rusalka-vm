@@ -97,7 +97,7 @@ class vm_state
   int32_t unused_block_id();
   void release_all_memblocks() noexcept;
 
-  vm_unit_t _unit;
+  vm_unit _unit;
   int32_t _source_size;
 
   void prepare_unit();
@@ -113,8 +113,8 @@ public:
     not be called afterward. The VM takes ownership of the source data -- the
     object is moved and the original object is invalid.
   */
-  void set_unit(vm_unit_t const &unit);
-  void set_unit(vm_unit_t &&unit);
+  void set_unit(vm_unit const &unit);
+  void set_unit(vm_unit &&unit);
 
 private:
   bool check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const;

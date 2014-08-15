@@ -15,13 +15,13 @@
 #include "vm_value.h"
 
 
-class vm_unit_t;
+class vm_unit;
 
 
 class vm_op
 {
 public:
-  vm_unit_t const &unit;
+  vm_unit const &unit;
   int32_t const ip;
 
   uint16_t litflag() const;

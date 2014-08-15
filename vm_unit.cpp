@@ -33,13 +33,13 @@ each_in_mask(T mask, Func func)
 }
 
 
-vm_unit_t::vm_unit_t()
+vm_unit::vm_unit()
 {
   /* nop */
 }
 
 
-vm_unit_t::vm_unit_t(vm_unit_t const &m)
+vm_unit::vm_unit(vm_unit const &m)
 : last_import(m.last_import)
 , instructions(m.instructions)
 , instruction_argv(m.instruction_argv)
@@ -55,7 +55,7 @@ vm_unit_t::vm_unit_t(vm_unit_t const &m)
 }
 
 
-vm_unit_t::vm_unit_t(vm_unit_t &&m)
+vm_unit::vm_unit(vm_unit &&m)
 : last_import(m.last_import)
 , instructions(std::move(m.instructions))
 , instruction_argv(std::move(m.instruction_argv))
@@ -71,7 +71,7 @@ vm_unit_t::vm_unit_t(vm_unit_t &&m)
 }
 
 
-vm_unit_t &vm_unit_t::operator = (vm_unit_t const &m)
+vm_unit &vm_unit::operator = (vm_unit const &m)
 {
   last_import            = m.last_import;
   instructions           = m.instructions;
@@ -88,7 +88,7 @@ vm_unit_t &vm_unit_t::operator = (vm_unit_t const &m)
 }
 
 
-vm_unit_t &vm_unit_t::operator = (vm_unit_t &&m)
+vm_unit &vm_unit::operator = (vm_unit &&m)
 {
   last_import            = 0;
   last_import            = m.last_import;
@@ -108,7 +108,7 @@ vm_unit_t &vm_unit_t::operator = (vm_unit_t &&m)
 }
 
 
-void vm_unit_t::read_instruction(std::istream &input)
+void vm_unit::read_instruction(std::istream &input)
 {
   vm_opcode const opcode = static_cast<vm_opcode>(read_primitive<uint16_t>(input));
   uint16_t const litflag = read_primitive<uint16_t>(input);
@@ -130,7 +130,7 @@ void vm_unit_t::read_instruction(std::istream &input)
 }
 
 
-void vm_unit_t::read_instructions(std::istream &input)
+void vm_unit::read_instructions(std::istream &input)
 {
   read_table(input, CHUNK_INST, [&](int32_t index) {
     (void)index;
@@ -139,7 +139,7 @@ void vm_unit_t::read_instructions(std::istream &input)
 }
 
 
-void vm_unit_t::read_extern_relocations(
+void vm_unit::read_extern_relocations(
   std::istream &input,
   int32_t instruction_base,
   extern_relocations_t const &relocations
@@ -177,7 +177,7 @@ void vm_unit_t::read_extern_relocations(
 }
 
 
-void vm_unit_t::read_label_relocations(
+void vm_unit::read_label_relocations(
   std::istream &input,
   int32_t instruction_base,
   relocation_map_t const &relocations
@@ -213,7 +213,7 @@ void vm_unit_t::read_label_relocations(
 
 
 
-void vm_unit_t::read_externs(
+void vm_unit::read_externs(
   std::istream &input,
   extern_relocations_t &relocations
   )
@@ -254,7 +254,7 @@ void vm_unit_t::read_externs(
 }
 
 
-void vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
+void vm_unit::read_imports(std::istream &input, relocation_map_t &relocations)
 {
   read_table(input, CHUNK_IMPT, [&](int32_t index) {
     label_t label = read_label(input);
@@ -278,7 +278,7 @@ void vm_unit_t::read_imports(std::istream &input, relocation_map_t &relocations)
 }
 
 
-void vm_unit_t::read_exports(
+void vm_unit::read_exports(
   std::istream &input,
   int32_t base,
   relocation_map_t &relocations
@@ -305,7 +305,7 @@ void vm_unit_t::read_exports(
 }
 
 
-void vm_unit_t::resolve_externs()
+void vm_unit::resolve_externs()
 {
   if (unresolved_relocations.size() == 0) {
     return;
@@ -358,7 +358,7 @@ void vm_unit_t::resolve_externs()
 }
 
 
-void vm_unit_t::read_data_table(
+void vm_unit::read_data_table(
   std::istream &input,
   int32_t data_base,
   relocation_map_t &relocations
@@ -385,7 +385,7 @@ void vm_unit_t::read_data_table(
 }
 
 
-void vm_unit_t::read_data_relocations(
+void vm_unit::read_data_relocations(
   std::istream &input,
   int32_t instr_base,
   int32_t data_base,
@@ -416,7 +416,7 @@ void vm_unit_t::read_data_relocations(
 }
 
 
-void vm_unit_t::read(std::istream &input)
+void vm_unit::read(std::istream &input)
 {
   version_chunk_t const filehead {
     read_primitive<chunk_header_t>(input),  // header
@@ -495,7 +495,7 @@ void vm_unit_t::read(std::istream &input)
 
 
 
-void vm_unit_t::debug_write_instructions(std::ostream &out) const
+void vm_unit::debug_write_instructions(std::ostream &out) const
 {
   size_t inum = 0;
   for (auto const &ins : instructions) {
@@ -514,7 +514,7 @@ void vm_unit_t::debug_write_instructions(std::ostream &out) const
 
 
 
-bool vm_unit_t::relocate_static_data(data_id_ary_t const &new_ids)
+bool vm_unit::relocate_static_data(data_id_ary_t const &new_ids)
 {
   relocation_map_t relocations;
 
@@ -539,7 +539,7 @@ bool vm_unit_t::relocate_static_data(data_id_ary_t const &new_ids)
 }
 
 
-void vm_unit_t::apply_instruction_relocation(
+void vm_unit::apply_instruction_relocation(
   relocation_ptr_t rel,
   relocation_map_t const &relocations
   )
@@ -559,7 +559,7 @@ void vm_unit_t::apply_instruction_relocation(
 }
 
 
-void vm_unit_t::apply_relocation_table(
+void vm_unit::apply_relocation_table(
   relocation_table_t const &table,
   relocation_map_t const &relocations
   )
@@ -570,7 +570,7 @@ void vm_unit_t::apply_relocation_table(
 }
 
 
-vm_op vm_unit_t::fetch_op(int32_t ip) const
+vm_op vm_unit::fetch_op(int32_t ip) const
 {
   return vm_op { *this, ip };
 }

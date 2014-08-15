@@ -46,7 +46,7 @@ vm_state::~vm_state()
 
 
 
-void vm_state::set_unit(vm_unit_t const &unit)
+void vm_state::set_unit(vm_unit const &unit)
 {
   _unit = unit;
   prepare_unit();
@@ -54,9 +54,9 @@ void vm_state::set_unit(vm_unit_t const &unit)
 
 
 
-void vm_state::set_unit(vm_unit_t &&unit)
+void vm_state::set_unit(vm_unit &&unit)
 {
-  _unit = std::forward<vm_unit_t &&>(unit);
+  _unit = std::forward<vm_unit &&>(unit);
   prepare_unit();
 }
 
@@ -69,7 +69,7 @@ void vm_state::prepare_unit()
   _source_size = _unit.instructions.size();
   _callbacks.resize(_unit.imports.size());
   std::fill(_callbacks.begin(), _callbacks.end(), callback_info { nullptr, nullptr });
-  vm_unit_t::data_id_ary_t new_ids;
+  vm_unit::data_id_ary_t new_ids;
   new_ids.resize(_unit._data_blocks.size(), 0);
   _unit.each_data([&](int32_t index, int32_t id, int32_t size, void const *ptr, bool &stop) {
     int32_t new_id = realloc_block_with_flags(VM_NULL_BLOCK, size, VM_MEM_SOURCE_DATA);
@@ -264,7 +264,7 @@ const void *vm_state::get_block(int32_t block_id, uint32_t permissions) const
 vm_found_fn vm_state::find_function_pointer(const char *name) const
 {
   const std::string str_name((name));
-  vm_unit_t::label_table_t::const_iterator iter = _unit.imports.find(name);
+  vm_unit::label_table_t::const_iterator iter = _unit.imports.find(name);
   if (iter == _unit.imports.cend() &&
       (iter = _unit.exports.find(name)) == _unit.exports.cend()) {
     return vm_found_fn { false, 0 };

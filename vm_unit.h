@@ -53,7 +53,7 @@ struct vm_instruction
 };
 
 
-class vm_unit_t
+class vm_unit
 {
   friend class vm_op;
   friend class vm_state;
@@ -167,13 +167,13 @@ class vm_unit_t
 
 public:
 
-  vm_unit_t();
-  vm_unit_t(vm_unit_t const &m);
-  vm_unit_t(vm_unit_t &&m);
-  ~vm_unit_t() = default;
+  vm_unit();
+  vm_unit(vm_unit const &m);
+  vm_unit(vm_unit &&m);
+  ~vm_unit() = default;
 
-  vm_unit_t &operator = (vm_unit_t const &m);
-  vm_unit_t &operator = (vm_unit_t &&m);
+  vm_unit &operator = (vm_unit const &m);
+  vm_unit &operator = (vm_unit &&m);
 
   // Reads a unit and links it into this unit.
   void read(std::istream &input);
@@ -185,7 +185,7 @@ public:
 
   void debug_write_instructions(std::ostream &out) const;
 
-  void merge_unit(const vm_unit_t &unit);
+  void merge_unit(const vm_unit &unit);
 
   vm_instruction instruction(int32_t pointer) const;
 
@@ -198,7 +198,7 @@ public:
 
 
 template <typename Func>
-void vm_unit_t::each_data(Func &&fn) const
+void vm_unit::each_data(Func &&fn) const
 {
   int32_t index = 0;
   bool stop = false;
