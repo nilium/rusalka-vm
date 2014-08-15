@@ -10,28 +10,28 @@
 #define __VM_UNIT_CHUNK_TYPES_INL__
 
 
-struct chunk_header_t
+struct vm_chunk_header
 {
   vm_chunk_id  id;
   int32_t     byte_size;
 };
 
 
-struct version_chunk_t
+struct vm_version_chunk
 {
-  chunk_header_t  header;
+  vm_chunk_header  header;
   int32_t         version;
 };
 
 
-struct table_header_t
+struct vm_table_header
 {
-  chunk_header_t  header;
+  vm_chunk_header  header;
   int32_t         count;
 };
 
 
-struct label_t
+struct vm_label
 {
   std::string name;
   int32_t address;

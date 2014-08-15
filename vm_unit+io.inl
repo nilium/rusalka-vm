@@ -33,9 +33,9 @@ T read_primitive(std::istream &input)
 
 
 template <>
-chunk_header_t read_primitive<chunk_header_t>(std::istream &input)
+vm_chunk_header read_primitive<vm_chunk_header>(std::istream &input)
 {
-  return chunk_header_t {
+  return vm_chunk_header {
     read_primitive<vm_chunk_id>(input),
     read_primitive<int32_t>(input)
   };
@@ -43,10 +43,10 @@ chunk_header_t read_primitive<chunk_header_t>(std::istream &input)
 
 
 template <>
-table_header_t read_primitive<table_header_t>(std::istream &input)
+vm_table_header read_primitive<vm_table_header>(std::istream &input)
 {
-  return table_header_t {
-    read_primitive<chunk_header_t>(input),
+  return vm_table_header {
+    read_primitive<vm_chunk_header>(input),
     read_primitive<int32_t>(input)
   };
 }
@@ -55,7 +55,7 @@ table_header_t read_primitive<table_header_t>(std::istream &input)
 template <typename Func>
 bool read_table(std::istream &input, vm_chunk_id id, Func &&func)
 {
-  table_header_t const itable = read_primitive<table_header_t>(input);
+  vm_table_header const itable = read_primitive<vm_table_header>(input);
 
   if (itable.header.id == id) {
     for (int32_t counter = 0; counter < itable.count; ++counter) {
@@ -72,7 +72,7 @@ bool read_table(std::istream &input, vm_chunk_id id, Func &&func)
 template <typename InitFunc, typename Func>
 bool read_table(std::istream &input, vm_chunk_id id, InitFunc &&init, Func &&func)
 {
-  table_header_t const itable = read_primitive<table_header_t>(input);
+  vm_table_header const itable = read_primitive<vm_table_header>(input);
 
   if (itable.header.id == id) {
     init(itable.count);
@@ -92,11 +92,11 @@ template <typename Func>
 bool read_table(
   std::istream &input,
   vm_chunk_id id,
-  table_header_t &header_out,
+  vm_table_header &header_out,
   Func &&func
   )
 {
-  table_header_t const itable = read_primitive<table_header_t>(input);
+  vm_table_header const itable = read_primitive<vm_table_header>(input);
   header_out = itable;
 
   if (itable.header.id == id) {
@@ -111,12 +111,12 @@ bool read_table(
 }
 
 
-label_t read_label(std::istream &input)
+vm_label read_label(std::istream &input)
 {
   int32_t const address = read_primitive<int32_t>(input);
   int32_t const length = read_primitive<int32_t>(input);
   std::string name = read_string(input, length);
-  return label_t { std::move(name), address };
+  return vm_label { std::move(name), address };
 }
 
 

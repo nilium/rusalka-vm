@@ -257,7 +257,7 @@ void vm_unit::read_externs(
 void vm_unit::read_imports(std::istream &input, relocation_map_t &relocations)
 {
   read_table(input, CHUNK_IMPT, [&](int32_t index) {
-    label_t label = read_label(input);
+    vm_label label = read_label(input);
 
     auto iter = imports.find(label.name);
     if (iter == imports.end()) {
@@ -285,7 +285,7 @@ void vm_unit::read_exports(
   )
 {
   read_table(input, CHUNK_EXPT, [&](int32_t index) {
-    label_t label = read_label(input);
+    vm_label label = read_label(input);
     label_table_t::const_iterator iter = exports.find(label.name);
     int32_t address = label.address;
 
@@ -418,8 +418,8 @@ void vm_unit::read_data_relocations(
 
 void vm_unit::read(std::istream &input)
 {
-  version_chunk_t const filehead {
-    read_primitive<chunk_header_t>(input),  // header
+  vm_version_chunk const filehead {
+    read_primitive<vm_chunk_header>(input),  // header
     read_primitive<int32_t>(input)          // version
   };
 
@@ -433,7 +433,7 @@ void vm_unit::read(std::istream &input)
     throw vm_unsupported_unit_version("Invalid bytecode version.");
   }
 
-  chunk_offsets_t const offsets { input };
+  vm_chunk_offsets const offsets { input };
 
   if (offsets.seek_to_offset(input, CHUNK_INST)) {
     read_instructions(input);

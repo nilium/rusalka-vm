@@ -14,7 +14,7 @@
 #include "vm_unit+chunk_types.inl"
 
 
-struct chunk_offsets_t
+struct vm_chunk_offsets
 {
   struct chunk_offset_t
   {
@@ -23,11 +23,11 @@ struct chunk_offsets_t
   };
 
 
-  table_header_t                header;
+  vm_table_header                header;
   std::vector<chunk_offset_t>   offsets;
 
 
-  explicit chunk_offsets_t(std::istream &input)
+  explicit vm_chunk_offsets(std::istream &input)
   {
     read_table(input, CHUNK_OFFS, header, [&](int32_t index) {
       offsets.emplace_back(
