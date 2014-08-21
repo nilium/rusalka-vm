@@ -578,6 +578,27 @@ void vm_thread::exec(const vm_op &op)
     _process.destroy_thread(thread_index);
   } break;
 
+  // DOWNFRAME
+  // Records a stack frame to be ascended or dropped by UPFRAME or DROPFRAME
+  // respectively.
+  case DOWNFRAME: {
+    throw vm_bad_opcode("Unimplemented opcode");
+  } break;
+
+  // UPFRAME
+  // Ascends a stack frame, returning to the frame from the last DOWNFRAME
+  // instruction. Pops VALUE_COUNT values off the stack before ascending and
+  // pushes them onto the stack afterward.
+  case UPFRAME: {
+    throw vm_bad_opcode("Unimplemented opcode");
+  } break;
+
+  // DROPFRAME
+  // Removes the last stack frame recorded by DOWNFRAME, discarding it.
+  case DROPFRAME: {
+    throw vm_bad_opcode("Unimplemented opcode");
+  } break;
+
   case OP_COUNT: ;
     throw vm_bad_opcode("Invalid opcode");
   }

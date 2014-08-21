@@ -45,4 +45,7 @@ INSTRUCTION( PEEK,            PEEK,         34,         5,    output, input, inp
 INSTRUCTION( POKE,            POKE,         35,         5,    regonly, input, input, input, litflag ) // r(mem), lr(value), lr(offset), lr(kind), litflag
 INSTRUCTION( DEFER,           DEFER,        36,         1,    output )
 INSTRUCTION( JOIN,            JOIN,         37,         2,    output, regonly )
+INSTRUCTION( DOWNFRAME,       DOWNFRAME,    38,         0     )
+INSTRUCTION( UPFRAME,         UPFRAME,      39,         1,    input )
+INSTRUCTION( DROPFRAME,       DROPFRAME,    40,         0     )
 // END INSTRUCTIONS
