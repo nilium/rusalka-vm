@@ -54,16 +54,20 @@ class vm_thread
   stack_t _stack;
   vm_value _registers[REGISTER_COUNT] {};
 
-
   template <class T, class... ARGS>
   int32_t load_registers(int32_t index, T &&first, ARGS&&... args);
+
   template <class T>
   int32_t load_registers(int32_t index, T &&first);
+
   int32_t load_registers(int32_t index) const
   {
     return index;
   }
 
+  void down_frame();
+  void up_frame(int32_t value_count);
+  void drop_frame();
 
   void exec(const vm_op &op);
   bool run(int32_t from_ip);
