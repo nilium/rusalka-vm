@@ -660,6 +660,69 @@ vm_value &vm_thread::stack(int32_t loc)
 
 
 
+
+void vm_thread::down_frame(int32_t argc)
+{
+  call_frame frame {
+    ip(),
+    ebp(),
+    esp().i32() - argc
+  };
+
+  ++_sequence;
+  ebp() = frame.esp;
+
+  if (R_NONVOLATILE_REGISTERS > 0) {
+    auto const copy_register_begin = std::begin(_registers) + R_FIRST_NONVOLATILE;
+    auto const copy_register_end = copy_register_begin + R_NONVOLATILE_REGISTERS;
+    std::copy(copy_register_begin, copy_register_end, std::begin(frame.registers));
+  }
+
+  _frames.push_back(frame);
+}
+
+
+
+void vm_thread::up_frame(int32_t value_count)
+{
+  if (value_count < 0) {
+    throw vm_stack_access_error("Attempt to preserve < 0 stack objects.");
+  } else if (_frames.size() == 0) {
+    throw vm_stack_underflow("Attempt to ascend frame when no frames are recorded.");
+  }
+
+  vm_value const *const copied_end = &stack(esp().i32());
+  vm_value const *const copied_begin = copied_end - value_count;
+  stack_t const copied_stack { copied_begin, copied_end };
+
+  call_frame const &frame = _frames.back();
+
+  ip() = frame.from_ip;
+  ebp() = frame.ebp;
+  esp() = frame.esp;
+
+  for (vm_value const value : copied_stack) {
+    push(value);
+  }
+
+  _frames.pop_back();
+  --_sequence;
+}
+
+
+
+void vm_thread::drop_frame()
+{
+  if (_frames.size() == 0) {
+    throw vm_stack_underflow("Attempt to drop frame when no frames are recorded.");
+  }
+
+  _frames.pop_back();
+  --_sequence;
+}
+
+
+
 void vm_thread::exec_call(int32_t pointer, int32_t argc)
 {
   if (argc < 0) {

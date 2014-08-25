@@ -77,8 +77,8 @@ class vm_thread
     return index;
   }
 
-  void down_frame();
-  void up_frame(int32_t value_count);
+  void down_frame(int32_t argc = 0);
+  void up_frame(int32_t value_count = 0);
   void drop_frame();
 
   void exec(const vm_op &op);
