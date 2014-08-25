@@ -378,7 +378,7 @@ void vm_thread::exec(const vm_op &op)
 
   // RETURN -- exits the current frame/sequence
   case RETURN: {
-    --_sequence;
+    up_frame(0);
   } break;
 
   // REALLOC INOUT, IN, SIZE, LITFLAG
@@ -629,6 +629,7 @@ vm_value vm_thread::call_function_nt(int32_t pointer, int32_t argc, const vm_val
 vm_value vm_thread::call_function_nt(int32_t pointer, int32_t num_args)
 {
   exec_call(pointer, num_args);
+  run();
   return rp();
 }
 
@@ -731,22 +732,10 @@ void vm_thread::exec_call(int32_t pointer, int32_t argc)
     throw vm_invalid_argument_count("Encountered argument count greater than ESP");
   }
 
-  // preserve nonvolatile registers
-  std::array<vm_value, R_NONVOLATILE_REGISTERS> nonvolatile_reg;
-  auto first_preserved = std::begin(_registers) + R_FIRST_NONVOLATILE;
-  auto last_preserved = first_preserved + R_NONVOLATILE_REGISTERS;
-  if (R_NONVOLATILE_REGISTERS > 0) {
-    std::copy(first_preserved, last_preserved, std::begin(nonvolatile_reg));
-  }
-
-  vm_value const preserved_ip = ip();
-  vm_value const preserved_ebp = ebp();
-  ebp() = esp().i32() - argc;
-  vm_value const preserved_esp = ebp();
+  down_frame(argc);
 
   if (pointer < 0) {
     auto callback = _process._callbacks[-(pointer + 1)];
-    ++_sequence;
 
     if (argc <= 0) {
       rp() = callback.invoke(*this, 0, nullptr);
@@ -759,20 +748,10 @@ void vm_thread::exec_call(int32_t pointer, int32_t argc)
       rp() = callback.invoke(*this, argc, &argv[0]);
     }
 
-    --_sequence;
+    up_frame(0);
   } else {
     ip() = pointer;
-    run();
   }
-
-  // restore nonvolatiles
-  if (R_NONVOLATILE_REGISTERS > 0) {
-    std::copy(std::begin(nonvolatile_reg), std::end(nonvolatile_reg), first_preserved);
-  }
-
-  ip() = preserved_ip;
-  ebp() = preserved_ebp;
-  esp() = preserved_esp;
 }
 
 
