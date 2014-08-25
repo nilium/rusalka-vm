@@ -45,13 +45,25 @@ class vm_thread
     R_VOLATILE_REGISTERS = REGISTER_COUNT - R_FIRST_VOLATILE,
   };
 
+  struct call_frame
+  {
+    // Always-preserved registers.
+    int32_t from_ip; // Instruction to return to.
+    int32_t ebp;
+    int32_t esp;
+    // Optionally-preserved volatile registers (may be 0).
+    vm_value registers[R_NONVOLATILE_REGISTERS];
+  };
+
 
   using stack_t = std::vector<vm_value>;
+  using call_frames = std::vector<call_frame>;
 
   vm_state &_process;
   int32_t _sequence = 0;
   int32_t _trap = 0;
   stack_t _stack;
+  call_frames _frames;
   vm_value _registers[REGISTER_COUNT] {};
 
   template <class T, class... ARGS>
