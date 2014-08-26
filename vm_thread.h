@@ -51,6 +51,7 @@ class vm_thread
     int32_t from_ip; // Instruction to return to.
     int32_t ebp;
     int32_t esp;
+    int32_t sequence;
     // Optionally-preserved volatile registers (may be 0).
     vm_value registers[R_NONVOLATILE_REGISTERS];
   };

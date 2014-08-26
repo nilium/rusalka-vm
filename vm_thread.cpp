@@ -667,7 +667,8 @@ void vm_thread::down_frame(int32_t argc)
   call_frame frame {
     ip(),
     ebp(),
-    esp().i32() - argc
+    esp().i32() - argc,
+    _sequence,
   };
 
   ++_sequence;
@@ -706,8 +707,8 @@ void vm_thread::up_frame(int32_t value_count)
     push(value);
   }
 
+  _sequence = frame.sequence;
   _frames.pop_back();
-  --_sequence;
 }
 
 
@@ -718,8 +719,8 @@ void vm_thread::drop_frame()
     throw vm_stack_underflow("Attempt to drop frame when no frames are recorded.");
   }
 
+  _sequence = _frames.back().sequence;
   _frames.pop_back();
-  --_sequence;
 }
 
 
