@@ -112,13 +112,14 @@ bool vm_thread::run(int32_t from_ip)
 
 bool vm_thread::run()
 {
-  _trap = 0;
   const int32_t term_sequence = _sequence++;
   while (!_trap && term_sequence < _sequence) {
     int32_t opidx = fetch();
     exec(_process._unit.fetch_op(opidx));
   }
-  return _trap == 0;
+  bool const trapped = _trap != 0;
+  _trap = 0;
+  return trapped;
 }
 
 
