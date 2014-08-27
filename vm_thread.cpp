@@ -630,7 +630,9 @@ vm_value vm_thread::call_function_nt(int32_t pointer, int32_t argc, const vm_val
 vm_value vm_thread::call_function_nt(int32_t pointer, int32_t num_args)
 {
   exec_call(pointer, num_args);
-  run();
+  while (!run()) {
+    /* nop */
+  }
   return rp();
 }
 
