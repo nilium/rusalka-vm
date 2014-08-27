@@ -117,9 +117,9 @@ bool vm_thread::run()
     int32_t opidx = fetch();
     exec(_process._unit.fetch_op(opidx));
   }
-  bool const trapped = _trap != 0;
+  bool const good = _trap == 0;
   _trap = 0;
-  return trapped;
+  return good;
 }
 
 
