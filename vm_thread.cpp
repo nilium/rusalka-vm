@@ -48,6 +48,7 @@ static int32_t const MEMOP_SIZE[MEMOP_MAX] {
 };
 
 
+
 /*
   Sets the rounding mode and then calls func; the previous rounding mode is
   restored after the call completes.
@@ -60,7 +61,6 @@ static void with_rounding(int const round_mode, FN &&func) noexcept
   func();
   std::fesetround(previous);
 }
-
 
 
 
@@ -82,6 +82,8 @@ vm_function vm_thread::function(const char *name)
   // if (!pointer.ok) throw std::runtime_error("no such function");
   return vm_function { *this, pointer.value };
 }
+
+
 
 vm_function vm_thread::function(int pointer)
 {
