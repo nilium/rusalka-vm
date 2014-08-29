@@ -20,6 +20,11 @@
 #include <iomanip>
 
 
+#ifndef VM_MAX_JOIN_LOOPS
+#define VM_MAX_JOIN_LOOPS 4
+#endif
+
+
 
 namespace {
 enum memop_typed_t : int32_t
@@ -576,7 +581,10 @@ void vm_thread::exec(const vm_op &op)
   case JOIN: {
     int32_t const thread_index = reg(op[0]);
     vm_thread &thread = _process.thread_by_index(thread_index);
-    thread.run();
+    int loops = VM_MAX_JOIN_LOOPS;
+    while (loops > 0 && !thread.run()) {
+      --loops;
+    }
     reg(op[1]) = thread.return_value();
     _process.destroy_thread(thread_index);
   } break;
