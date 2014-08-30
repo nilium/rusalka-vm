@@ -934,19 +934,21 @@ class Parser
   #############################################################################
 
   def run(input, filename = 'anonymous')
-    @prefix = unique_uuid if @prefix.nil? || @prefix.empty?
-    @prefix = "_#{@prefix}" if "0123456789".include?(@prefix[0])
-    @data << Unit[filename, @prefix]
-    @marks = []
-    @index = 0
-    @input = input
-    @current = nil
-    @line = 0
-    @column = 0
-    @let_names = []
+    @prefix      = unique_uuid if @prefix.nil? || @prefix.empty?
+    @prefix      = "_#{@prefix}" if "0123456789".include?(@prefix[0])
+    @marks       = []
+    @index       = 0
+    @input       = input
+    @current     = nil
+    @line        = 0
+    @column      = 0
+    @let_names   = []
     @let_unwinds = []
-    @let_refs = {}
+    @let_refs    = {}
     @close_stack = []
+
+    @data << Unit[filename, @prefix]
+
     __run__
   ensure
     @prefix = nil
