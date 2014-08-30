@@ -919,8 +919,8 @@ class Parser
   #############################################################################
 
   def error(*msg)
-    $stderr.puts "Error when trying to read token: #{msg.join ' '}"
-    $stderr.puts peek.inspect
+    $stderr.puts "Error: #{msg.join ' '}"
+    $stderr.puts " => #{peek.inspect}"
     raise RuntimeError
   end
 
