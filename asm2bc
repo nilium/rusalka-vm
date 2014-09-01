@@ -8,7 +8,9 @@
 #
 
 
-require './lexer.rb'
+require File.expand_path('../colors.rb', __FILE__)
+require File.expand_path('../lexer.rb', __FILE__)
+
 require 'digest'
 require 'securerandom'
 require 'set'
@@ -24,34 +26,6 @@ LAST_NONVOLATILE_GP_REGISTER = (FIRST_NONVOLATILE_GP_REGISTER + MAX_NONVOLATILE_
 
 FIRST_VOLATILE_GP_REGISTER = LAST_NONVOLATILE_GP_REGISTER + 1
 LAST_VOLATILE_GP_REGISTER = MAX_REGISTERS - (MAX_NONVOLATILE_GP_REGISTERS + RESERVED_REGISTERS) - 1
-
-
-module Colors
-  class <<self
-    attr_accessor :colored
-  end
-
-  self.colored = true
-
-  GREY     = '[30;m'
-  RED      = '[31;m'
-  GREEN    = '[32;m'
-  YELLOW   = '[33;m'
-  BLUE     = '[34;m'
-  PURPLE   = '[35;m'
-  CYAN     = '[36;m'
-  WHITE    = '[37;m'
-  NO_COLOR = '[0;m'
-
-  def self.white(*bits)  ; "#{self.colored  ? WHITE   : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.grey(*bits)   ; "#{self.colored  ? GREY    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.red(*bits)    ; "#{self.colored  ? RED     : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.green(*bits)  ; "#{self.colored  ? GREEN   : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.yellow(*bits) ; "#{self.colored  ? YELLOW  : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.blue(*bits)   ; "#{self.colored  ? BLUE    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.purple(*bits) ; "#{self.colored  ? PURPLE  : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.cyan(*bits)   ; "#{self.colored  ? CYAN    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-end
 
 
 def logical_xor(a, b)
