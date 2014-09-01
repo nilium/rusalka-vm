@@ -107,15 +107,17 @@ STRING_LITS = [:double_string_lit]
 CHAR_LITS = [:single_string_lit]
 
 
-Unit = Struct.new(:name, :prefix)
-Instruction = Struct.new(:name, :args)
-DefDataStmt = Struct.new(:name, :string, :mangled)
-RegisterRef = Struct.new(:index)
+# Parser and Name Structs
+
+Unit          = Struct.new(:name, :prefix)
+Instruction   = Struct.new(:name, :args)
+DefDataStmt   = Struct.new(:name, :string, :mangled)
+RegisterRef   = Struct.new(:index)
 NamedRegister = Struct.new(:name, :ref)
-AnonDataStmt = Struct.new(:id, :prefix)
-DataRef = Struct.new(:name, :lookup)
-LabelRef = Struct.new(:label)
-LabelStmt = Struct.new(:label)
+AnonDataStmt  = Struct.new(:id, :prefix)
+DataRef       = Struct.new(:name, :lookup)
+LabelRef      = Struct.new(:label)
+LabelStmt     = Struct.new(:label)
 
 
 class RegisterRef
@@ -124,12 +126,18 @@ class RegisterRef
 end
 
 
+# Global Named Registers
+
 REG_IP  = RegisterRef[0].freeze
 REG_EBP = RegisterRef[1].freeze
 REG_ESP = RegisterRef[2].freeze
 REG_RP  = RegisterRef[3].freeze
 
 
+#
+# Label identifier. Covers the label name, the mangled label name, and its kind
+# (i.e., local, export, and import).
+#
 class Label
   attr_reader :name, :mangled, :kind
 
