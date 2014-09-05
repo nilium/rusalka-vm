@@ -202,8 +202,7 @@ end
 class Parser
 
   # The prefix is any prefix used for a specific file when mangling local
-  # names. At the moment, it's a SHA256 hash of the file being parsed. Must
-  # be assigned before calling run(...).
+  # names. At the moment, it's a randomly generated UUID converted to base-36.
   attr_accessor :prefix
   attr_reader :instructions
   attr_reader :labels
