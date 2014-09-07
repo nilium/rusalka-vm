@@ -27,6 +27,8 @@
 #include "vm_unit.h"
 #include "vm_thread.h"
 
+#pragma GCC visibility push(default)
+
 
 /*** Macros to configure the VM ***/
 
@@ -148,3 +150,6 @@ public:
   vm_thread &fork_thread(vm_thread const &thread);
 
 };
+
+
+#pragma GCC visibility pop

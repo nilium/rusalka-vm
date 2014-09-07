@@ -13,6 +13,8 @@
 #include "vm_opcode.h"
 #include "vm_value.h"
 
+#pragma GCC visibility push(hidden)
+
 
 class vm_unit;
 
@@ -36,3 +38,6 @@ public:
 
 // static_assert(offsetof(vm_op, argv) == sizeof(vm_opcode),
 //   "offset of vm_op::argv must be the same as the size of vm_op");
+
+
+#pragma GCC visibility pop

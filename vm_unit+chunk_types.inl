@@ -8,6 +8,8 @@
 
 #pragma once
 
+#pragma GCC visibility push(hidden)
+
 
 struct vm_chunk_header
 {
@@ -35,3 +37,6 @@ struct vm_label
   std::string name;
   int32_t address;
 };
+
+
+#pragma GCC visibility pop

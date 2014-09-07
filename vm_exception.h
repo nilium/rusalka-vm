@@ -10,6 +10,8 @@
 
 #include <exception>
 
+#pragma GCC visibility push(default)
+
 
 #define VM_DECLARE_EXCEPTION(KLASSNAME, SUPERKLASSNAME) \
   struct KLASSNAME : public SUPERKLASSNAME { \
@@ -52,3 +54,6 @@ VM_DECLARE_EXCEPTION(vm_bad_unit, vm_runtime_error);
 VM_DECLARE_EXCEPTION(vm_unsupported_unit_version, vm_bad_unit);
 
 #undef VM_DECLARE_EXCEPTION
+
+
+#pragma GCC visibility pop

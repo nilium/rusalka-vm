@@ -11,6 +11,8 @@
 #include <cstdint>
 #include <iostream>
 
+#pragma GCC visibility push(hidden)
+
 
 /* _L -> reg op literal */
 enum vm_opcode : uint16_t
@@ -27,3 +29,6 @@ extern const int32_t g_opcode_argc[OP_COUNT];
 
 std::ostream &operator << (std::ostream &out, vm_opcode v);
 bool opcode_has_litflag(vm_opcode op);
+
+
+#pragma GCC visibility pop

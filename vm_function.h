@@ -13,6 +13,8 @@
 
 #include "vm_value.h"
 
+#pragma GCC visibility push(default)
+
 
 class vm_thread;
 
@@ -51,3 +53,6 @@ vm_value vm_function::operator()(ARGS&&... args)
 {
   return vm_invoke_function(_thread, _pointer, std::forward<ARGS>(args)...);
 }
+
+
+#pragma GCC visibility pop

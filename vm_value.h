@@ -11,6 +11,8 @@
 #include <cstdint>
 #include <iostream>
 
+#pragma GCC visibility push(default)
+
 
 struct vm_value final
 {
@@ -98,3 +100,6 @@ static_assert(std::is_trivial<vm_value>::value,
 
 static_assert(std::is_standard_layout<vm_value>::value,
   "Value must be standard layout");
+
+
+#pragma GCC visibility pop

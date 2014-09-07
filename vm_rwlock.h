@@ -10,6 +10,8 @@
 
 #include <pthread.h>
 
+#pragma GCC visibility push(hidden)
+
 
 class vm_rwlock
 {
@@ -60,3 +62,6 @@ public:
     bool unlock() noexcept { return rwlock_.unlock(); }
   };
 };
+
+
+#pragma GCC visibility pop

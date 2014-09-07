@@ -13,9 +13,12 @@
 #include <iterator>
 #include <map>
 #include <vector>
+
 #include "vm_opcode.h"
 #include "vm_op.h"
 #include "vm_value.h"
+
+#pragma GCC visibility push(default)
 
 
 #define VM_MIN_UNIT_VERSION 8
@@ -208,3 +211,6 @@ void vm_unit::each_data(Func &&fn) const
     }
   }
 }
+
+
+#pragma GCC visibility pop
