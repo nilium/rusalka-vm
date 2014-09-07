@@ -157,16 +157,12 @@ void vm_unit::read_extern_relocations(
       int32_t const arg_index = arg_base + mask_index;
       vm_value &arg = instruction_argv[arg_index];
 
-      int32_t orig_base = arg;
-      int32_t new_base = arg;
-
       auto iter = relocations.find(arg);
       if (iter == not_found) {
         unresolved_relocations.emplace_back(rel);
         return;
       }
 
-      new_base = arg = iter->second.pointer;
       if (!iter->second.resolved) {
         /* unresolved */
         unresolved_relocations.emplace_back(rel);
@@ -406,7 +402,6 @@ void vm_unit::read_data_relocations(
         if (iter == not_found) {
           return;
         }
-        int32_t prev = arg;
         arg = iter->second;
       });
 
@@ -423,7 +418,6 @@ void vm_unit::read(std::istream &input)
   };
 
   int32_t instruction_base = static_cast<int32_t>(instructions.size());
-  int32_t instruction_argv_base = static_cast<int32_t>(instruction_argv.size());
 
   relocation_map_t label_relocations;
 
