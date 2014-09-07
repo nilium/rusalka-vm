@@ -6,12 +6,6 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#include "vm_thread.h"
-#include "vm_state.h"
-#include "vm_op.h"
-#include "vm_opcode.h"
-#include "vm_exception.h"
-
 #include <algorithm>
 #include <functional>
 #include <cfenv>
@@ -19,11 +13,16 @@
 #include <iostream>
 #include <iomanip>
 
+#include "vm_thread.h"
+#include "vm_state.h"
+#include "vm_op.h"
+#include "vm_opcode.h"
+#include "vm_exception.h"
+
 
 #ifndef VM_MAX_JOIN_LOOPS
 #define VM_MAX_JOIN_LOOPS 4
 #endif
-
 
 
 namespace {

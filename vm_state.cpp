@@ -15,7 +15,6 @@
 #include "vm_state.h"
 
 
-
 /*
   TODO: handle proper stack unwinding on trap somehow. Currently, it can really
   screw with the VM if there are nested run() calls (e.g., an imported function

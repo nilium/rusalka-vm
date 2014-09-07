@@ -6,16 +6,15 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#include "vm_unit.h"
+#include <set>
 
+#include "vm_unit.h"
 
 #include "vm_unit+chunk_types.inl"
 #include "vm_unit+io.inl"
 #include "vm_unit+chunk_offsets.inl"
 #include "vm_opcode.h"
 #include "vm_exception.h"
-#include <set>
-
 
 
 // Iterates over each bit in a mask and passes the  of set bits to func.

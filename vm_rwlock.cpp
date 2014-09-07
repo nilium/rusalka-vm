@@ -6,10 +6,11 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#include "vm_rwlock.h"
 #include <stdexcept>
 #include <cerrno>
 #include <cstring>
+
+#include "vm_rwlock.h"
 
 
 vm_rwlock::vm_rwlock()
