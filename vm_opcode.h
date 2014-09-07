@@ -6,8 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_OPCODE_H__
-#define __VM_OPCODE_H__
+#pragma once
 
 #include <cstdint>
 #include <iostream>
@@ -28,5 +27,3 @@ extern const int32_t g_opcode_argc[OP_COUNT];
 
 std::ostream &operator << (std::ostream &out, vm_opcode v);
 bool opcode_has_litflag(vm_opcode op);
-
-#endif /* end __VM_OPCODE_H__ include guard */

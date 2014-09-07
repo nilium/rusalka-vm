@@ -6,8 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_VALUE_H__
-#define __VM_VALUE_H__
+#pragma once
 
 #include <cstdint>
 #include <iostream>
@@ -99,6 +98,3 @@ static_assert(std::is_trivial<vm_value>::value,
 
 static_assert(std::is_standard_layout<vm_value>::value,
   "Value must be standard layout");
-
-
-#endif /* end __VM_VALUE_H__ include guard */

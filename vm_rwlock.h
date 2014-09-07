@@ -6,8 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_RWLOCK_H__
-#define __VM_RWLOCK_H__
+#pragma once
 
 #include <pthread.h>
 
@@ -61,6 +60,3 @@ public:
     bool unlock() noexcept { return rwlock_.unlock(); }
   };
 };
-
-
-#endif /* end __VM_RWLOCK_H__ include guard */

@@ -6,8 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_UNIT_CHUNK_TYPES_INL__
-#define __VM_UNIT_CHUNK_TYPES_INL__
+#pragma once
 
 
 struct vm_chunk_header
@@ -36,6 +35,3 @@ struct vm_label
   std::string name;
   int32_t address;
 };
-
-
-#endif /* end __VM_UNIT_CHUNK_TYPES_INL__ include guard */

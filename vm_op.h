@@ -6,8 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_OP_H__
-#define __VM_OP_H__
+#pragma once
 
 #include <type_traits>
 
@@ -37,5 +36,3 @@ public:
 
 // static_assert(offsetof(vm_op, argv) == sizeof(vm_opcode),
 //   "offset of vm_op::argv must be the same as the size of vm_op");
-
-#endif /* end __VM_OP_H__ include guard */

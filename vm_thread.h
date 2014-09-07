@@ -6,9 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_THREAD_H__
-#define __VM_THREAD_H__
-
+#pragma once
 
 #include <vector>
 
@@ -210,6 +208,3 @@ vm_value vm_invoke_function(vm_thread &thread, int32_t pointer, ARGS &&... args)
 {
   return thread.call_function(pointer, std::forward<ARGS>(args)...);
 }
-
-
-#endif /* end __VM_THREAD_H__ include guard */

@@ -6,9 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_UNIT_IO_INL__
-#define __VM_UNIT_IO_INL__
-
+#pragma once
 
 #include "vm_unit+chunk_types.inl"
 
@@ -128,6 +126,3 @@ std::string read_lstring(std::istream &input)
   input.read(&result[0], length);
   return result;
 }
-
-
-#endif /* end __VM_UNIT_IO_INL__ include guard */

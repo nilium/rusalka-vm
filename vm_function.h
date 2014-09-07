@@ -6,9 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_FUNCTION_H__
-#define __VM_FUNCTION_H__
-
+#pragma once
 
 #include <cstdint>
 #include <utility>
@@ -53,6 +51,3 @@ vm_value vm_function::operator()(ARGS&&... args)
 {
   return vm_invoke_function(_thread, _pointer, std::forward<ARGS>(args)...);
 }
-
-
-#endif /* end __VM_FUNCTION_H__ include guard */

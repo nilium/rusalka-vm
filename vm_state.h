@@ -6,8 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_STATE_H__
-#define __VM_STATE_H__
+#pragma once
 
 #include <climits>
 #include <cstdlib>
@@ -149,6 +148,3 @@ public:
   vm_thread &fork_thread(vm_thread const &thread);
 
 };
-
-
-#endif /* end __VM_STATE_H__ include guard */

@@ -6,8 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_UNIT_H__
-#define __VM_UNIT_H__
+#pragma once
 
 #include <cstdint>
 #include <array>
@@ -209,6 +208,3 @@ void vm_unit::each_data(Func &&fn) const
     }
   }
 }
-
-
-#endif /* end __VM_UNIT_H__ include guard */

@@ -6,8 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_EXCEPTION_H__
-#define __VM_EXCEPTION_H__
+#pragma once
 
 #include <exception>
 
@@ -52,4 +51,4 @@ VM_DECLARE_EXCEPTION(vm_bad_unit, vm_runtime_error);
 // bytecode version.
 VM_DECLARE_EXCEPTION(vm_unsupported_unit_version, vm_bad_unit);
 
-#endif /* end __VM_EXCEPTION_H__ include guard */
+#undef VM_DECLARE_EXCEPTION

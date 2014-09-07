@@ -6,9 +6,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __VM_UNIT_CHUNK_OFFSETS_INL__
-#define __VM_UNIT_CHUNK_OFFSETS_INL__
-
+#pragma once
 
 #include "vm_unit+io.inl"
 #include "vm_unit+chunk_types.inl"
@@ -73,6 +71,3 @@ struct vm_chunk_offsets
   }
 
 };
-
-
-#endif /* end __VM_UNIT_CHUNK_OFFSETS_INL__ include guard */
