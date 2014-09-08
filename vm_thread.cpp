@@ -153,25 +153,6 @@ void vm_thread::exec(const vm_op &op)
   vm_value value;
   uint16_t const litflag = op.litflag();
 
-  #ifdef LOG_OP_INFO
-  bool has_litflag = opcode_has_litflag(op.opcode());
-  std::clog << std::setw(10) << (ip().i32() - 1) << ": " << std::setw(10) << op.opcode();
-  int32_t argidx = 0;
-  for (; argidx < g_opcode_argc[op.opcode()] - (has_litflag ? 1 : 0); ++argidx) {
-    std::clog << "    ";
-    if (has_litflag) {
-      if ((litflag & (0x1 << argidx)) != 0) {
-        std::clog << op[argidx].f64();
-      } else {
-        std::clog << "r" << op[argidx].i32() << "(" << deref(op[argidx], litflag, 0x1 << argidx).f64() << ')';
-      }
-    } else {
-      std::clog << "r" << op[argidx].i32() << "(" << reg(op[argidx]).f64() << ')';
-    }
-  }
-  std::clog << std::endl;
-  #endif
-
   switch (op.opcode()) {
   // For all math and bitwise instructions, litflag applies to both LHS and RHS
   // input. See vm_thread::deref for how the test works.
@@ -591,11 +572,6 @@ void vm_thread::exec(const vm_op &op)
   case OP_COUNT: ;
     throw vm_bad_opcode("Invalid opcode");
   }
-
-  #ifdef LOG_STATE_CHANGES
-  dump_registers();
-  dump_stack();
-  #endif
 }
 
 
