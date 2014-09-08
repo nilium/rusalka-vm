@@ -27,22 +27,6 @@
 #pragma GCC visibility push(default)
 
 
-/*** Macros to configure the VM ***/
-
-/**
-  Log each instruction and its arguments as it's executed. Does not log the
-  contents of registers referenced by arguments.
-*/
-// #define LOG_OP_INFO
-
-/** Log per-instruction changes to the stack and state. */
-// #define LOG_STATE_CHANGES
-
-/** Log the final registers and stack */
-// #define LOG_FINAL_STATE
-
-
-class vm_state;
 class vm_thread;
 
 
