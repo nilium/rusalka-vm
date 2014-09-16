@@ -282,12 +282,20 @@ private:
   // Advances past whitespace.
   void whitespace();
 
+  // Reads a quoted string-like token of the given kind and with a delimiter.
+  // Ideally, the delimiter is some closing quotation character, but may be
+  // any single character.
   emit_result quoted_string(token_kind const kind, char const delimiter);
-  emit_result string();
-  emit_result numeric();
-  emit_result symbol();
-  emit_result identifier();
-  emit_result punctuation();
+
+  // Token function chain. If the first character matches, it attempts to read
+  // the token type the function is named for. If there's no match, it calls
+  // into the next token reading function. The first token that's attempted is
+  // a string because matching one requires only a check for a double quote.
+  emit_result string(); // no match -> symbol
+  emit_result symbol(); // no match -> numeric
+  emit_result numeric(); // no match -> identifier
+  emit_result identifier(); // no match -> punctuation
+  emit_result punctuation(); // no match -> failure
 
 };
 
