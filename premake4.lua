@@ -9,8 +9,8 @@ configurations {
 
 static_library {
   'rusalka',
-  files = { '**.h', '**.inl', '**.cpp' },
-  excludes = { '**_test.cpp', '**_test.h', '**_test.inl' },
+  files = { '**.cpp' },
+  excludes = { '**_test.*' },
 }
 
 
