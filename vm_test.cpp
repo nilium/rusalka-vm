@@ -16,7 +16,7 @@ vm_value printfn(vm_thread &vm, int32_t argc, const vm_value *argv, void*)
 {
   std::cerr << "PRINTI: ";
   for (; argc > 0; --argc, ++argv) {
-    std::cerr << argv->i32() << ' ';
+    std::cerr << static_cast<int32_t>(*argv) << ' ';
   }
   std::cerr << std::endl;
   return vm_value { 0 };
@@ -26,7 +26,7 @@ vm_value printsfn(vm_thread &vm, int32_t argc, const vm_value *argv, void*)
 {
   std::cerr << "PRINTS: ";
   for (; argc > 0; --argc, ++argv) {
-    const char *ptr = reinterpret_cast<const char *>(vm.process().get_block(argv->i32(), VM_MEM_READABLE));
+    const char *ptr = reinterpret_cast<const char *>(vm.process().get_block(*argv, VM_MEM_READABLE));
     int32_t size = vm.process().block_size(*argv);
     if (!ptr || !size) {
       std::cerr << "<null> ";
