@@ -98,7 +98,7 @@ vm_function vm_thread::function(int pointer)
 
 int32_t vm_thread::fetch()
 {
-  const int32_t next_instr = ip().i32();
+  const int32_t next_instr = ip();
   ip() = next_instr + 1;
   if (next_instr < 0 || next_instr >= _process._source_size) {
     ++_trap;
@@ -120,7 +120,7 @@ bool vm_thread::run()
 {
   const int32_t term_sequence = _sequence++;
   while (!_trap && term_sequence < _sequence) {
-    int32_t opidx = fetch();
+    int32_t const opidx = fetch();
     exec(_process._unit.fetch_op(opidx));
   }
   bool const good = _trap == 0;
@@ -132,7 +132,7 @@ bool vm_thread::run()
 
 vm_value vm_thread::deref(vm_value input, uint16_t flag, uint32_t mask) const
 {
-  return (flag & mask) ? input : reg(input.i32());
+  return (flag & mask) ? input : reg(input);
 }
 
 
@@ -224,25 +224,25 @@ void vm_thread::exec(const vm_op &op)
   // NOT OUT, IN
   // Bitwise not (unsigned 32-bit).
   case NOT: {
-    reg(op[0]) = ~reg(op[1]).ui32();
+    reg(op[0]) = ~reg(op[1]);
   } break;
 
   // OR OUT, LHS, RHS, LITFLAG
   // Bitwise or (unsigned 32-bit).
   case OR: {
-    reg(op[0]) = deref(op[1], litflag, 0x2).ui32() | deref(op[2], litflag, 0x4).ui32();
+    reg(op[0]) = deref(op[1], litflag, 0x2) | deref(op[2], litflag, 0x4);
   } break;
 
   // AND OUT, LHS, RHS, LITFLAG
   // Bitwise and (unsigned 32-bit).
   case AND: {
-    reg(op[0]) = deref(op[1], litflag, 0x2).ui32() & deref(op[2], litflag, 0x4).ui32();
+    reg(op[0]) = deref(op[1], litflag, 0x2) & deref(op[2], litflag, 0x4);
   } break;
 
   // XOR OUT, LHS, RHS, LITFLAG
   // Bitwise xor (unsigned 32-bit).
   case XOR: {
-    reg(op[0]) = deref(op[1], litflag, 0x2).ui32() ^ deref(op[2], litflag, 0x4).ui32();
+    reg(op[0]) = deref(op[1], litflag, 0x2) ^ deref(op[2], litflag, 0x4);
   } break;
 
   // ARITHSHIFT OUT, LHS, RHS, LITFLAG
@@ -308,20 +308,20 @@ void vm_thread::exec(const vm_op &op)
   // 0x1 - LHS is a literal
   // 0x2 - RHS is a literal
   case EQ: {
-    if ((deref(op[0], litflag, 0x1) == deref(op[1], litflag, 0x2)) != (op[2].i32() != 0)) {
-      ip() = ip().i32() + 1;
+    if ((deref(op[0], litflag, 0x1) == deref(op[1], litflag, 0x2)) != (op[2] != 0)) {
+      ip() = ip() + 1;
     }
   } break;
 
   case LT: {
-    if ((deref(op[0], litflag, 0x1) < deref(op[1], litflag, 0x2)) != (op[2].i32() != 0)) {
-      ip() = ip().i32() + 1;
+    if ((deref(op[0], litflag, 0x1) < deref(op[1], litflag, 0x2)) != (op[2] != 0)) {
+      ip() = ip() + 1;
     }
   } break;
 
   case LE: {
-    if ((deref(op[0], litflag, 0x1) <= deref(op[1], litflag, 0x2)) != (op[2].i32() != 0)) {
-      ip() = ip().i32() + 1;
+    if ((deref(op[0], litflag, 0x1) <= deref(op[1], litflag, 0x2)) != (op[2] != 0)) {
+      ip() = ip() + 1;
     }
   } break;
 
@@ -375,7 +375,7 @@ void vm_thread::exec(const vm_op &op)
   // 0x2 - Block is zero
   // 0x4 - Size
   case REALLOC: {
-    int32_t const block_id = (litflag & 0x2) ? 0 : op[1].i32();
+    int32_t const block_id = (litflag & 0x2) ? 0 : op[1];
     int32_t const size = deref(op[2], litflag, 0x4);
     reg(op[0]) = _process.realloc_block(block_id, size);
   } break;
@@ -401,7 +401,7 @@ void vm_thread::exec(const vm_op &op)
     vm_value &out = reg(op[0]);
     int32_t const block_id = deref(op[1], litflag, 0x2);
     int32_t const offset = deref(op[2], litflag, 0x4);
-    memop_typed_t const type = (memop_typed_t)deref(op[3], litflag, 0x8).i32();
+    memop_typed_t const type = (memop_typed_t)static_cast<int32_t>(deref(op[3], litflag, 0x8));
     int8_t const *ro_block = reinterpret_cast<int8_t const *>(_process.get_block(block_id, VM_MEM_READABLE));
 
     if (!ro_block) {
@@ -443,7 +443,7 @@ void vm_thread::exec(const vm_op &op)
     int32_t const block_id = reg(op[0]);
     value = deref(op[1], litflag, 0x2);
     int32_t const offset = deref(op[2], litflag, 0x4);
-    memop_typed_t const type = static_cast<memop_typed_t>(deref(op[3], litflag, 0x8).i32());
+    memop_typed_t const type = (memop_typed_t)static_cast<int32_t>(deref(op[3], litflag, 0x8));
     int8_t *rw_block = reinterpret_cast<int8_t *>(_process.get_block(block_id, VM_MEM_WRITABLE));
 
     if (!rw_block) {
@@ -455,17 +455,17 @@ void vm_thread::exec(const vm_op &op)
     rw_block += offset;
 
     switch (type) {
-    case MEMOP_UINT8:   *(uint8_t *)rw_block  = value.ui8();  break;
-    case MEMOP_INT8:    *(int8_t *)rw_block   = value.i8();   break;
-    case MEMOP_UINT16:  *(uint16_t *)rw_block = value.ui16(); break;
-    case MEMOP_INT16:   *(int16_t *)rw_block  = value.i16();  break;
-    case MEMOP_UINT32:  *(uint32_t *)rw_block = value.ui32(); break;
-    case MEMOP_INT32:   *(int32_t *)rw_block  = value.i32();  break;
+    case MEMOP_UINT8:   *(uint8_t *)rw_block  = value;  break;
+    case MEMOP_INT8:    *(int8_t *)rw_block   = value;   break;
+    case MEMOP_UINT16:  *(uint16_t *)rw_block = value; break;
+    case MEMOP_INT16:   *(int16_t *)rw_block  = value;  break;
+    case MEMOP_UINT32:  *(uint32_t *)rw_block = value; break;
+    case MEMOP_INT32:   *(int32_t *)rw_block  = value;  break;
     // 64-bit integral types are only partially supported at the moment (may change later).
-    case MEMOP_UINT64:  *(uint64_t *)rw_block = value.ui64(); break;
-    case MEMOP_INT64:   *(int64_t *)rw_block  = value.i64();  break;
-    case MEMOP_FLOAT32: *(float *)rw_block    = value.f32();  break;
-    case MEMOP_FLOAT64: *(double *)rw_block   = value.value;  break;
+    case MEMOP_UINT64:  *(uint64_t *)rw_block = value; break;
+    case MEMOP_INT64:   *(int64_t *)rw_block  = value;  break;
+    case MEMOP_FLOAT32: *(float *)rw_block    = value;  break;
+    case MEMOP_FLOAT64: *(double *)rw_block   = value;  break;
     default: /* invalid type */
       throw vm_memory_access_error("Invalid type code for memory write");
     }
@@ -655,7 +655,7 @@ void vm_thread::down_frame(int32_t argc)
   call_frame frame {
     ip(),
     ebp(),
-    esp().i32() - argc,
+    esp() - argc,
     _sequence,
   };
 
@@ -681,7 +681,7 @@ void vm_thread::up_frame(int32_t value_count)
     throw vm_stack_underflow("Attempt to ascend frame when no frames are recorded.");
   }
 
-  vm_value const *const copied_end = &stack(esp().i32());
+  vm_value const *const copied_end = &stack(esp());
   vm_value const *const copied_begin = copied_end - value_count;
   stack_t const copied_stack { copied_begin, copied_end };
 
@@ -717,7 +717,7 @@ void vm_thread::exec_call(int32_t pointer, int32_t argc)
 {
   if (argc < 0) {
     throw vm_invalid_argument_count("Encountered argument count less than 0");
-  } else if (argc > esp().i32()) {
+  } else if (argc > esp()) {
     throw vm_invalid_argument_count("Encountered argument count greater than ESP");
   }
 
@@ -747,16 +747,16 @@ void vm_thread::exec_call(int32_t pointer, int32_t argc)
 
 void vm_thread::push(vm_value value)
 {
-  stack(esp().i32()) = value;
-  esp() = esp().i32() + 1;
+  stack(esp()) = value;
+  esp() = esp() + 1;
 }
 
 
 
 vm_value vm_thread::pop(bool copy_only)
 {
-  int32_t stack_top = esp().i32() - 1;
-  if (stack_top < ebp().i32()) {
+  int32_t stack_top = esp() - 1;
+  if (stack_top < ebp()) {
     throw vm_stack_underflow("Attempt to pop from stack when ESP is EBP");
   } else if (stack_top < 0) {
     throw vm_stack_underflow("Attempt to pop from stack when stack is empty");
@@ -801,7 +801,7 @@ vm_value vm_thread::reg(int32_t off) const
     }
     return _registers[off];
   } else {
-    off = esp().i32() + off;
+    off = esp() + off;
     if (off < 0) {
       throw vm_bad_register("Invalid relative stack offset.");
     }
@@ -819,7 +819,7 @@ vm_value &vm_thread::reg(int32_t off)
     }
     return _registers[off];
   } else {
-    off = esp().i32() + off;
+    off = esp() + off;
     if (off < 0) {
       throw vm_bad_register("Invalid relative stack offset.");
     }

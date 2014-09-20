@@ -196,7 +196,7 @@ void vm_unit::read_label_relocations(
       if (iter != not_found && iter->first == arg) {
         new_base = iter->second;
         arg = iter->second;
-      } else if (arg.i32() >= 0) {
+      } else if (arg >= 0) {
         new_base = orig_base + instruction_base;
         arg = new_base;
       } else {

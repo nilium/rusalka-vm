@@ -33,6 +33,13 @@ T read_primitive(std::istream &input)
 
 
 template <>
+vm_value read_primitive<vm_value>(std::istream &input)
+{
+  return vm_value { read_primitive<double>(input) };
+}
+
+
+template <>
 vm_chunk_header read_primitive<vm_chunk_header>(std::istream &input)
 {
   return vm_chunk_header {
