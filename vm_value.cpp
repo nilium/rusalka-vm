@@ -15,14 +15,24 @@
 
 std::ostream &operator << (std::ostream &out, vm_value v)
 {
-  return
-    out
-    << "<"
-    << std::dec << v.f64() << ", "
-    << std::hex << std::showbase
-    << v.i64()
-    << std::dec << std::noshowbase
-    << ">";
+    out << "(#" << std::dec << std::noshowbase << v.type << ": ";
+
+    switch (v.type) {
+    default:
+    case vm_value::UNSIGNED:
+      out << std::hex << std::showbase << v.u64_;
+      break;
+
+    case vm_value::SIGNED:
+      out << std::dec << std::noshowbase << v.s64_;
+      break;
+
+    case vm_value::FLOAT:
+      out << std::dec << std::noshowbase << v.f64_;
+      break;
+    }
+
+    return out << ")";
 }
 
 
