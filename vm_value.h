@@ -26,19 +26,48 @@ struct vm_value final
   };
 
 
-  enum value_type : uint64_t {
-    UNSIGNED = 0x0u,
-    SIGNED   = 0x1u,
-    FLOAT    = 0x2u,
+  enum value_type : int32_t
+  {
+    ERROR                 = -1, // currently unused -- has no defined behavior yet
+    UNDEFINED             = 0,  // type set for undefined operations/conversions
+
+    // Arithmetic types
+    UNSIGNED              = 1,
+    SIGNED                = 2,
+    FLOAT                 = 3,
+
+    // Memory type
+    DATA                  = 4,
+
+    MIN_ARITHMETIC        = UNSIGNED,
+    MAX_ARITHMETIC        = FLOAT,
+
+    MIN_COMPARABLE        = UNSIGNED,
+
+    // Range of reserved values for built-in types
+    MIN_BUILTIN           = -(1 << 16),
+    MAX_BUILTIN           = 1 << 16,
   };
 
 
-  value_type type;
   union {
     double   f64_;
     int64_t  s64_;
     uint64_t u64_;
   };
+  int32_t    type;
+
+  // Constants
+
+  // Undefined result constant
+  static vm_value undefined();
+  // Error type constant (currently unused)
+  static vm_value error();
+
+  // FLOAT constants
+  static vm_value nan();
+  static vm_value infinity();
+  static vm_value epsilon();
 
   //// Constructors
 
@@ -50,8 +79,8 @@ struct vm_value final
       typename std::enable_if<std::is_integral<T>::value && std::is_signed<T>::value, bool>::type = true
       >
   explicit vm_value(T v)
-  : type(SIGNED)
-  , s64_(static_cast<T>(v))
+  : s64_(static_cast<T>(v))
+  , type(SIGNED)
   {
     /* nop */
   }
@@ -61,8 +90,8 @@ struct vm_value final
       typename std::enable_if<std::is_integral<T>::value && std::is_unsigned<T>::value, bool>::type = true
       >
   explicit vm_value(T v)
-  : type(UNSIGNED)
-  , u64_(static_cast<T>(v))
+  : u64_(static_cast<T>(v))
+  , type(UNSIGNED)
   {
     /* nop */
   }
@@ -72,8 +101,29 @@ struct vm_value final
       typename std::enable_if<std::is_floating_point<T>::value, bool>::type = true
       >
   explicit vm_value(T v)
-  : type(FLOAT)
-  , f64_(static_cast<T>(v))
+  : f64_(static_cast<T>(v))
+  , type(FLOAT)
+  {
+    /* nop */
+  }
+
+  vm_value(int32_t _type, uint64_t value)
+  : u64_(value)
+  , type(_type)
+  {
+    /* nop */
+  }
+
+  vm_value(int32_t _type, int64_t value)
+  : s64_(value)
+  , type(_type)
+  {
+    /* nop */
+  }
+
+  vm_value(int32_t _type, double value)
+  : f64_(value)
+  , type(_type)
   {
     /* nop */
   }
@@ -114,6 +164,19 @@ struct vm_value final
 
 
   //// Conversions
+
+  bool is_arithmetic() const
+  {
+    return MIN_ARITHMETIC <= type && type <= MAX_ARITHMETIC;
+  }
+
+  bool is_undefined() const { return type == UNDEFINED; }
+  bool is_defined() const { return !is_undefined(); }
+  bool is_error() const { return type == ERROR; }
+
+  // float types
+  bool is_nan() const;
+  bool is_infinity() const;
 
   double   f64() const;
   int64_t  i64() const;
@@ -254,12 +317,16 @@ struct vm_value final
 
   //// Comparison operators
 
-  bool operator == (vm_value rhs) const { return u64_ == rhs.u64_; }
-  bool operator != (vm_value rhs) const { return u64_ != rhs.u64_; }
+  bool operator == (vm_value rhs) const;
+  bool operator != (vm_value rhs) const;
   bool operator <= (vm_value rhs) const;
   bool operator < (vm_value rhs) const;
   bool operator >= (vm_value rhs) const;
   bool operator > (vm_value rhs) const;
+
+  // Only returns true/false for comparable non-FLOAT values.
+  bool operator == (std::nullptr_t) const;
+  bool operator != (std::nullptr_t) const;
 
   template <typename T, typename std::enable_if<std::is_arithmetic<T>::value, bool>::type = true>
   bool operator == (T value) const { return (*this)  ==  vm_value { value }; }
@@ -287,11 +354,14 @@ struct vm_value final
   template <typename T, typename std::enable_if<std::is_arithmetic<T>::value, bool>::type = true>
   friend bool operator > (T lhs, vm_value rhs)  { return vm_value { lhs }  >  rhs; }
 
+  friend bool operator == (std::nullptr_t lhs, vm_value rhs) { return rhs == nullptr; }
+  friend bool operator != (std::nullptr_t lhs, vm_value rhs) { return rhs != nullptr; }
+
   fcmp_result fcmp(vm_value other) const;
   fcmp_result fcmp(vm_value other, double epsilon = EPSILON) const;
 
-  vm_value as(value_type new_type) const;
-  vm_value &convert(value_type new_type);
+  vm_value as(int32_t new_type) const;
+  vm_value &convert(int32_t new_type);
 };
 
 using vm_fcmp_result = typename vm_value::fcmp_result;

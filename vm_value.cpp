@@ -9,13 +9,8 @@
 #include "vm_value.h"
 #include <ios>
 #include <iomanip>
+#include <limits>
 #include <cmath>
-
-
-static constexpr vm_value::value_type max_type(vm_value::value_type lhs, vm_value::value_type rhs)
-{
-  return lhs >= rhs ? lhs : rhs;
-}
 
 
 std::ostream &operator << (std::ostream &out, vm_value v)
@@ -31,12 +26,43 @@ std::ostream &operator << (std::ostream &out, vm_value v)
 }
 
 
+vm_value vm_value::undefined()
+{
+  return vm_value { UNDEFINED, 0ull };
+}
+
+
+vm_value vm_value::error()
+{
+  return vm_value { ERROR, 0ull };
+}
+
+
+vm_value vm_value::nan()
+{
+  return vm_value { FLOAT, std::numeric_limits<double>::quiet_NaN() };
+}
+
+
+vm_value vm_value::infinity()
+{
+  return vm_value { FLOAT, std::numeric_limits<double>::infinity() };
+}
+
+
+vm_value vm_value::epsilon()
+{
+  return vm_value { FLOAT, std::numeric_limits<double>::epsilon() };
+}
+
+
 double vm_value::f64() const
 {
   switch (type) {
   case UNSIGNED: return static_cast<double>(u64_);
   case SIGNED: return static_cast<double>(s64_);
   case FLOAT: return f64_;
+  default: return std::numeric_limits<double>::quiet_NaN();
   }
 }
 
@@ -47,6 +73,7 @@ int64_t vm_value::i64() const
   case UNSIGNED: return static_cast<int64_t>(u64_);
   case SIGNED: return s64_;
   case FLOAT: return static_cast<int64_t>(f64_);
+  default: return 0ll;
   }
 }
 
@@ -57,18 +84,23 @@ uint64_t vm_value::ui64() const
   case UNSIGNED: return u64_;
   case SIGNED: return static_cast<uint64_t>(s64_);
   case FLOAT: return static_cast<uint64_t>(f64_);
+  default: return 0ull;
   }
 }
 
 
-vm_value vm_value::as(value_type new_type) const {
-  switch (new_type) {
+vm_value vm_value::as(int32_t new_type) const {
+  if (new_type == type) {
+    return *this;
+  }
 
+  switch (new_type) {
   case SIGNED: // want signed
     switch (type) {
     case UNSIGNED: return vm_value { static_cast<uint64_t>(s64_) };
     case SIGNED:   return *this;
     case FLOAT:    return vm_value { static_cast<double>(s64_) };
+    default:       return vm_value::undefined();
     }
 
   case UNSIGNED:
@@ -76,6 +108,7 @@ vm_value vm_value::as(value_type new_type) const {
     case UNSIGNED: return *this;
     case SIGNED:   return vm_value { static_cast<int64_t>(u64_) };
     case FLOAT:    return vm_value { static_cast<uint64_t>(u64_) };
+    default:       return vm_value::undefined();
     }
 
   case FLOAT:
@@ -83,13 +116,16 @@ vm_value vm_value::as(value_type new_type) const {
     case UNSIGNED: return vm_value { static_cast<double>(u64_) };
     case SIGNED:   return vm_value { static_cast<double>(s64_) };
     case FLOAT:    return *this;
+    default:       return vm_value::undefined();
     }
 
+  default:
+    return vm_value::undefined();
   } // new_type
 }
 
 
-vm_value &vm_value::convert(value_type new_type)
+vm_value &vm_value::convert(int32_t new_type)
 {
   if (type != new_type) {
     *this = as(new_type);
@@ -197,13 +233,14 @@ vm_value vm_value::operator >> (vm_value rhs) const
 
 vm_value &vm_value::operator += (vm_value rhs)
 {
-  value_type new_type = std::max(type, rhs.type);
+  auto new_type = std::max(type, rhs.type);
   convert(new_type);
   rhs.convert(new_type);
   switch (new_type) {
   case UNSIGNED: u64_ += rhs.u64_; break;
   case SIGNED:   s64_ += rhs.s64_; break;
   case FLOAT:    f64_ += rhs.f64_; break;
+  default: break;
   }
   return *this;
 }
@@ -211,13 +248,14 @@ vm_value &vm_value::operator += (vm_value rhs)
 
 vm_value &vm_value::operator -= (vm_value rhs)
 {
-  value_type new_type = std::max(type, rhs.type);
+  auto new_type = std::max(type, rhs.type);
   convert(new_type);
   rhs.convert(new_type);
   switch (new_type) {
   case UNSIGNED: u64_ -= rhs.u64_; break;
   case SIGNED:   s64_ -= rhs.s64_; break;
   case FLOAT:    f64_ -= rhs.f64_; break;
+  default: break;
   }
   return *this;
 }
@@ -225,13 +263,14 @@ vm_value &vm_value::operator -= (vm_value rhs)
 
 vm_value &vm_value::operator *= (vm_value rhs)
 {
-  value_type new_type = std::max(type, rhs.type);
+  auto new_type = std::max(type, rhs.type);
   convert(new_type);
   rhs.convert(new_type);
   switch (new_type) {
   case UNSIGNED: u64_ *= rhs.u64_; break;
   case SIGNED:   s64_ *= rhs.s64_; break;
   case FLOAT:    f64_ *= rhs.f64_; break;
+  default: break;
   }
   return *this;
 }
@@ -239,13 +278,14 @@ vm_value &vm_value::operator *= (vm_value rhs)
 
 vm_value &vm_value::operator %= (vm_value rhs)
 {
-  value_type new_type = std::max(type, rhs.type);
+  auto new_type = std::max(type, rhs.type);
   convert(new_type);
   rhs.convert(new_type);
   switch (new_type) {
   case UNSIGNED: u64_ %= rhs.u64_; break;
   case SIGNED:   s64_ %= rhs.s64_; break;
   case FLOAT:    f64_ = std::fmod(f64_, rhs.f64_); break;
+  default: break;
   }
   return *this;
 }
@@ -255,7 +295,9 @@ vm_value &vm_value::operator &= (vm_value rhs)
 {
   convert(UNSIGNED);
   rhs.convert(UNSIGNED);
-  u64_ &= rhs.u64_;
+  if (type == UNSIGNED) {
+    u64_ &= rhs.u64_;
+  }
   return *this;
 }
 
@@ -264,28 +306,49 @@ vm_value &vm_value::operator |= (vm_value rhs)
 {
   convert(UNSIGNED);
   rhs.convert(UNSIGNED);
-  u64_ |= rhs.u64_;
+  if (type == UNSIGNED) {
+    u64_ |= rhs.u64_;
+  }
   return *this;
 }
 
 
 vm_value &vm_value::operator ^= (vm_value rhs)
 {
-  convert(UNSIGNED);
-  rhs.convert(UNSIGNED);
-  u64_ ^= rhs.u64_;
+
+  auto new_type = std::min(
+    std::min(type, static_cast<int32_t>(SIGNED)),
+    std::max(static_cast<int32_t>(UNSIGNED), rhs.type)
+  );
+
+  convert(new_type);
+  rhs.convert(new_type);
+
+  if (type == UNSIGNED || type == SIGNED) {
+    u64_ ^= rhs.u64_;
+  }
   return *this;
 }
 
 
 vm_value &vm_value::operator <<= (vm_value rhs)
 {
-  value_type new_type = std::min(std::min(SIGNED, rhs.type), type);
+  auto new_type = std::min(
+    std::min(type, static_cast<int32_t>(SIGNED)),
+    std::max(static_cast<int32_t>(UNSIGNED), rhs.type)
+  );
+
   convert(new_type);
-  switch (new_type) {
-  case UNSIGNED: u64_ <<= rhs.u64_; break;
-  case SIGNED: s64_ <<= rhs.s64_; break;
-  case FLOAT: break;
+  rhs.convert(new_type);
+
+  if (type == rhs.type) {
+    switch (type) {
+    case UNSIGNED: u64_ <<= rhs.u64_; break;
+    case SIGNED: s64_ <<= rhs.s64_; break;
+    default: break;
+    }
+  } else {
+    convert(UNDEFINED);
   }
   return *this;
 }
@@ -293,13 +356,22 @@ vm_value &vm_value::operator <<= (vm_value rhs)
 
 vm_value &vm_value::operator >>= (vm_value rhs)
 {
-  value_type new_type = std::min(std::min(SIGNED, rhs.type), type);
+  auto new_type = std::min(
+    std::min(type, static_cast<int32_t>(SIGNED)),
+    std::max(static_cast<int32_t>(UNSIGNED), rhs.type)
+  );
+
   convert(new_type);
   rhs.convert(new_type);
-  switch (new_type) {
-  case UNSIGNED: u64_ >>= rhs.u64_; break;
-  case SIGNED: s64_ >>= rhs.s64_; break;
-  case FLOAT: break;
+
+  if (type == rhs.type) {
+    switch (type) {
+    case UNSIGNED: u64_ >>= rhs.u64_; break;
+    case SIGNED: s64_ >>= rhs.s64_; break;
+    default: break;
+    }
+  } else {
+    convert(UNDEFINED);
   }
   return *this;
 }
@@ -311,79 +383,133 @@ vm_value vm_value::operator - () const
   case UNSIGNED: return vm_value { -u64_ };
   case SIGNED: return vm_value { -s64_ };
   case FLOAT: return vm_value { -f64_ };
+  default: return vm_value::undefined();
   }
 }
 
 
 vm_value vm_value::operator ~ () const
 {
-  return vm_value { ~ as(UNSIGNED).u64_ };
+  switch (type) {
+  case SIGNED:
+  case UNSIGNED:
+  case FLOAT:
+    return vm_value { ~ as(UNSIGNED).u64_ };
+
+  default:
+    return vm_value::undefined();
+  }
+}
+
+
+template <template <typename T> class Predicate, bool is_equality_test>
+static bool logical_compare_value(vm_value lhs, vm_value rhs)
+{
+  int32_t const min_type = std::min(lhs.type, rhs.type);
+
+  if (min_type < vm_value::MIN_COMPARABLE) {
+    return false;
+  }
+
+  // Values after arithmetic types can only be tested for equality
+  int32_t const max_type = std::max(lhs.type, rhs.type);
+
+  if (vm_value::MAX_ARITHMETIC < max_type && !is_equality_test) {
+    return false;
+  }
+
+  switch (max_type) {
+  default:
+  case vm_value::UNSIGNED: return (Predicate<uint64_t>{})(lhs.u64_, rhs.u64_);
+  case vm_value::SIGNED:   return (Predicate<int64_t>{})(lhs.s64_, rhs.s64_);
+  case vm_value::FLOAT:    return (Predicate<double>{})(lhs.f64_, rhs.f64_);
+  }
 }
 
 
 bool vm_value::operator <= (vm_value rhs) const
 {
-  value_type req_type = max_type(type, rhs.type);
-  vm_value lhs = as(req_type);
-  rhs.convert(req_type);
-
-  switch (req_type) {
-  case UNSIGNED: return lhs.u64_ <= rhs.u64_;
-  case SIGNED: return lhs.s64_ <= rhs.s64_;
-  case FLOAT:  return lhs.f64_ <= rhs.f64_;
-  }
+  return logical_compare_value<std::less_equal, false>(*this, rhs);
 }
 
 
 bool vm_value::operator < (vm_value rhs) const
 {
-  value_type req_type = max_type(type, rhs.type);
-  vm_value lhs = as(req_type);
-  rhs.convert(req_type);
-
-  switch (req_type) {
-  case UNSIGNED: return lhs.u64_ < rhs.u64_;
-  case SIGNED: return lhs.s64_ < rhs.s64_;
-  case FLOAT:  return lhs.f64_ < rhs.f64_;
-  }
+  return logical_compare_value<std::less, false>(*this, rhs);
 }
 
 
 bool vm_value::operator >= (vm_value rhs) const
 {
-  value_type req_type = max_type(type, rhs.type);
-  vm_value lhs = as(req_type);
-  rhs.convert(req_type);
-
-  switch (req_type) {
-  case UNSIGNED: return lhs.u64_ >= rhs.u64_;
-  case SIGNED: return lhs.s64_ >= rhs.s64_;
-  case FLOAT:  return lhs.f64_ >= rhs.f64_;
-  }
+  return logical_compare_value<std::greater_equal, false>(*this, rhs);
 }
 
 
 bool vm_value::operator > (vm_value rhs) const
 {
-  value_type req_type = max_type(type, rhs.type);
-  vm_value lhs = as(req_type);
-  rhs.convert(req_type);
+  return logical_compare_value<std::greater, false>(*this, rhs);
+}
 
-  switch (req_type) {
-  case UNSIGNED: return lhs.u64_ > rhs.u64_;
-  case SIGNED: return lhs.s64_ > rhs.s64_;
-  case FLOAT:  return lhs.f64_ > rhs.f64_;
-  }
+
+bool vm_value::operator == (vm_value rhs) const
+{
+  return logical_compare_value<std::equal_to, true>(*this, rhs);
+}
+
+
+bool vm_value::operator != (vm_value rhs) const
+{
+  return logical_compare_value<std::not_equal_to, true>(*this, rhs);
+}
+
+
+bool vm_value::operator == (std::nullptr_t) const
+{
+  return type >= MIN_COMPARABLE && type != FLOAT && u64_ == 0;
+}
+
+
+bool vm_value::operator != (std::nullptr_t) const
+{
+  return type >= MIN_COMPARABLE && type != FLOAT && u64_ != 0;
 }
 
 
 bool vm_value::operator ! () const
 {
-  return u64_ == 0;
+  switch (type) {
+  case FLOAT:
+    return !f64_;
+  case UNDEFINED:
+  case ERROR:
+    return true;
+  default:
+    return u64_ == 0ull;
+  }
 }
 
 
 vm_value::operator bool () const
 {
-  return u64_ != 0;
+  switch (type) {
+  case FLOAT:
+    return !!f64_;
+  case UNDEFINED:
+  case ERROR:
+    return false;
+  default:
+    return u64_ != 0ull;
+  }
+}
+
+
+bool vm_value::is_nan() const
+{
+  return type == FLOAT && std::isnan(f64_);
+}
+
+
+bool vm_value::is_infinity() const
+{
+  return type == FLOAT && std::isinf(f64_);
 }
