@@ -100,6 +100,7 @@ class vm_unit
     bool resolved;
   };
 
+  using value_reader_t       = vm_value (std::istream &);
   using relocation_table_t   = std::vector<relocation_ptr>;
   using relocation_map_t     = std::map<vm_value, vm_value>;
   // Externs may be relocated in two ways:
@@ -178,6 +179,11 @@ class vm_unit
     relocation_table_t const &table,
     relocation_map_t const &relocations
     );
+
+  value_reader_t *value_reader() const;
+
+  static vm_value read_value_v8(std::istream &);
+  static vm_value read_value_v9(std::istream &);
 
 public:
 

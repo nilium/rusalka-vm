@@ -116,6 +116,11 @@ void vm_unit::read_instruction(std::istream &input)
   vm_opcode const opcode = static_cast<vm_opcode>(read_primitive<uint16_t>(input));
   uint16_t const litflag = read_primitive<uint16_t>(input);
   int32_t arg_base = static_cast<int32_t>(instruction_argv.size());
+  value_reader_t *reader = value_reader();
+
+  if (reader == nullptr) {
+    throw vm_bad_unit("No defined value reader for unit version.");
+  }
 
   instructions.emplace_back(
     instruction_ptr {
@@ -127,7 +132,7 @@ void vm_unit::read_instruction(std::istream &input)
   int32_t const argc = g_opcode_argc[opcode] - (opcode_has_litflag(opcode) ? 1 : 0);
 
   for (int32_t counter = 0; counter < argc; ++counter) {
-    vm_value arg = read_primitive<vm_value>(input);
+    vm_value arg = reader(input);
     instruction_argv.push_back(arg);
   }
 }
@@ -571,5 +576,33 @@ void vm_unit::apply_relocation_table(
 vm_op vm_unit::fetch_op(int32_t ip) const
 {
   return vm_op { *this, ip };
+}
+
+
+auto vm_unit::value_reader() const -> value_reader_t *
+{
+  switch (version) {
+  case 8: return &vm_unit::read_value_v8;
+  case 9: return &vm_unit::read_value_v9;
+  default: return nullptr;
+  }
+}
+
+
+vm_value vm_unit::read_value_v8(std::istream &input)
+{
+  return vm_value {
+    vm_value::FLOAT,
+    read_primitive<uint64_t>(input)
+  };
+}
+
+
+vm_value vm_unit::read_value_v9(std::istream &input)
+{
+  return vm_value {
+    read_primitive<int32_t>(input),
+    read_primitive<uint64_t>(input)
+  };
 }
 
