@@ -24,6 +24,17 @@
 #define VM_MIN_UNIT_VERSION 8
 #define VM_MAX_UNIT_VERSION 200
 
+/**
+ * VERSIONS (i.e., changes in bytecode versions)
+ *
+ *   - 8:
+ *     All values are 64-bit floats (doubles).
+ *
+ *   - 9:
+ *     Adds typed values as 32-bit signed integers. Values should be read as
+ *     a signed 32-bit type ID integer followed by a 8-byte value data.
+ */
+
 
 enum vm_chunk_id : int32_t
 {
@@ -103,6 +114,7 @@ class vm_unit
   using label_table_t        = std::map<std::string, int32_t>;
   using data_id_ary_t        = std::vector<int32_t>;
 
+  int32_t version;
   int32_t last_import = 0;
 
   instruction_ptrs_t instructions;

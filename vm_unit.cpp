@@ -55,7 +55,8 @@ vm_unit::vm_unit(vm_unit const &m)
 
 
 vm_unit::vm_unit(vm_unit &&m)
-: last_import(m.last_import)
+: version(m.version)
+, last_import(m.last_import)
 , instructions(std::move(m.instructions))
 , instruction_argv(std::move(m.instruction_argv))
 , imports(std::move(m.imports))
@@ -66,12 +67,14 @@ vm_unit::vm_unit(vm_unit &&m)
 , _data_blocks(std::move(m._data_blocks))
 , _data_relocations(std::move(m._data_relocations))
 {
+  m.version     = 0;
   m.last_import = 0;
 }
 
 
 vm_unit &vm_unit::operator = (vm_unit const &m)
 {
+  version                = m.version;
   last_import            = m.last_import;
   instructions           = m.instructions;
   instruction_argv       = m.instruction_argv;
@@ -89,7 +92,7 @@ vm_unit &vm_unit::operator = (vm_unit const &m)
 
 vm_unit &vm_unit::operator = (vm_unit &&m)
 {
-  last_import            = 0;
+  version                = 0;
   last_import            = m.last_import;
   instructions           = std::move(m.instructions);
   instruction_argv       = std::move(m.instruction_argv);
@@ -101,6 +104,7 @@ vm_unit &vm_unit::operator = (vm_unit &&m)
   _data_blocks           = std::move(m._data_blocks);
   _data_relocations      = std::move(m._data_relocations);
 
+  m.version     = 0;
   m.last_import = 0;
 
   return *this;
@@ -425,6 +429,7 @@ void vm_unit::read(std::istream &input)
     // TODO: Use own exceptions for these things
     throw vm_unsupported_unit_version("Invalid bytecode version.");
   }
+  version = filehead.version;
 
   vm_chunk_offsets const offsets { input };
 
