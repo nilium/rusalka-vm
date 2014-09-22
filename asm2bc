@@ -16,7 +16,7 @@ require 'securerandom'
 require 'set'
 
 
-BYTECODE_VERSION   = 8
+BYTECODE_VERSION   = 9
 MAX_REGISTERS      = 256
 RESERVED_REGISTERS = 4
 
@@ -26,6 +26,14 @@ LAST_NONVOLATILE_GP_REGISTER  = (FIRST_NONVOLATILE_GP_REGISTER + MAX_NONVOLATILE
 
 FIRST_VOLATILE_GP_REGISTER = LAST_NONVOLATILE_GP_REGISTER + 1
 LAST_VOLATILE_GP_REGISTER  = MAX_REGISTERS - (MAX_NONVOLATILE_GP_REGISTERS + RESERVED_REGISTERS) - 1
+
+# Bytecode value types
+VALUE_TYPE_ERROR       = -1
+VALUE_TYPE_UNDEFINED   = 0
+VALUE_TYPE_UNSIGNED    = 1
+VALUE_TYPE_SIGNED      = 2
+VALUE_TYPE_FLOAT       = 3
+VALUE_TYPE_DATA        = 4
 
 
 def logical_xor(a, b)
@@ -119,6 +127,24 @@ AnonDataStmt  = Struct.new(:id, :prefix)
 DataRef       = Struct.new(:name, :lookup)
 LabelRef      = Struct.new(:label)
 LabelStmt     = Struct.new(:label)
+Operand       = Struct.new(:value_type, :data, :packing)
+
+
+class Operand
+  def packed
+    [self.value_type, self.data].pack "l<#{
+      case self.value_type
+      when VALUE_TYPE_UNSIGNED  then 'Q<'
+      when VALUE_TYPE_SIGNED    then 'q<'
+      when VALUE_TYPE_FLOAT     then 'E'
+      when VALUE_TYPE_DATA      then 'q<'
+      when VALUE_TYPE_ERROR     then 'Q<'
+      when VALUE_TYPE_UNDEFINED then 'Q<'
+      else raise "Undefined operand type: #{self.value_type.inspect}"
+      end
+    }"
+  end
+end
 
 
 class RegisterRef
@@ -1072,21 +1098,32 @@ class Parser
         raise "Opcode may not be less than 0" if opcode < 0
         raise "Opcode may not be greater than 2^16" if opcode > 0xFFFF
         flags = 0
-        args = instr.args.map { |arg| lookup(arg) }
+        args = instr.args.map { |arg; data|
+          data = lookup(arg)
+          case arg
+          when DataRef
+            Operand[VALUE_TYPE_DATA, data]
+          when Integer, RegisterRef, LabelRef
+            Operand[VALUE_TYPE_SIGNED, data]
+          when Float
+            Operand[VALUE_TYPE_FLOAT, data]
+          else
+            raise "Undefined operand: #{arg.inspect}"
+          end
+        }
+
         if ::Op::OP_ARGS[instr.name].last == :litflag
-          raise "Litflag must be an integer" if !args.last.kind_of?(Integer)
-          raise "Litflag does not fit in 16 bits" if args.last > 0xFFFF
-          raise "Litflag may not be less than 0" if args.last < 0
-          flags = args.pop & 0xFFFF
+          raise "Litflag must be an integer" unless [VALUE_TYPE_SIGNED, VALUE_TYPE_UNSIGNED].include?(args.last.value_type)
+          raise "Litflag does not fit in 16 bits" if args.last.data > 0xFFFF
+          raise "Litflag may not be less than 0" if args.last.data < 0
+          flags = args.pop.data & 0xFFFF
         end
-        args.map!(&:to_f)
-        [opcode, flags, *args].pack('S<S<E*')
+
+        [opcode, flags, args.map(&:packed).join('')].pack('S<S<a*')
       end.join
 
     "#{[@instructions.length].pack('l<')}#{data}"
   end
-
-  RELOCATION_TABLE_MAP = -> (arg, index) { index }
 
   def relocation_table(&block)
     raise "No block given" if block.nil?
