@@ -15,20 +15,35 @@
 
 std::ostream &operator << (std::ostream &out, vm_value v)
 {
-    out << "(#" << std::dec << std::noshowbase << v.type << ": ";
+    out << "(#";
 
     switch (v.type) {
-    default:
+    case vm_value::ERROR:
+      out << "error: " << std::hex << std::showbase << v.u64_;
+      break;
+
+    case vm_value::UNDEFINED:
+      out << "undefined";
+      break;
+
     case vm_value::UNSIGNED:
-      out << std::hex << std::showbase << v.u64_;
+      out << "uint: " << std::hex << std::showbase << v.u64_;
       break;
 
     case vm_value::SIGNED:
-      out << std::dec << std::noshowbase << v.s64_;
+      out << "int: "<< std::dec << std::noshowbase << v.s64_;
       break;
 
     case vm_value::FLOAT:
-      out << std::dec << std::noshowbase << v.f64_;
+      out << "float: " << std::dec << std::noshowbase << v.f64_;
+      break;
+
+    case vm_value::DATA:
+      out << "data: " << std::dec << std::noshowbase << v.s64_;
+      break;
+
+    default:
+      out << v.type << ": " << std::hex << std::showbase << v.u64_;
       break;
     }
 
