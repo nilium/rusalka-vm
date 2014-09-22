@@ -26,6 +26,7 @@ vm_value printsfn(vm_thread &vm, int32_t argc, const vm_value *argv, void*)
 {
   std::cerr << "PRINTS: ";
   for (; argc > 0; --argc, ++argv) {
+    std::cerr << "ARG(" << *argv << ") ";
     const char *ptr = reinterpret_cast<const char *>(vm.process().get_block(*argv, VM_MEM_READABLE));
     int32_t size = vm.process().block_size(*argv);
     if (!ptr || !size) {
