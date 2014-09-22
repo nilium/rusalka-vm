@@ -99,12 +99,6 @@ class vm_thread
   vm_value ip() const { return _registers[R_IP]; }
   vm_value &ip() { return _registers[R_IP]; }
 
-  vm_value &set_ip()
-  {
-    std::clog << "Setting ip() (from: " << ip() << ")" << std::endl;
-    return _registers[R_IP];
-  }
-
   vm_value ebp() const { return _registers[R_EBP]; }
   vm_value &ebp() { return _registers[R_EBP]; }
 
