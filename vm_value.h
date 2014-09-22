@@ -183,12 +183,12 @@ struct vm_value final
   uint64_t ui64() const;
 
   operator float () const { return static_cast<float>(f64()); }
-  operator double () const { return static_cast<double>(f64()); }
-  operator uint64_t () const { return static_cast<uint64_t>(ui64()); }
+  operator double () const { return f64(); }
+  operator uint64_t () const { return ui64(); }
   operator uint32_t () const { return static_cast<uint32_t>(ui64()); }
   operator uint16_t () const { return static_cast<uint16_t>(ui64()); }
   operator uint8_t () const { return static_cast<uint8_t>(ui64()); }
-  operator int64_t () const { return static_cast<int64_t>(i64()); }
+  operator int64_t () const { return i64(); }
   operator int32_t () const { return static_cast<int32_t>(i64()); }
   operator int16_t () const { return static_cast<int16_t>(i64()); }
   operator int8_t () const { return static_cast<int8_t>(i64()); }

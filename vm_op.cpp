@@ -16,14 +16,14 @@ vm_opcode vm_op::opcode() const
 }
 
 
-vm_value vm_op::operator [] (int32_t index) const
+vm_value vm_op::operator [] (int64_t index) const
 {
   int32_t argv_base = unit.instructions[ip].arg_pointer;
   return unit.instruction_argv[argv_base + index];
 }
 
 
-uint16_t vm_op::litflag() const
+uint64_t vm_op::litflag() const
 {
   return unit.instructions[ip].litflag;
 }

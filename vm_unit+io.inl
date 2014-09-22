@@ -65,7 +65,7 @@ bool read_table(std::istream &input, vm_chunk_id id, Func &&func)
   vm_table_header const itable = read_primitive<vm_table_header>(input);
 
   if (itable.header.id == id) {
-    for (int32_t counter = 0; counter < itable.count; ++counter) {
+    for (int counter = 0; counter < itable.count; ++counter) {
       func(counter);
     }
 
@@ -84,7 +84,7 @@ bool read_table(std::istream &input, vm_chunk_id id, InitFunc &&init, Func &&fun
   if (itable.header.id == id) {
     init(itable.count);
 
-    for (int32_t counter = 0; counter < itable.count; ++counter) {
+    for (int counter = 0; counter < itable.count; ++counter) {
       func(counter);
     }
 
@@ -107,7 +107,7 @@ bool read_table(
   header_out = itable;
 
   if (itable.header.id == id) {
-    for (int32_t counter = 0; counter < itable.count; ++counter) {
+    for (int counter = 0; counter < itable.count; ++counter) {
       func(counter);
     }
 
@@ -120,8 +120,8 @@ bool read_table(
 
 vm_label read_label(std::istream &input)
 {
-  int32_t const address = read_primitive<int32_t>(input);
-  int32_t const length = read_primitive<int32_t>(input);
+  int64_t const address = static_cast<int64_t>(read_primitive<int32_t>(input));
+  int64_t const length = static_cast<int64_t>(read_primitive<int32_t>(input));
   std::string name = read_string(input, length);
   return vm_label { std::move(name), address };
 }
@@ -130,7 +130,7 @@ vm_label read_label(std::istream &input)
 std::string read_lstring(std::istream &input)
 {
   std::string result;
-  int32_t length = read_primitive<int32_t>(input);
+  int64_t length = static_cast<int64_t>(read_primitive<int32_t>(input));
   result.resize(length, '\0');
   input.read(&result[0], length);
   return result;

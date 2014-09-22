@@ -75,23 +75,25 @@ class vm_unit
   {
     // Index of the instruction to relocate relative to the instructions
     // table.
-    int32_t pointer;
+    int64_t pointer;
     // Mask indicating which arguments are to be relocated.
-    uint32_t args_mask;
+    uint64_t args_mask;
   };
+  static relocation_ptr read_relocation_ptr(std::istream &);
 
   struct instruction_ptr
   {
     vm_opcode opcode;
-    uint16_t  litflag;
-    int32_t   arg_pointer;
+    uint64_t  litflag;
+    int64_t   arg_pointer;
   };
+
 
   struct data_block
   {
-    int32_t id;
-    int32_t offset; // offset into _data
-    int32_t size;   // size in bytes of the block
+    int64_t id;
+    int64_t offset; // offset into _data
+    int64_t size;   // size in bytes of the block
   };
 
   struct extern_relocation
@@ -112,11 +114,11 @@ class vm_unit
 
   using instruction_ptrs_t   = std::vector<instruction_ptr>;
   using instruction_argv_t   = std::vector<vm_value>;
-  using label_table_t        = std::map<std::string, int32_t>;
-  using data_id_ary_t        = std::vector<int32_t>;
+  using label_table_t        = std::map<std::string, int64_t>;
+  using data_id_ary_t        = std::vector<int64_t>;
 
   int32_t version;
-  int32_t last_import = 0;
+  int64_t last_import = 0;
 
   instruction_ptrs_t instructions;
   instruction_argv_t instruction_argv;
@@ -136,7 +138,7 @@ class vm_unit
   void read_imports(std::istream &input, relocation_map_t &relocations);
   void read_exports(
     std::istream &input,
-    int32_t base,
+    int64_t base,
     relocation_map_t &relocations
     );
 
@@ -144,13 +146,13 @@ class vm_unit
 
   void read_label_relocations(
     std::istream &input,
-    int32_t instruction_base,
+    int64_t instruction_base,
     relocation_map_t const &relocations
     );
 
   void read_extern_relocations(
     std::istream &input,
-    int32_t instruction_base,
+    int64_t instruction_base,
     extern_relocations_t const &relocations
     );
 
@@ -158,14 +160,14 @@ class vm_unit
 
   void read_data_table(
     std::istream &input,
-    int32_t data_base,
+    int64_t data_base,
     relocation_map_t &relocations
     );
 
   void read_data_relocations(
     std::istream &input,
-    int32_t instr_base,
-    int32_t data_base,
+    int64_t instr_base,
+    int64_t data_base,
     relocation_map_t &load_relocations
     );
 
@@ -209,7 +211,7 @@ public:
 
   vm_instruction instruction(int32_t pointer) const;
 
-  vm_op fetch_op(int32_t ip) const;
+  vm_op fetch_op(int64_t ip) const;
 
   template <typename Func>
   void each_data(Func &&fn) const;
@@ -220,7 +222,7 @@ public:
 template <typename Func>
 void vm_unit::each_data(Func &&fn) const
 {
-  int32_t index = 0;
+  int index = 0;
   bool stop = false;
   for (data_block const &blk : _data_blocks) {
     fn(index++, blk.id, blk.size, (void const *)&_data[blk.offset], stop);

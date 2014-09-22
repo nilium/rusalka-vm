@@ -56,10 +56,10 @@ class vm_thread
   struct call_frame
   {
     // Always-preserved registers.
-    int32_t from_ip; // Instruction to return to.
-    int32_t ebp;
-    int32_t esp;
-    int32_t sequence;
+    int64_t from_ip; // Instruction to return to.
+    int64_t ebp;
+    int64_t esp;
+    int64_t sequence;
     // Optionally-preserved volatile registers (may be 0).
     vm_value registers[R_NONVOLATILE_REGISTERS];
   };
@@ -69,32 +69,32 @@ class vm_thread
   using call_frames = std::vector<call_frame>;
 
   vm_state &_process;
-  int32_t _sequence = 0;
-  int32_t _trap = 0;
+  int64_t _sequence = 0;
+  int64_t _trap = 0;
   stack_t _stack;
   call_frames _frames;
   vm_value _registers[REGISTER_COUNT] {};
 
   template <class T, class... ARGS>
-  int32_t load_registers(int32_t index, T &&first, ARGS&&... args);
+  int64_t load_registers(int64_t index, T &&first, ARGS&&... args);
 
   template <class T>
-  int32_t load_registers(int32_t index, T &&first);
+  int64_t load_registers(int64_t index, T &&first);
 
-  int32_t load_registers(int32_t index) const
+  int64_t load_registers(int64_t index) const
   {
     return index;
   }
 
-  void down_frame(int32_t argc = 0);
-  void up_frame(int32_t value_count = 0);
+  void down_frame(int64_t argc = 0);
+  void up_frame(int64_t value_count = 0);
   void drop_frame();
 
   void exec(const vm_op &op);
-  bool run(int32_t from_ip);
+  bool run(int64_t from_ip);
   bool run();
 
-  int32_t fetch();
+  int64_t fetch();
 
   vm_value ip() const { return _registers[R_IP]; }
   vm_value &ip() { return _registers[R_IP]; }
@@ -108,16 +108,16 @@ class vm_thread
   vm_value rp() const { return _registers[R_RP]; }
   vm_value &rp() { return _registers[R_RP]; }
 
-  vm_value reg(int32_t off) const;
-  vm_value &reg(int32_t off);
+  vm_value reg(int64_t off) const;
+  vm_value &reg(int64_t off);
 
-  vm_value stack(int32_t off) const;
-  vm_value &stack(int32_t off);
+  vm_value stack(int64_t off) const;
+  vm_value &stack(int64_t off);
 
   void push(vm_value value);
   vm_value pop(bool copy_only = false);
 
-  void exec_call(int32_t instr, int32_t argc);
+  void exec_call(int64_t instr, int64_t argc);
 
   vm_thread(vm_state &state, size_t stack_size);
 
@@ -143,20 +143,20 @@ public:
   vm_value call_function(const char *name, ARGS&&... args);
 
   template <class... ARGS>
-  vm_value call_function(int32_t pointer, ARGS&&... args);
+  vm_value call_function(int64_t pointer, ARGS&&... args);
 
   vm_value call_function(const char *name);
 
-  vm_value call_function_nt(int32_t pointer) { return call_function_nt(pointer, 0); }
+  vm_value call_function_nt(int64_t pointer) { return call_function_nt(pointer, 0); }
 
-  vm_value call_function_nt(const char *name, int32_t argc, const vm_value *argv);
-  vm_value call_function_nt(int32_t pointer, int32_t argc, const vm_value *argv);
-  vm_value call_function_nt(int32_t pointer, int32_t argc);
+  vm_value call_function_nt(const char *name, int64_t argc, const vm_value *argv);
+  vm_value call_function_nt(int64_t pointer, int64_t argc, const vm_value *argv);
+  vm_value call_function_nt(int64_t pointer, int64_t argc);
 
   vm_function function(const char *name);
-  vm_function function(int32_t pointer);
+  vm_function function(int64_t pointer);
 
-  vm_value deref(vm_value input, uint16_t flag, uint32_t mask = ~0u) const;
+  vm_value deref(vm_value input, uint64_t flag, uint64_t mask = ~0ull) const;
 
   vm_state &process() { return _process; }
   vm_state const &process() const { return _process; }
@@ -179,16 +179,16 @@ vm_value vm_thread::call_function(const char *name, ARGS&&... args)
 
 
 template <class... ARGS>
-vm_value vm_thread::call_function(int32_t pointer, ARGS&&... args)
+vm_value vm_thread::call_function(int64_t pointer, ARGS&&... args)
 {
-  const int32_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
+  const int64_t argc = load_registers(4, std::forward<ARGS>(args)...) - 4;
   return call_function_nt(pointer, argc);
 }
 
 
 
 template <class T, class... ARGS>
-int32_t vm_thread::load_registers(int32_t index, T &&first, ARGS&&... args)
+int64_t vm_thread::load_registers(int64_t index, T &&first, ARGS&&... args)
 {
   push(make_value(std::forward<T>(first)));
   return load_registers(index + 1, std::forward<ARGS>(args)...);
@@ -197,7 +197,7 @@ int32_t vm_thread::load_registers(int32_t index, T &&first, ARGS&&... args)
 
 
 template <class T>
-int32_t vm_thread::load_registers(int32_t index, T &&first)
+int64_t vm_thread::load_registers(int64_t index, T &&first)
 {
   push(make_value(std::forward<T>(first)));
   return index + 1;
@@ -206,7 +206,7 @@ int32_t vm_thread::load_registers(int32_t index, T &&first)
 
 
 template <class... ARGS>
-vm_value vm_invoke_function(vm_thread &thread, int32_t pointer, ARGS &&... args)
+vm_value vm_invoke_function(vm_thread &thread, int64_t pointer, ARGS &&... args)
 {
   return thread.call_function(pointer, std::forward<ARGS>(args)...);
 }

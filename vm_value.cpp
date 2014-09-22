@@ -70,9 +70,10 @@ double vm_value::f64() const
 {
   switch (type) {
   case UNSIGNED: return static_cast<double>(u64_);
+  case DATA:
   case SIGNED: return static_cast<double>(s64_);
+  default:
   case FLOAT: return f64_;
-  default: return std::numeric_limits<double>::quiet_NaN();
   }
 }
 
@@ -81,9 +82,10 @@ int64_t vm_value::i64() const
 {
   switch (type) {
   case UNSIGNED: return static_cast<int64_t>(u64_);
+  default:
+  case DATA:
   case SIGNED: return s64_;
   case FLOAT: return static_cast<int64_t>(f64_);
-  default: return 0ll;
   }
 }
 
@@ -91,10 +93,11 @@ int64_t vm_value::i64() const
 uint64_t vm_value::ui64() const
 {
   switch (type) {
+  default:
   case UNSIGNED: return u64_;
+  case DATA:
   case SIGNED: return static_cast<uint64_t>(s64_);
   case FLOAT: return static_cast<uint64_t>(f64_);
-  default: return 0ull;
   }
 }
 
@@ -110,7 +113,7 @@ vm_value vm_value::as(int32_t new_type) const {
     case UNSIGNED: return vm_value { static_cast<uint64_t>(s64_) };
     case SIGNED:   return *this;
     case FLOAT:    return vm_value { static_cast<double>(s64_) };
-    default:       return vm_value::undefined();
+    default:       return undefined();
     }
 
   case UNSIGNED:
@@ -118,7 +121,7 @@ vm_value vm_value::as(int32_t new_type) const {
     case UNSIGNED: return *this;
     case SIGNED:   return vm_value { static_cast<int64_t>(u64_) };
     case FLOAT:    return vm_value { static_cast<uint64_t>(u64_) };
-    default:       return vm_value::undefined();
+    default:       return undefined();
     }
 
   case FLOAT:
@@ -126,11 +129,11 @@ vm_value vm_value::as(int32_t new_type) const {
     case UNSIGNED: return vm_value { static_cast<double>(u64_) };
     case SIGNED:   return vm_value { static_cast<double>(s64_) };
     case FLOAT:    return *this;
-    default:       return vm_value::undefined();
+    default:       return undefined();
     }
 
   default:
-    return vm_value::undefined();
+    return undefined();
   } // new_type
 }
 

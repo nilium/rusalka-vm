@@ -20,15 +20,15 @@ class vm_thread;
 
 
 template <class... ARGS>
-vm_value vm_invoke_function(vm_thread &thread, int32_t pointer, ARGS &&... args);
+vm_value vm_invoke_function(vm_thread &thread, int64_t pointer, ARGS &&... args);
 
 
 class vm_function
 {
   vm_thread &_thread;
-  int32_t _pointer;
+  int64_t _pointer;
 
-  vm_function(vm_thread &thread, int32_t pointer)
+  vm_function(vm_thread &thread, int64_t pointer)
   : _thread(thread)
   , _pointer(pointer)
   {

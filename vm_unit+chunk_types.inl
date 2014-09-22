@@ -35,7 +35,7 @@ struct vm_table_header
 struct vm_label
 {
   std::string name;
-  int32_t     address;
+  int64_t     address;
 };
 
 

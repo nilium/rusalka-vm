@@ -28,7 +28,7 @@ struct vm_find_result {
   T value;
 };
 
-using vm_found_fn_t = vm_find_result<int32_t>;
+using vm_found_fn_t = vm_find_result<int64_t>;
 using vm_bound_fn_t = vm_found_fn_t;
 
 

@@ -70,8 +70,8 @@ void vm_state::prepare_unit()
   std::fill(_callbacks.begin(), _callbacks.end(), callback_info { nullptr, nullptr });
   vm_unit::data_id_ary_t new_ids;
   new_ids.resize(_unit._data_blocks.size(), 0);
-  _unit.each_data([&](int32_t index, int32_t id, int32_t size, void const *ptr, bool &stop) {
-    int32_t new_id = realloc_block_with_flags(VM_NULL_BLOCK, size, VM_MEM_SOURCE_DATA);
+  _unit.each_data([&](int64_t index, int64_t id, int64_t size, void const *ptr, bool &stop) {
+    int64_t new_id = realloc_block_with_flags(VM_NULL_BLOCK, size, VM_MEM_SOURCE_DATA);
     auto found = get_block_info(new_id);
     if (!found.ok) {
       return;
@@ -90,7 +90,7 @@ vm_bound_fn_t vm_state::bind_callback(const char *name, int length, vm_callback_
   std::string name_str(name, length);
   auto imported = _unit.imports.find(name_str);
   if (imported != _unit.imports.cend()) {
-    const int32_t idx = -(imported->second + 1);
+    const int64_t idx = -(imported->second + 1);
     _callbacks.at(idx) = callback_info { function, context };
     return vm_bound_fn_t { true, imported->second };
   }
@@ -112,7 +112,7 @@ void vm_state::release_all_memblocks() noexcept
 
 
 
-int32_t vm_state::unused_block_id()
+int64_t vm_state::unused_block_id()
 {
   auto end = _blocks.end();
   while (_blocks.find(_block_counter) != end || _block_counter == 0) {
@@ -123,7 +123,7 @@ int32_t vm_state::unused_block_id()
 
 
 
-int32_t vm_state::realloc_block_with_flags(int32_t block_id, int32_t size, uint32_t flags)
+int64_t vm_state::realloc_block_with_flags(int64_t block_id, int64_t size, uint32_t flags)
 {
   void *src = nullptr;
   if (block_id != 0) {
@@ -154,20 +154,20 @@ int32_t vm_state::realloc_block_with_flags(int32_t block_id, int32_t size, uint3
 
 
 
-int32_t vm_state::realloc_block(int32_t block_id, int32_t size)
+int64_t vm_state::realloc_block(int64_t block_id, int64_t size)
 {
   return realloc_block_with_flags(block_id, size, VM_MEM_WRITABLE | VM_MEM_READABLE);
 }
 
 
 
-int32_t vm_state::duplicate_block(int32_t block_id)
+int64_t vm_state::duplicate_block(int64_t block_id)
 {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter != _blocks.cend()) {
     const auto entry = iter->second;
     if (entry.flags & VM_MEM_READABLE) {
-      int32_t new_block_id = realloc_block(VM_NULL_BLOCK, entry.size);
+      int64_t new_block_id = realloc_block(VM_NULL_BLOCK, entry.size);
       void *new_block = get_block(new_block_id, VM_MEM_WRITABLE);
       std::memcpy(new_block, entry.block, entry.size);
       return new_block_id;
@@ -178,7 +178,7 @@ int32_t vm_state::duplicate_block(int32_t block_id)
 
 
 
-int32_t vm_state::block_size(int32_t block_id) const
+int64_t vm_state::block_size(int64_t block_id) const
 {
   if (block_id == 0) {
     return 0;
@@ -193,7 +193,7 @@ int32_t vm_state::block_size(int32_t block_id) const
 
 
 
-void vm_state::free_block(int32_t block_id)
+void vm_state::free_block(int64_t block_id)
 {
   if (block_id == 0) {
     throw vm_null_access_error("Attempt to free null block");
@@ -212,7 +212,7 @@ void vm_state::free_block(int32_t block_id)
 
 
 
-auto vm_state::get_block_info(int32_t block_id) const -> found_memblock_t {
+auto vm_state::get_block_info(int64_t block_id) const -> found_memblock_t {
   auto const block_iter = _blocks.find(block_id);
   if (block_iter == _blocks.end()) {
     return { false, NO_BLOCK };
@@ -222,7 +222,7 @@ auto vm_state::get_block_info(int32_t block_id) const -> found_memblock_t {
 
 
 
-void *vm_state::get_block(int32_t block_id, uint32_t permissions)
+void *vm_state::get_block(int64_t block_id, uint32_t permissions)
 {
   if (permissions == VM_MEM_NO_PERMISSIONS) {
     throw vm_memory_permission_error("No permissions provided -- request is impossible");
@@ -242,7 +242,7 @@ void *vm_state::get_block(int32_t block_id, uint32_t permissions)
 
 
 
-const void *vm_state::get_block(int32_t block_id, uint32_t permissions) const
+const void *vm_state::get_block(int64_t block_id, uint32_t permissions) const
 {
   if (permissions == VM_MEM_NO_PERMISSIONS) {
     throw vm_memory_permission_error("No permissions provided -- request is impossible");
@@ -273,10 +273,10 @@ vm_found_fn_t vm_state::find_function_pointer(const char *name) const
 
 
 
-bool vm_state::check_block_bounds(int32_t block_id, int32_t offset, int32_t size) const
+bool vm_state::check_block_bounds(int64_t block_id, int64_t offset, int64_t size) const
 {
-  int32_t const bsize = block_size(block_id);
-  int32_t const end = offset + size;
+  int64_t const bsize = block_size(block_id);
+  int64_t const end = offset + size;
 
   return
     offset >= 0 &&
@@ -302,21 +302,21 @@ void vm_state::load_thread(thread_pointer_t &&thread)
 
 
 
-void vm_state::destroy_thread(int32_t index)
+void vm_state::destroy_thread(int64_t index)
 {
   _threads.at(index).reset(nullptr);
 }
 
 
 
-vm_thread &vm_state::thread_by_index(int32_t thread_index)
+vm_thread &vm_state::thread_by_index(int64_t thread_index)
 {
   return *_threads[thread_index];
 }
 
 
 
-vm_thread const &vm_state::thread_by_index(int32_t thread_index) const
+vm_thread const &vm_state::thread_by_index(int64_t thread_index) const
 {
   return *_threads[thread_index];
 }

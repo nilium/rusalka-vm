@@ -23,11 +23,11 @@ class vm_op
 {
 public:
   vm_unit const &unit;
-  int32_t const ip;
+  int64_t const ip;
 
-  uint16_t litflag() const;
+  uint64_t litflag() const;
   vm_opcode opcode() const;
-  vm_value operator [] (int32_t index) const;
+  vm_value operator [] (int64_t index) const;
 };
 
 // static_assert(sizeof(vm_opcode) == sizeof(vm_value),

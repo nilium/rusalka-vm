@@ -17,13 +17,22 @@
 #include "vm_exception.h"
 
 
+auto vm_unit::read_relocation_ptr(std::istream &input) -> relocation_ptr
+{
+  return relocation_ptr {
+    static_cast<int64_t>(read_primitive<int32_t>(input)),
+    static_cast<uint64_t>(read_primitive<uint32_t>(input))
+  };
+}
+
+
 // Iterates over each bit in a mask and passes the  of set bits to func.
 template <typename T, typename Func>
 void
 each_in_mask(T mask, Func func)
 {
   static_assert(std::is_unsigned<T>::value, "Mask must be unsigned");
-  for (int32_t index = 0; mask; index += 1) {
+  for (int index = 0; mask; index += 1) {
     if (mask & 0x1u) {
       func(index);
     }
@@ -114,8 +123,8 @@ vm_unit &vm_unit::operator = (vm_unit &&m)
 void vm_unit::read_instruction(std::istream &input)
 {
   vm_opcode const opcode = static_cast<vm_opcode>(read_primitive<uint16_t>(input));
-  uint16_t const litflag = read_primitive<uint16_t>(input);
-  int32_t arg_base = static_cast<int32_t>(instruction_argv.size());
+  uint64_t const litflag = static_cast<uint64_t>(read_primitive<uint16_t>(input));
+  int arg_base = static_cast<int>(instruction_argv.size());
   value_reader_t *reader = value_reader();
 
   if (reader == nullptr) {
@@ -129,9 +138,9 @@ void vm_unit::read_instruction(std::istream &input)
       arg_base // curse unsigneds to death
     });
 
-  int32_t const argc = g_opcode_argc[opcode] - (opcode_has_litflag(opcode) ? 1 : 0);
+  int const argc = g_opcode_argc[opcode] - (opcode_has_litflag(opcode) ? 1 : 0);
 
-  for (int32_t counter = 0; counter < argc; ++counter) {
+  for (int counter = 0; counter < argc; ++counter) {
     vm_value arg = reader(input);
     instruction_argv.push_back(arg);
   }
@@ -140,7 +149,7 @@ void vm_unit::read_instruction(std::istream &input)
 
 void vm_unit::read_instructions(std::istream &input)
 {
-  read_table(input, CHUNK_INST, [&](int32_t index) {
+  read_table(input, CHUNK_INST, [&](int index) {
     (void)index;
     read_instruction(input);
   });
@@ -149,21 +158,21 @@ void vm_unit::read_instructions(std::istream &input)
 
 void vm_unit::read_extern_relocations(
   std::istream &input,
-  int32_t instruction_base,
+  int64_t instruction_base,
   extern_relocations_t const &relocations
   )
 {
   extern_relocations_t::const_iterator not_found = relocations.cend();
 
-  read_table(input, CHUNK_EREL, [&](int32_t rel_index) {
+  read_table(input, CHUNK_EREL, [&](int rel_index) {
     (void)rel_index;
 
-    relocation_ptr rel = read_primitive<relocation_ptr>(input);
+    relocation_ptr rel = read_relocation_ptr(input);
     rel.pointer += instruction_base;
-    int32_t const arg_base = instructions[rel.pointer].arg_pointer;
+    int64_t const arg_base = instructions[rel.pointer].arg_pointer;
 
-    each_in_mask(rel.args_mask, [&](int32_t mask_index) {
-      int32_t const arg_index = arg_base + mask_index;
+    each_in_mask(rel.args_mask, [&](int mask_index) {
+      int const arg_index = arg_base + mask_index;
       vm_value &arg = instruction_argv[arg_index];
 
       auto iter = relocations.find(arg);
@@ -183,31 +192,31 @@ void vm_unit::read_extern_relocations(
 
 void vm_unit::read_label_relocations(
   std::istream &input,
-  int32_t instruction_base,
+  int64_t instruction_base,
   relocation_map_t const &relocations
   )
 {
   relocation_map_t::const_iterator not_found = relocations.cend();
 
-  read_table(input, CHUNK_LREL, [&](int32_t rel_index) {
-    relocation_ptr rel = read_primitive<relocation_ptr>(input);
+  read_table(input, CHUNK_LREL, [&](int rel_index) {
+    relocation_ptr rel = read_relocation_ptr(input);
     rel.pointer += instruction_base;
-    int32_t const arg_base = instructions[rel.pointer].arg_pointer;
+    int64_t const arg_base = instructions[rel.pointer].arg_pointer;
 
-    each_in_mask(rel.args_mask, [&](int32_t index) {
-      int32_t const arg_index = arg_base + index;
+    each_in_mask(rel.args_mask, [&](int index) {
+      int64_t const arg_index = arg_base + index;
       vm_value &arg = instruction_argv[arg_index];
       relocation_map_t::const_iterator iter = relocations.find(arg);
 
-      int32_t orig_base = arg;
-      int32_t new_base;
+      int64_t orig_base = arg;
+      int64_t new_base;
 
       if (iter != not_found && iter->first == arg) {
         new_base = iter->second;
         arg = iter->second;
       } else if (arg >= 0) {
         new_base = orig_base + instruction_base;
-        arg = new_base;
+        arg = vm_value { vm_value::SIGNED, new_base };
       } else {
         return;
       }
@@ -222,7 +231,7 @@ void vm_unit::read_externs(
   extern_relocations_t &relocations
   )
 {
-  read_table(input, CHUNK_EXTS, [&](int32_t index) {
+  read_table(input, CHUNK_EXTS, [&](int index) {
     std::string name = read_lstring(input);
 
     auto export_iter = exports.find(name);
@@ -245,7 +254,7 @@ void vm_unit::read_externs(
       return;
     }
 
-    int32_t new_address = static_cast<int32_t>(externs.size());
+    int64_t new_address = static_cast<int64_t>(externs.size());
     if (index != new_address) {
       relocations.emplace(
         vm_value { index },
@@ -260,12 +269,12 @@ void vm_unit::read_externs(
 
 void vm_unit::read_imports(std::istream &input, relocation_map_t &relocations)
 {
-  read_table(input, CHUNK_IMPT, [&](int32_t index) {
+  read_table(input, CHUNK_IMPT, [&](int index) {
     vm_label label = read_label(input);
 
     auto iter = imports.find(label.name);
     if (iter == imports.end()) {
-      int32_t const orig_address = label.address;
+      int64_t const orig_address = label.address;
       label.address = --last_import;
 
       if (orig_address != label.address) {
@@ -284,14 +293,14 @@ void vm_unit::read_imports(std::istream &input, relocation_map_t &relocations)
 
 void vm_unit::read_exports(
   std::istream &input,
-  int32_t base,
+  int64_t base,
   relocation_map_t &relocations
   )
 {
-  read_table(input, CHUNK_EXPT, [&](int32_t index) {
+  read_table(input, CHUNK_EXPT, [&](int index) {
     vm_label label = read_label(input);
     label_table_t::const_iterator iter = exports.find(label.name);
-    int32_t address = label.address;
+    int64_t address = label.address;
 
     if (iter != exports.cend()) {
       if (base != 0) {
@@ -335,11 +344,11 @@ void vm_unit::resolve_externs()
 
   auto const not_found = relocations.cend();
   for (auto const &rel : unresolved_relocations) {
-    int32_t const arg_base = instructions[rel.pointer].arg_pointer;
-    uint32_t updated_mask = 0;
+    int64_t const arg_base = instructions[rel.pointer].arg_pointer;
+    uint64_t updated_mask = 0;
 
-    each_in_mask(rel.args_mask, [&](int32_t mask_index) {
-      int32_t const arg_index = arg_base + mask_index;
+    each_in_mask(rel.args_mask, [&](int mask_index) {
+      int64_t const arg_index = arg_base + mask_index;
       vm_value &arg = instruction_argv[arg_index];
 
       relocation_map_t::const_iterator iter = relocations.find(arg);
@@ -364,18 +373,18 @@ void vm_unit::resolve_externs()
 
 void vm_unit::read_data_table(
   std::istream &input,
-  int32_t data_base,
+  int64_t data_base,
   relocation_map_t &relocations
   )
 {
-  read_table(input, CHUNK_DATA, [&](int32_t max_count) {
+  read_table(input, CHUNK_DATA, [&](int max_count) {
       _data_blocks.reserve(_data_blocks.size() + max_count);
     },
-    [&](int32_t data_index) {
+    [&](int data_index) {
       // base is always 1 (0 reserved for null, basically)
-      int32_t const block_id = 1 + data_base + data_index;
-      int32_t const block_size = read_primitive<int32_t>(input);
-      int32_t const offset = _data.size();
+      int64_t const block_id = 1 + data_base + data_index;
+      int64_t const block_size = static_cast<int64_t>(read_primitive<int32_t>(input));
+      int64_t const offset = _data.size();
 
       _data.resize(static_cast<size_t>(offset + block_size));
       input.read((char *)&_data[offset], block_size);
@@ -391,21 +400,21 @@ void vm_unit::read_data_table(
 
 void vm_unit::read_data_relocations(
   std::istream &input,
-  int32_t instr_base,
-  int32_t data_base,
+  int64_t instr_base,
+  int64_t data_base,
   relocation_map_t &load_relocations
   )
 {
   relocation_map_t::const_iterator not_found = load_relocations.cend();
-  read_table(input, CHUNK_DREL, [&](int32_t count) {
+  read_table(input, CHUNK_DREL, [&](int count) {
       _data_relocations.reserve(_data_relocations.size() + count);
-    }, [&](int32_t index) {
-      relocation_ptr rel = read_primitive<relocation_ptr>(input);
+    }, [&](int index) {
+      relocation_ptr rel = read_relocation_ptr(input);
       rel.pointer += instr_base;
 
-      int32_t const arg_base = instructions[rel.pointer].arg_pointer;
+      int64_t const arg_base = instructions[rel.pointer].arg_pointer;
 
-      each_in_mask(rel.args_mask, [&](int32_t arg_index) {
+      each_in_mask(rel.args_mask, [&](int arg_index) {
         vm_value &arg = instruction_argv[arg_base + arg_index];
         relocation_map_t::const_iterator iter = load_relocations.find(arg);
         if (iter == not_found) {
@@ -426,7 +435,7 @@ void vm_unit::read(std::istream &input)
     read_primitive<int32_t>(input)          // version
   };
 
-  int32_t instruction_base = static_cast<int32_t>(instructions.size());
+  int64_t instruction_base = static_cast<int64_t>(instructions.size());
 
   relocation_map_t label_relocations;
 
@@ -479,7 +488,7 @@ void vm_unit::read(std::istream &input)
   }
 
   relocation_map_t data_relocations;
-  int32_t data_base = static_cast<int32_t>(_data_blocks.size());
+  int64_t data_base = static_cast<int64_t>(_data_blocks.size());
 
   if (offsets.seek_to_offset(input, CHUNK_DATA)) {
     read_data_table(input, data_base, data_relocations);
@@ -507,8 +516,8 @@ void vm_unit::debug_write_instructions(std::ostream &out) const
     if (has_litflag && ins.litflag) {
       out << "#" << std::hex << ins.litflag << std::dec;
     }
-    int32_t argc = g_opcode_argc[ins.opcode] - (has_litflag ? 1 : 0);
-    for (int32_t arg_idx = 0; arg_idx < argc; ++arg_idx) {
+    int argc = g_opcode_argc[ins.opcode] - (has_litflag ? 1 : 0);
+    for (int arg_idx = 0; arg_idx < argc; ++arg_idx) {
       out << " " << instruction_argv[ins.arg_pointer + arg_idx];
     }
     out << std::endl;
@@ -521,12 +530,13 @@ bool vm_unit::relocate_static_data(data_id_ary_t const &new_ids)
 {
   relocation_map_t relocations;
 
-  for (int32_t index = 0; index < _data_blocks.size(); ++index) {
+  size_t const block_count = _data_blocks.size();
+  for (size_t index = 0; index < block_count; ++index) {
     data_block &block = _data_blocks[index];
 
     auto insertion = relocations.emplace(
-      vm_value { block.id },
-      vm_value { new_ids[index] }
+      vm_value { vm_value::DATA, block.id },
+      vm_value { vm_value::DATA, new_ids[index] }
       );
 
     block.id = new_ids[index];
@@ -547,9 +557,9 @@ void vm_unit::apply_instruction_relocation(
   relocation_map_t const &relocations
   )
 {
-  int32_t const arg_base = instructions[rel.pointer].arg_pointer;
+  int64_t const arg_base = instructions[rel.pointer].arg_pointer;
   relocation_map_t::const_iterator not_found = relocations.cend();
-  each_in_mask(rel.args_mask, [&](int32_t arg_index) {
+  each_in_mask(rel.args_mask, [&](int arg_index) {
     vm_value &arg = instruction_argv[arg_base + arg_index];
     relocation_map_t::const_iterator mapped = relocations.find(arg);
 
@@ -573,7 +583,7 @@ void vm_unit::apply_relocation_table(
 }
 
 
-vm_op vm_unit::fetch_op(int32_t ip) const
+vm_op vm_unit::fetch_op(int64_t ip) const
 {
   return vm_op { *this, ip };
 }
@@ -593,7 +603,7 @@ vm_value vm_unit::read_value_v8(std::istream &input)
 {
   return vm_value {
     vm_value::FLOAT,
-    read_primitive<uint64_t>(input)
+    read_primitive<double>(input)
   };
 }
 

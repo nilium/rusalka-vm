@@ -26,7 +26,7 @@
 
 
 namespace {
-enum memop_typed_t : int32_t
+enum memop_typed_t : int64_t
 {
   MEMOP_UINT8   = 0,          // Cast to uint8_t
   MEMOP_INT8    = 1,          // Cast to int8_t
@@ -71,7 +71,7 @@ static void with_rounding(int const round_mode, FN &&func) noexcept
 vm_thread::vm_thread(vm_state &process, size_t stack_size)
 : _process(process)
 {
-  for (int32_t index = 0; index < REGISTER_COUNT; ++index) {
+  for (int index = 0; index < REGISTER_COUNT; ++index) {
     _registers[index] = 0.0;
   }
 
@@ -89,16 +89,16 @@ vm_function vm_thread::function(const char *name)
 
 
 
-vm_function vm_thread::function(int pointer)
+vm_function vm_thread::function(int64_t pointer)
 {
   return vm_function { *this, pointer };
 }
 
 
 
-int32_t vm_thread::fetch()
+int64_t vm_thread::fetch()
 {
-  const int32_t next_instr = ip();
+  const int64_t next_instr = ip();
   ip() = next_instr + 1;
   if (next_instr < 0 || next_instr >= _process._source_size) {
     ++_trap;
@@ -108,7 +108,7 @@ int32_t vm_thread::fetch()
 
 
 
-bool vm_thread::run(int32_t from_ip)
+bool vm_thread::run(int64_t from_ip)
 {
   ip() = from_ip;
   return run();
@@ -118,9 +118,9 @@ bool vm_thread::run(int32_t from_ip)
 
 bool vm_thread::run()
 {
-  const int32_t term_sequence = _sequence++;
+  const int64_t term_sequence = _sequence++;
   while (!_trap && term_sequence < _sequence) {
-    int32_t const opidx = fetch();
+    int64_t const opidx = fetch();
     exec(_process._unit.fetch_op(opidx));
   }
   bool const good = _trap == 0;
@@ -130,7 +130,7 @@ bool vm_thread::run()
 
 
 
-vm_value vm_thread::deref(vm_value input, uint16_t flag, uint32_t mask) const
+vm_value vm_thread::deref(vm_value input, uint64_t flag, uint64_t mask) const
 {
   return (flag & mask) ? input : reg(input);
 }
@@ -138,7 +138,7 @@ vm_value vm_thread::deref(vm_value input, uint16_t flag, uint32_t mask) const
 
 
 template <typename T>
-constexpr T vm_shift(T num, int32_t shift)
+constexpr T vm_shift(T num, int64_t shift)
 {
   return
     shift == 0
@@ -593,7 +593,7 @@ vm_value vm_thread::call_function(const char *name)
 
 
 
-vm_value vm_thread::call_function_nt(const char *name, int32_t argc, const vm_value *argv)
+vm_value vm_thread::call_function_nt(const char *name, int64_t argc, const vm_value *argv)
 {
   const auto pointer = find_function_pointer(name);
   // if (!pointer.ok) throw std::runtime_error("no such function");
@@ -602,9 +602,9 @@ vm_value vm_thread::call_function_nt(const char *name, int32_t argc, const vm_va
 
 
 
-vm_value vm_thread::call_function_nt(int32_t pointer, int32_t argc, const vm_value *argv)
+vm_value vm_thread::call_function_nt(int64_t pointer, int64_t argc, const vm_value *argv)
 {
-  for (int32_t arg_index = 0; arg_index < argc; ++arg_index) {
+  for (int64_t arg_index = 0; arg_index < argc; ++arg_index) {
     push(argv[arg_index]);
   }
   return call_function_nt(pointer, argc);
@@ -612,7 +612,7 @@ vm_value vm_thread::call_function_nt(int32_t pointer, int32_t argc, const vm_val
 
 
 
-vm_value vm_thread::call_function_nt(int32_t pointer, int32_t num_args)
+vm_value vm_thread::call_function_nt(int64_t pointer, int64_t num_args)
 {
   exec_call(pointer, num_args);
   while (!run()) {
@@ -623,7 +623,7 @@ vm_value vm_thread::call_function_nt(int32_t pointer, int32_t num_args)
 
 
 
-vm_value vm_thread::stack(int32_t loc) const
+vm_value vm_thread::stack(int64_t loc) const
 {
   if (loc < 0) {
     throw vm_stack_access_error("Attempt to access stack location < 0");
@@ -636,7 +636,7 @@ vm_value vm_thread::stack(int32_t loc) const
 
 
 
-vm_value &vm_thread::stack(int32_t loc)
+vm_value &vm_thread::stack(int64_t loc)
 {
   if (loc < 0) {
     throw vm_stack_access_error("Attempt to access stack location < 0");
@@ -650,7 +650,7 @@ vm_value &vm_thread::stack(int32_t loc)
 
 
 
-void vm_thread::down_frame(int32_t argc)
+void vm_thread::down_frame(int64_t argc)
 {
   call_frame frame {
     ip(),
@@ -673,7 +673,7 @@ void vm_thread::down_frame(int32_t argc)
 
 
 
-void vm_thread::up_frame(int32_t value_count)
+void vm_thread::up_frame(int64_t value_count)
 {
   if (value_count < 0) {
     throw vm_stack_access_error("Attempt to preserve < 0 stack objects.");
@@ -713,7 +713,7 @@ void vm_thread::drop_frame()
 
 
 
-void vm_thread::exec_call(int32_t pointer, int32_t argc)
+void vm_thread::exec_call(int64_t pointer, int64_t argc)
 {
   if (argc < 0) {
     throw vm_invalid_argument_count("Encountered argument count less than 0");
@@ -731,7 +731,7 @@ void vm_thread::exec_call(int32_t pointer, int32_t argc)
     } else {
       stack_t argv;
       argv.reserve(argc);
-      for (int32_t argi = 0; argi < argc; ++argi) {
+      for (int64_t argi = 0; argi < argc; ++argi) {
         argv.push_back(pop());
       }
       rp() = callback.invoke(*this, argc, &argv[0]);
@@ -755,7 +755,7 @@ void vm_thread::push(vm_value value)
 
 vm_value vm_thread::pop(bool copy_only)
 {
-  int32_t stack_top = esp() - 1;
+  int64_t stack_top = esp().i64() - 1;
   if (stack_top < ebp()) {
     throw vm_stack_underflow("Attempt to pop from stack when ESP is EBP");
   } else if (stack_top < 0) {
@@ -772,7 +772,7 @@ vm_value vm_thread::pop(bool copy_only)
 
 void vm_thread::dump_registers(size_t count) const
 {
-  uint32_t index = 0;
+  size_t index = 0;
   for (; index < count && index < REGISTER_COUNT; ++index) {
     const vm_value &regval = _registers[index];
     std::clog << std::setw(2) << index << " -> " << regval << std::endl;
@@ -783,7 +783,7 @@ void vm_thread::dump_registers(size_t count) const
 
 void vm_thread::dump_stack(size_t until) const
 {
-  uint32_t index = 0;
+  size_t index = 0;
   for (; index < until && index < _stack.size(); ++index) {
     const vm_value &stackval = _stack[index];
 
@@ -793,7 +793,7 @@ void vm_thread::dump_stack(size_t until) const
 
 
 
-vm_value vm_thread::reg(int32_t off) const
+vm_value vm_thread::reg(int64_t off) const
 {
   if (off >= 0) {
     if (off >= REGISTER_COUNT) {
@@ -811,7 +811,7 @@ vm_value vm_thread::reg(int32_t off) const
 
 
 
-vm_value &vm_thread::reg(int32_t off)
+vm_value &vm_thread::reg(int64_t off)
 {
   if (off >= 0) {
     if (off >= REGISTER_COUNT) {
