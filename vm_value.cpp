@@ -163,7 +163,14 @@ vm_value &vm_value::convert(int32_t new_type)
 
 
 auto vm_value::fcmp(vm_value other, double epsilon) const -> fcmp_result {
-  double const alpha = as(FLOAT).f64_ - other.convert(FLOAT).f64_;
+  vm_value const self = as(FLOAT);
+  other.convert(FLOAT);
+  if (self.type != FLOAT || other.type != FLOAT) {
+    return LESS;
+  }
+
+  double const alpha = self.f64_ - other.f64_;
+
   if (alpha > epsilon) {
     return GREATER;
   } else if (alpha >= -epsilon) {
@@ -175,15 +182,9 @@ auto vm_value::fcmp(vm_value other, double epsilon) const -> fcmp_result {
 
 
 auto vm_value::fcmp(vm_value other) const -> fcmp_result {
-  static constexpr double epsilon = vm_value::EPSILON;
-  double const alpha = as(FLOAT).f64_ - other.convert(FLOAT).f64_;
-  if (alpha > epsilon) {
-    return GREATER;
-  } else if (alpha >= -epsilon) {
-    return EQUAL;
-  } else {
-    return LESS;
-  }
+  // Note: this currently just aliases fcmp(other, epsilon) but may be replaced
+  // down the line with something that can be inlined more easily.
+  return fcmp(other, vm_value::EPSILON);
 }
 
 

@@ -357,6 +357,8 @@ struct vm_value final
   friend bool operator == (std::nullptr_t lhs, vm_value rhs) { return rhs == nullptr; }
   friend bool operator != (std::nullptr_t lhs, vm_value rhs) { return rhs != nullptr; }
 
+  // fcmp only returns valid results for arithmetic types. For non-arithmetic types, the result is
+  // always LESS.
   fcmp_result fcmp(vm_value other) const;
   fcmp_result fcmp(vm_value other, double epsilon = EPSILON) const;
 
