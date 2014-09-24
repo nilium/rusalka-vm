@@ -373,10 +373,18 @@ using vm_value_type = typename vm_value::value_type;
 std::ostream &operator << (std::ostream &out, vm_value v);
 
 
-template <class T>
-vm_value make_value(T x)
+
+template <
+  typename T,
+  typename Decayed = typename std::decay<T>::type,
+  typename std::enable_if<
+    std::is_arithmetic<Decayed>::value || std::is_same<Decayed, vm_value>::value,
+    bool
+    >::type = true
+  >
+vm_value make_value(T &&x)
 {
-  return vm_value { x };
+  return vm_value { std::forward<T>(x) };
 }
 
 
