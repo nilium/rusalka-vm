@@ -2,15 +2,20 @@ dofile 'build-aux.lua'
 
 solution 'rusalka'
 configurations {
-  'Debug',
-  'Release',
+  'Debug-Static',
+  'Debug-Shared',
+  'Release-Static',
+  'Release-Shared',
 }
 
-
-static_library {
+library {
   'rusalka',
   files = { '**.cpp' },
   excludes = { '**_test.*' },
+  configs = {
+    ['*-Static'] = { kind = 'StaticLib' },
+    ['*-Shared'] = { kind = 'SharedLib' },
+  },
 }
 
 
