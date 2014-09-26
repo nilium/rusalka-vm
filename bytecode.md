@@ -74,19 +74,33 @@ The data itself is a string of `data_size_bytes`. The data is not required to co
 
 The instructions table contains `count` instructions. Each instruction is an integer opcode followed by its operands.
 
+    enum value_type {
+        ERROR     = -1, /* Error object */
+        UNDEFINED = 0,  /* Undefined value */
+        UNSIGNED  = 1,  /* Unsigned integer */
+        SIGNED    = 2,  /* Signed integer */
+        FLOAT     = 3,  /* 64-bit float (double) */
+        DATA      = 4,  /* Data ID */
+    }
+
+    struct value /* packed */ {
+        int32_t type;
+        uint64_t data;
+    }
+
     struct instruction_entry {
         uint16_t opcode;
         uint16_t litflag;
-        double operands[ARGC];
+        value operands[ARGC];
     }
 
 Because each opcode has a fixed number of arguments, there is no operand count provided for each instruction. In the case of operands which take a litflag, the litflag is technically considered an operand but is provided as an unsigned 16-bit bitmask. As such, it does not count towards the argument count for an instruction.
 
 Litflags are simply bitmasks where each bit represents an operand. If the bit is set, the operand is a literal or constant (i.e., does not refer to a register). If the bit is unset, the operand refers to a register. All output operands are registers regardless of whether the operand's litflag bit is set.
 
-All operands are little-endian 64-bit floats, or doubles. When treated as integers, these are cast to signed 32-bit integers, as otherwise the last 12 bits of a 64-bit integer would be cut off. They may also be cast to unsigned 32-bit integers for bitwise instructions. For integer division, a special exception to this rule is made where the doubles may be cast to signed 64-bit integers. See the IDIV implementation for the rationale behind that.
+All operands are represented by a 32-bit type ID and 64-bit value data (a 64-bit unsigned int in the `value` struct above, but may be any data that fits into 8 bytes). The type ID and value data may be anything, and the in-memory layout and such of the actual value is defined by the VM (i.e., it is not necessarily the same as the bytecode representation). Well-defined types are those defined in the above value_type enum. Any type in the range of -65536 through 65536 is considered a built-in type and these IDs are reserved if defined. Type IDs outside this range are user- or implementation-defined.
 
-My choice to have all operands represented as doubles should probably be discussed elsewhere, but it can be summed up pretty quickly: doubles provide a very reasonable level of accuracy for the most part and can represent integers up to 2<sup>53</sup>. Although this doesn't cover all cases, it has all the accuracy I care about for Rusalka.
+Value types and data are to be stored in little-endian byte order.
 
 
 #### `IMPT` — Imports Table
