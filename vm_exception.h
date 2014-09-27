@@ -47,13 +47,13 @@ VM_DECLARE_EXCEPTION(vm_wrong_process, vm_logic_error);
 
 // Thrown if bytecode contains an unrecognized opcode.
 VM_DECLARE_EXCEPTION(vm_bad_opcode, vm_runtime_error);
-// Generic unit loading error
+// Generic unit loading consistency error
 VM_DECLARE_EXCEPTION(vm_bad_unit, vm_runtime_error);
+// Generic unit loading IO error
+VM_DECLARE_EXCEPTION(vm_unit_io_error, vm_runtime_error);
 // Exception thrown specifically for units that are of an unsupported
 // bytecode version.
 VM_DECLARE_EXCEPTION(vm_unsupported_unit_version, vm_bad_unit);
 
 #undef VM_DECLARE_EXCEPTION
 
-
-#pragma GCC visibility pop
