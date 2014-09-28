@@ -412,7 +412,7 @@ vm_value vm_value::operator - () const
   case UNSIGNED: return vm_value { -u64_ };
   case SIGNED: return vm_value { -s64_ };
   case FLOAT: return vm_value { -f64_ };
-  default: return vm_value::undefined();
+  default: return undefined();
   }
 }
 
@@ -426,7 +426,7 @@ vm_value vm_value::operator ~ () const
     return vm_value { ~ as(UNSIGNED).u64_ };
 
   default:
-    return vm_value::undefined();
+    return undefined();
   }
 }
 
