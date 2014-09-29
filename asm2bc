@@ -76,15 +76,15 @@ module Op
         opcode = argv.shift.to_i
         argc = argv.shift.to_i
         argv.map!(&:to_sym)
+        name = asm_name.downcase
 
         ::Op.const_set(codename, opcode)
-        ::Op::OP_NAMES << asm_name.downcase.tap do |name|
-          ::Op::OPS[name] = opcode
-          ::Op::OP_PACKS[name] = 'E' * argc
-          ::Op::OP_ARGS[name] = argv
-          ::Op::OP_HAS_LITFLAG[name] = argv[-1] == :litflag
-        end.to_s
 
+        ::Op::OPS[name] = opcode
+        ::Op::OP_PACKS[name] = 'E' * argc
+        ::Op::OP_ARGS[name] = argv
+        ::Op::OP_HAS_LITFLAG[name] = argv[-1] == :litflag
+        ::Op::OP_NAMES << name.to_s
       end
     end
 
