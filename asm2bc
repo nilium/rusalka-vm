@@ -96,11 +96,6 @@ end
 #  File loading / lexing                                                      #
 ###############################################################################
 
-def file_contents(file)
-  File.open(file, 'r') { |io| io.read }
-end
-
-
 def lex(source)
   lexer = Lexer.new
   lexer.skip_comments = true
@@ -1293,7 +1288,7 @@ output_file = ARGV.shift
 
 ARGV.each do |file|
   unit_name     = (file == '-') ? 'anonymous' : file
-  contents      = (file == '-') ? $stdin.read() : file_contents(file)
+  contents      = (file == '-') ? $stdin.read() : File.open(file, 'r', &:read)
   tokens        = lex(contents)
   unit_digest   = Digest.hexencode(hasher.digest(contents))
   # parser.prefix = unit_digest
