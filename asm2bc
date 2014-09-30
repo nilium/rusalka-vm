@@ -105,10 +105,10 @@ end
 
 
 POS_INT_LITS = [:integer_lit, :integer_exp_lit, :hex_lit, :bin_lit]
-INT_LITS = [:minus] | POS_INT_LITS
-FLOAT_LITS = [:float_lit, :float_exp_lit, :minus]
-STRING_LITS = [:double_string_lit]
-CHAR_LITS = [:single_string_lit]
+INT_LITS     = [:minus] | POS_INT_LITS
+FLOAT_LITS   = [:float_lit, :float_exp_lit, :minus]
+STRING_LITS  = [:double_string_lit]
+CHAR_LITS    = [:single_string_lit]
 
 
 # Parser and Name Structs
