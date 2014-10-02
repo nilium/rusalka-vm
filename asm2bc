@@ -36,9 +36,8 @@ VALUE_TYPE_FLOAT       = 3
 VALUE_TYPE_DATA        = 4
 
 
-def logical_xor(a, b)
-  args = [a, b]
-  args.any? && !args.all?
+def logical_xor(*args)
+  args.one?
 end
 
 
