@@ -13,6 +13,7 @@
 
 #include "vm_exception.h"
 #include "vm_state.h"
+#include "hash.h"
 
 
 /*
@@ -87,8 +88,8 @@ void vm_state::prepare_unit()
 
 vm_bound_fn_t vm_state::bind_callback(const char *name, int length, vm_callback_t *function, void *context)
 {
-  std::string name_str(name, length);
-  auto imported = _unit.imports.find(name_str);
+  uint64_t name_key = hash64(name, static_cast<size_t>(length));
+  auto imported = _unit.imports.find(name_key);
   if (imported != _unit.imports.cend()) {
     const int64_t idx = -(imported->second + 1);
     _callbacks.at(idx) = callback_info { function, context };
@@ -262,10 +263,10 @@ const void *vm_state::get_block(int64_t block_id, uint32_t permissions) const
 
 vm_found_fn_t vm_state::find_function_pointer(const char *name) const
 {
-  const std::string str_name((name));
-  vm_unit::label_table_t::const_iterator iter = _unit.imports.find(name);
+  uint64_t name_key = hash64(name, std::strlen(name));
+  vm_unit::label_table_t::const_iterator iter = _unit.imports.find(name_key);
   if (iter == _unit.imports.cend() &&
-      (iter = _unit.exports.find(name)) == _unit.exports.cend()) {
+      (iter = _unit.exports.find(name_key)) == _unit.exports.cend()) {
     return vm_found_fn_t { false, 0 };
   }
   return vm_found_fn_t { true, iter->second };

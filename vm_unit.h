@@ -114,7 +114,7 @@ class vm_unit
 
   using instruction_ptrs_t   = std::vector<instruction_ptr>;
   using instruction_argv_t   = std::vector<vm_value>;
-  using label_table_t        = std::map<std::string, int64_t>;
+  using label_table_t        = std::map<uint64_t, int64_t>;
   using data_id_ary_t        = std::vector<int64_t>;
 
   int32_t version;

@@ -15,6 +15,13 @@
 #include "vm_unit+chunk_offsets.inl"
 #include "vm_opcode.h"
 #include "vm_exception.h"
+#include "hash.h"
+
+
+static uint64_t string_hash(std::string const &str)
+{
+  return hash64(str.data(), str.length());
+}
 
 
 auto vm_unit::read_relocation_ptr(std::istream &input) -> relocation_ptr
@@ -233,8 +240,9 @@ void vm_unit::read_externs(
 {
   read_table(input, CHUNK_EXTS, [&](int index) {
     std::string name = read_lstring(input);
+    uint64_t name_key = string_hash(name);
 
-    auto export_iter = exports.find(name);
+    auto export_iter = exports.find(name_key);
     if (export_iter != exports.end()) {
       relocations.emplace(
         vm_value { index },
@@ -243,7 +251,7 @@ void vm_unit::read_externs(
       return;
     }
 
-    auto extern_iter = externs.find(name);
+    auto extern_iter = externs.find(name_key);
     if (extern_iter != externs.end()) {
       if (extern_iter->second != index) {
         relocations.emplace(
@@ -262,7 +270,7 @@ void vm_unit::read_externs(
         );
     }
 
-    externs.emplace(std::move(name), new_address);
+    externs.emplace(name_key, new_address);
   });
 }
 
@@ -271,8 +279,9 @@ void vm_unit::read_imports(std::istream &input, relocation_map_t &relocations)
 {
   read_table(input, CHUNK_IMPT, [&](int index) {
     vm_label label = read_label(input);
+    uint64_t name_key = string_hash(label.name);
 
-    auto iter = imports.find(label.name);
+    auto iter = imports.find(name_key);
     if (iter == imports.end()) {
       int64_t const orig_address = label.address;
       label.address = --last_import;
@@ -286,7 +295,7 @@ void vm_unit::read_imports(std::istream &input, relocation_map_t &relocations)
       relocations.emplace(vm_value { label.address }, vm_value { iter->second });
     }
 
-    imports.emplace(std::move(label.name), label.address);
+    imports.emplace(name_key, label.address);
   });
 }
 
@@ -299,7 +308,8 @@ void vm_unit::read_exports(
 {
   read_table(input, CHUNK_EXPT, [&](int index) {
     vm_label label = read_label(input);
-    label_table_t::const_iterator iter = exports.find(label.name);
+    uint64_t name_key = string_hash(label.name);
+    label_table_t::const_iterator iter = exports.find(name_key);
     int64_t address = label.address;
 
     if (iter != exports.cend()) {
@@ -313,7 +323,7 @@ void vm_unit::read_exports(
       relocations.emplace(vm_value { label.address }, vm_value { address });
     }
 
-    exports.emplace(std::move(label.name), address);
+    exports.emplace(name_key, address);
   });
 }
 
