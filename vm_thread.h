@@ -14,8 +14,6 @@
 #include "vm_value.h"
 #include "vm_function.h"
 
-#pragma GCC visibility push(default)
-
 
 class vm_op;
 class vm_state;
@@ -211,5 +209,3 @@ vm_value vm_invoke_function(vm_thread &thread, int64_t pointer, ARGS &&... args)
   return thread.call_function(pointer, std::forward<ARGS>(args)...);
 }
 
-
-#pragma GCC visibility pop

@@ -24,8 +24,6 @@
 #include "vm_unit.h"
 #include "vm_thread.h"
 
-#pragma GCC visibility push(default)
-
 
 class vm_thread;
 
@@ -132,5 +130,3 @@ public:
 
 };
 
-
-#pragma GCC visibility pop

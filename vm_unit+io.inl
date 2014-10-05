@@ -10,8 +10,6 @@
 
 #include "vm_unit+chunk_types.inl"
 
-#pragma GCC visibility push(hidden)
-
 
 std::string
 read_string(std::istream &input, int32_t length)
@@ -136,5 +134,3 @@ std::string read_lstring(std::istream &input)
   return result;
 }
 
-
-#pragma GCC visibility pop

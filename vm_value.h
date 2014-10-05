@@ -11,8 +11,6 @@
 #include <cstdint>
 #include <iostream>
 
-#pragma GCC visibility push(default)
-
 
 struct vm_value final
 {
@@ -396,5 +394,3 @@ static_assert(std::is_standard_layout<vm_value>::value,
 
 static_assert(std::is_trivially_assignable<vm_value, vm_value>::value,
   "vm_value must be trivially assignable to itself");
-
-#pragma GCC visibility pop

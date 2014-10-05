@@ -11,8 +11,6 @@
 #include "vm_unit+io.inl"
 #include "vm_unit+chunk_types.inl"
 
-#pragma GCC visibility push(hidden)
-
 
 struct vm_chunk_offsets
 {
@@ -74,5 +72,3 @@ struct vm_chunk_offsets
 
 };
 
-
-#pragma GCC visibility pop

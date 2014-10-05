@@ -13,8 +13,6 @@
 #include <vector>
 
 
-#pragma GCC visibility push(default)
-
 
 namespace vm
 {
@@ -308,5 +306,3 @@ const char *token_name(vm::token_kind const kind);
 
 
 } // namespace vm
-
-#pragma GCC visibility pop

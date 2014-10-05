@@ -8,14 +8,8 @@
 
 #pragma once
 
-#pragma GCC visibility push(hidden)
-
 class vm_op;
 
-#pragma GCC visibility pop
-
-
-#pragma GCC visibility push(default)
 
 class vm_thread;
 class vm_state;
@@ -35,5 +29,3 @@ using vm_bound_fn_t = vm_found_fn_t;
 /// VM callback -- given a thread, argument count, and array of argument values.
 using vm_callback_t = vm_value (vm_thread &vm, int32_t argc, vm_value const *argv, void *context);
 
-
-#pragma GCC visibility pop

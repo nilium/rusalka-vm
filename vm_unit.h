@@ -18,8 +18,6 @@
 #include "vm_op.h"
 #include "vm_value.h"
 
-#pragma GCC visibility push(default)
-
 
 #define VM_MIN_UNIT_VERSION 8
 #define VM_MAX_UNIT_VERSION 200
@@ -232,5 +230,3 @@ void vm_unit::each_data(Func &&fn) const
   }
 }
 
-
-#pragma GCC visibility pop

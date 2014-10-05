@@ -10,8 +10,6 @@
 
 #include <exception>
 
-#pragma GCC visibility push(default)
-
 
 #define VM_DECLARE_EXCEPTION(KLASSNAME, SUPERKLASSNAME) \
   struct KLASSNAME : public SUPERKLASSNAME { \
