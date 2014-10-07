@@ -18,7 +18,7 @@ uint32_t hash32(char const *str, size_t const length, uint32_t const seed)
     0xFFF00000U, 0xFFF80000U, 0xFFFC0000U, 0xFFFE0000U,
   };
   uint32_t hash = seed;
-  constexpr uint32_t hbits = sizeof(hash) * 8;
+  uint32_t const hbits = sizeof(hash) * 8;
   size_t index = 0;
   for (; index < length; ++index) {
     uint32_t const curchar = str[index];
@@ -42,7 +42,7 @@ uint64_t hash64(char const *str, size_t const length, uint64_t const seed)
     0xFFF0ULL << 48, 0xFFF8ULL << 48, 0xFFFCULL << 48, 0xFFFEULL << 48,
   };
   uint64_t hash = seed;
-  constexpr uint64_t hbits = sizeof(hash) * 8;
+  uint64_t const hbits = sizeof(hash) * 8;
   size_t index = 0;
   for (; index < length; ++index) {
     uint64_t const curchar = str[index];
