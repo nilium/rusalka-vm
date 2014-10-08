@@ -222,41 +222,41 @@ void vm_thread::exec(const vm_op &op)
   } break;
 
   // NOT OUT, IN
-  // Bitwise not.
+  // Bitwise not (unsigned).
   case NOT: {
     reg(op[0]) = ~(reg(op[1]));
   } break;
 
   // OR OUT, LHS, RHS, LITFLAG
-  // Bitwise or (unsigned 32-bit).
+  // Bitwise or (unsigned).
   case OR: {
     reg(op[0]) = deref(op[1], litflag, 0x2) | deref(op[2], litflag, 0x4);
   } break;
 
   // AND OUT, LHS, RHS, LITFLAG
-  // Bitwise and (unsigned 32-bit).
+  // Bitwise and (unsigned).
   case AND: {
     reg(op[0]) = deref(op[1], litflag, 0x2) & deref(op[2], litflag, 0x4);
   } break;
 
   // XOR OUT, LHS, RHS, LITFLAG
-  // Bitwise xor (unsigned 32-bit).
+  // Bitwise xor (unsigned).
   case XOR: {
     reg(op[0]) = deref(op[1], litflag, 0x2) ^ deref(op[2], litflag, 0x4);
   } break;
 
-  // ARITHSHIFT OUT, LHS, RHS, LITFLAG
-  // Arithmetic shift. Signed 32-bit.
+  // ARITHSHIFT OUT, LHS (signed), RHS (unsigned), LITFLAG
+  // Arithmetic shift. Signed.
   // RHS > 0  -> Left shift.
   // RHS < 0  -> Right shift.
-  // RHS == 0 -> Cast to signed 32-bit int.
+  // RHS == 0 -> Cast to signed int.
   case ARITHSHIFT: {
     const int32_t input = deref(op[1], litflag, 0x2);
     const int32_t shift = deref(op[2], litflag, 0x4);
     reg(op[0]) = vm_shift(input, shift);
   } break;
 
-  // BITSHIFT OUT, LHS, RHS, LITFLAG
+  // BITSHIFT OUT, LHS (unsigned), RHS (signed), LITFLAG
   // Bitwise shift. Signed 32-bit.
   // RHS > 0  -> Left shift.
   // RHS < 0  -> Right shift.
