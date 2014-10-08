@@ -251,8 +251,8 @@ void vm_thread::exec(const vm_op &op)
   // RHS < 0  -> Right shift.
   // RHS == 0 -> Cast to signed int.
   case ARITHSHIFT: {
-    const int32_t input = deref(op[1], litflag, 0x2);
-    const int32_t shift = deref(op[2], litflag, 0x4);
+    const int64_t input = deref(op[1], litflag, 0x2);
+    const int64_t shift = deref(op[2], litflag, 0x4);
     reg(op[0]) = vm_shift(input, shift);
   } break;
 
@@ -262,8 +262,8 @@ void vm_thread::exec(const vm_op &op)
   // RHS < 0  -> Right shift.
   // RHS == 0 -> Cast to unsigned 32-bit int.
   case BITSHIFT: {
-    const uint32_t input = deref(op[1], litflag, 0x2);
-    const int32_t shift = deref(op[2], litflag, 0x4);
+    const uint64_t input = deref(op[1], litflag, 0x2);
+    const int64_t shift = deref(op[2], litflag, 0x4);
     reg(op[0]) = vm_shift(input, shift);
   } break;
 
