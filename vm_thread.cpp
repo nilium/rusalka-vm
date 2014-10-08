@@ -216,15 +216,15 @@ void vm_thread::exec(const vm_op &op)
   } break;
 
   // NEG OUT, IN
-  // Negation (fp64).
+  // Negation.
   case NEG: {
-    reg(op[0]) = -reg(op[1]).f64();
+    reg(op[0]) = -reg(op[1]);
   } break;
 
   // NOT OUT, IN
-  // Bitwise not (unsigned 32-bit).
+  // Bitwise not.
   case NOT: {
-    reg(op[0]) = ~reg(op[1]);
+    reg(op[0]) = ~(reg(op[1]));
   } break;
 
   // OR OUT, LHS, RHS, LITFLAG
