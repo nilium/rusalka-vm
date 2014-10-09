@@ -270,29 +270,49 @@ void vm_thread::exec(const vm_op &op)
   // FLOOR OUT, IN
   // Nearest integral value <= IN.
   case FLOOR: {
-    reg(op[0]) = std::floor(reg(op[1]).f64());
+    vm_value const in = reg(op[1]);
+    if (in.type != vm_value::FLOAT) {
+      reg(op[0]) = in.as(vm_value::FLOAT);
+    } else {
+      reg(op[0]) = std::floor(in.f64());
+    }
   } break;
 
   // CEIL OUT, IN
   // Nearest integral value >= IN.
   case CEIL: {
-    reg(op[0]) = std::ceil(reg(op[1]).f64());
+    vm_value const in = reg(op[1]);
+    if (in.type != vm_value::FLOAT) {
+      reg(op[0]) = in.as(vm_value::FLOAT);
+    } else {
+      reg(op[0]) = std::ceil(in.f64());
+    }
   } break;
 
   // ROUND OUT, IN
   // Nearest integral value using FE_TONEAREST.
   case ROUND: {
-    with_rounding(FE_TONEAREST, [&] {
-      reg(op[0]) = std::nearbyint(reg(op[1]).f64());
-    });
+    vm_value const in = reg(op[1]);
+    if (in.type != vm_value::FLOAT) {
+      reg(op[0]) = in.as(vm_value::FLOAT);
+    } else {
+      with_rounding(FE_TONEAREST, [&] {
+        reg(op[0]) = std::nearbyint(in.f64());
+      });
+    }
   } break;
 
   // RINT OUT, IN
   // Nearest integral value using FE_TOWARDZERO.
   case RINT: {
-    with_rounding(FE_TOWARDZERO, [&] {
-      reg(op[0]) = std::nearbyint(reg(op[1]).f64());
-    });
+    vm_value const in = reg(op[1]);
+    if (in.type != vm_value::FLOAT) {
+      reg(op[0]) = in.as(vm_value::FLOAT);
+    } else {
+      with_rounding(FE_TOWARDZERO, [&] {
+        reg(op[0]) = std::nearbyint(in.f64());
+      });
+    }
   } break;
 
   // EQ|LE|LT LHS, RHS, RESULT, LITFLAG
