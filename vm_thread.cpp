@@ -350,7 +350,11 @@ void vm_thread::exec(const vm_op &op)
   // Litflags:
   // 0x1 - POINTER is a literal address.
   case JUMP: {
-    ip() = deref(op[0], litflag, 0x1);
+    vm_value const new_ip = deref(op[0], litflag, 0x1).as(vm_value::SIGNED);
+    if (new_ip.is_undefined() || new_ip.is_error()) {
+      throw vm_invalid_instruction_pointer("Attempt to jump to non-integral instruction pointer");
+    }
+    ip() = new_ip;
   } break;
 
   // PUSH REG
@@ -381,7 +385,14 @@ void vm_thread::exec(const vm_op &op)
   // 0x1 - POINTER is a literal address.
   // 0x2 - ARGC is a literal integer.
   case CALL: {
-    exec_call(deref(op[0], litflag, 0x1), deref(op[1], litflag, 0x2));
+    vm_value const new_ip = deref(op[0], litflag, 0x1).as(vm_value::SIGNED);
+    vm_value const argc = deref(op[1], litflag, 0x2).as(vm_value::SIGNED);
+    if (new_ip.is_undefined() || new_ip.is_error()) {
+      throw vm_invalid_instruction_pointer("Attempt to call non-integral instruction pointer");
+    } else if (argc.is_undefined() || argc.is_error()) {
+      throw vm_invalid_argument_count("Attempt to call instruction pointer with non-integral argument count");
+    }
+    exec_call(new_ip, argc);
   } break;
 
   // RETURN -- exits the current frame/sequence

@@ -25,6 +25,8 @@ VM_DECLARE_EXCEPTION(vm_logic_error, std::logic_error);
 
 // Thrown if bytecode attempts to access a register that doesn't exist.
 VM_DECLARE_EXCEPTION(vm_bad_register, vm_logic_error);
+// Exception thrown for jumping to or calling an invalid instruction pointer.
+VM_DECLARE_EXCEPTION(vm_invalid_instruction_pointer, vm_logic_error);
 // Thrown if pop is called when ebp == esp
 VM_DECLARE_EXCEPTION(vm_stack_underflow, vm_logic_error);
 // Thrown if accessing a stack index < 0.
