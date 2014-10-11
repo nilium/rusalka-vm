@@ -61,7 +61,7 @@ class vm_state
   };
 
   using found_memblock_t = vm_find_result<memblock>;
-  using memblock_map_t = std::map<int32_t, memblock>;
+  using memblock_map_t = std::map<int64_t, memblock>;
   using stack_t = std::vector<vm_value>;
   using callbacks_t = std::vector<callback_info>;
   using thread_pointer_t = std::unique_ptr<vm_thread>;
