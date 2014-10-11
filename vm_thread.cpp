@@ -406,8 +406,8 @@ void vm_thread::exec(const vm_op &op)
   // 0x2 - Block is zero
   // 0x4 - Size
   case REALLOC: {
-    int32_t const block_id = (litflag & 0x2) ? 0 : op[1];
-    int32_t const size = deref(op[2], litflag, 0x4);
+    int64_t const block_id = (litflag & 0x2) ? 0 : op[1];
+    int64_t const size = deref(op[2], litflag, 0x4);
     reg(op[0]) = _process.realloc_block(block_id, size);
   } break;
 
@@ -430,9 +430,9 @@ void vm_thread::exec(const vm_op &op)
   //  0x8 - type
   case PEEK: {
     vm_value &out = reg(op[0]);
-    int32_t const block_id = deref(op[1], litflag, 0x2);
-    int32_t const offset = deref(op[2], litflag, 0x4);
-    memop_typed_t const type = (memop_typed_t)static_cast<int32_t>(deref(op[3], litflag, 0x8));
+    int64_t const block_id = deref(op[1], litflag, 0x2);
+    int64_t const offset = deref(op[2], litflag, 0x4);
+    memop_typed_t const type = (memop_typed_t)deref(op[3], litflag, 0x8).i64();
     int8_t const *ro_block = reinterpret_cast<int8_t const *>(_process.get_block(block_id, VM_MEM_READABLE));
 
     if (!ro_block) {
@@ -471,10 +471,10 @@ void vm_thread::exec(const vm_op &op)
   // 0x4 - OFFSET
   // 0x8 - TYPE
   case POKE: {
-    int32_t const block_id = reg(op[0]);
+    int64_t const block_id = reg(op[0]);
     value = deref(op[1], litflag, 0x2);
-    int32_t const offset = deref(op[2], litflag, 0x4);
-    memop_typed_t const type = (memop_typed_t)static_cast<int32_t>(deref(op[3], litflag, 0x8));
+    int64_t const offset = deref(op[2], litflag, 0x4);
+    memop_typed_t const type = (memop_typed_t)deref(op[3], litflag, 0x8).i64();
     int8_t *rw_block = reinterpret_cast<int8_t *>(_process.get_block(block_id, VM_MEM_WRITABLE));
 
     if (!rw_block) {
@@ -511,11 +511,11 @@ void vm_thread::exec(const vm_op &op)
   // 0x08 - in offset
   // 0x10 - size
   case MEMMOVE: {
-    int32_t const dst_block_id = reg(op[0]);
-    int32_t const dst_offset = deref(op[1], litflag, 0x2);
-    int32_t const src_block_id = deref(reg(op[2]), litflag, 0x4);
-    int32_t const src_offset = deref(op[3], litflag, 0x8);
-    int32_t const size = deref(op[4], litflag, 0x10);
+    int64_t const dst_block_id = reg(op[0]);
+    int64_t const dst_offset = deref(op[1], litflag, 0x2);
+    int64_t const src_block_id = deref(reg(op[2]), litflag, 0x4);
+    int64_t const src_offset = deref(op[3], litflag, 0x8);
+    int64_t const size = deref(op[4], litflag, 0x10);
 
     if (size > 0 && dst_offset >= 0 && src_offset >= 0) {
       int8_t *block_out;
