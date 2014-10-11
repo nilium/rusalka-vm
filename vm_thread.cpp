@@ -590,7 +590,7 @@ void vm_thread::exec(const vm_op &op)
   // Runs any given thread index and assigns that thread's resulting RP to OUT.
   // Upon completion, THREAD is destroyed.
   case JOIN: {
-    int32_t const thread_index = reg(op[0]);
+    int64_t const thread_index = reg(op[0]);
     vm_thread &thread = _process.thread_by_index(thread_index);
     int loops = VM_MAX_JOIN_LOOPS;
     while (loops > 0 && !thread.run()) {
@@ -859,7 +859,7 @@ vm_value &vm_thread::reg(int64_t off)
 }
 
 
-int vm_thread::thread_index() const
+int64_t vm_thread::thread_index() const
 {
   auto const start = _process._threads.cbegin();
   auto const end = _process._threads.cend();
@@ -869,5 +869,5 @@ int vm_thread::thread_index() const
   if (pointer == end) {
     return -1;
   }
-  return static_cast<int>(std::distance(start, pointer));
+  return static_cast<int64_t>(std::distance(start, pointer));
 }
