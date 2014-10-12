@@ -25,6 +25,25 @@
 #endif
 
 
+/*
+  TODO: handle proper stack unwinding on trap somehow. Currently, it can really
+  screw with the VM if there are nested run() calls (e.g., an imported function
+  calls back into the vm before returning).
+
+  Could be done by throwing an object that the VM can catch and use to unwind.
+  Maybe a counter that's decremented and re-thrown to handle each nesting.
+
+  Not sure if it would be possible to then continue execution normally. I
+  haven't decided yet if trap should be the equivalent of yielding to the host
+  or if it should be for signalling that the VM cannot continue to run due to
+  some error. In the latter case, it might be a good idea to completely reset
+  the stack and all registers and then return the trapped value.
+
+  Don't know -- for now, the TRAP instruction is iffy and kind of just grinds
+  the VM to a halt and makes it hard to recover.
+*/
+
+
 namespace {
 enum memop_typed_t : int64_t
 {
