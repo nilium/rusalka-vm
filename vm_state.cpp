@@ -33,6 +33,7 @@ vm_state::~vm_state()
 
 void vm_state::set_unit(vm_unit const &unit)
 {
+  reset_state();
   _unit = unit;
   prepare_unit();
 }
@@ -41,21 +42,46 @@ void vm_state::set_unit(vm_unit const &unit)
 
 void vm_state::set_unit(vm_unit &&unit)
 {
+  reset_state();
   _unit = std::forward<vm_unit &&>(unit);
   prepare_unit();
 }
 
 
 
-void vm_state::prepare_unit()
+/**
+ * Resets basic VM state to nothing. Doesn't touch the unit, but does require
+ * a unit to be re-assigned (so that the unit can be prepared). set_unit calls
+ * this to reset anything set by a previous unit.
+ *
+ * It is an error to call this (or otherwise change units) when there are live
+ * VM threads.
+ */
+void vm_state::reset_state()
 {
+  if (_threads.size() > 0) {
+    throw new vm_logic_error("Attempt to reset state with loaded VM threads.");
+  }
+
   release_all_memblocks();
   _block_counter = 1;
+
+  _source_size = 0;
+  _callbacks.resize(0);
+}
+
+
+
+void vm_state::prepare_unit()
+{
   _source_size = _unit.instructions.size();
+
   _callbacks.resize(_unit.imports.size());
   std::fill(_callbacks.begin(), _callbacks.end(), callback_info { nullptr, nullptr });
+
   vm_unit::data_id_ary_t new_ids;
   new_ids.resize(_unit._data_blocks.size(), 0);
+
   _unit.each_data([&](int64_t index, int64_t id, int64_t size, void const *ptr, bool &stop) {
     int64_t new_id = realloc_block_with_flags(VM_NULL_BLOCK, size, VM_MEM_SOURCE_DATA);
     auto found = get_block_info(new_id);
@@ -66,6 +92,7 @@ void vm_state::prepare_unit()
     std::memcpy(found.value.block, ptr, size);
     new_ids[index] = new_id;
   });
+
   _unit.relocate_static_data(new_ids);
 }
 

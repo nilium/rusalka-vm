@@ -80,6 +80,7 @@ class vm_state
   vm_unit _unit;
   int64_t _source_size;
 
+  void reset_state();
   void prepare_unit();
 
   friend class vm_thread;
