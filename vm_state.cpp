@@ -16,7 +16,11 @@
 #include "hash.h"
 
 
-vm_state::memblock const vm_state::NO_BLOCK { 0, 0, nullptr };
+vm_state::memblock const vm_state::NO_BLOCK {
+  0,       // size
+  0,       // flags
+  nullptr  // block
+};
 
 
 
