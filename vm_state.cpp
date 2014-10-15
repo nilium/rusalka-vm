@@ -208,10 +208,6 @@ int64_t vm_state::block_size(int64_t block_id) const
 
 void vm_state::free_block(int64_t block_id)
 {
-  if (block_id == 0) {
-    throw vm_null_access_error("Attempt to free null block");
-  }
-
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
   if (iter == _blocks.cend()) {
     throw vm_memory_access_error("Attempt to free nonexistent block");
