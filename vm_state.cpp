@@ -259,12 +259,14 @@ const void *vm_state::get_block(int64_t block_id, uint32_t permissions) const
     return nullptr;
   }
 
-  auto block = _blocks.at(block_id);
-  if (!(block.flags & permissions)) {
+  auto found_block = get_block_info(block_id);
+  if (!found_block.ok) {
+    return nullptr;
+  } else if (!(found_block.value.flags & permissions)) {
     throw vm_memory_permission_error("Attempt to access block with inadequate permissions");
   }
 
-  return block.block;
+  return found_block.value.block;
 }
 
 
