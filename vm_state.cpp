@@ -128,10 +128,14 @@ void vm_state::release_all_memblocks() noexcept
 int64_t vm_state::unused_block_id()
 {
   auto end = _blocks.end();
+  auto const start_counter = _block_counter;
   while (_blocks.find(_block_counter) != end || _block_counter == 0) {
     ++_block_counter;
+    if (_block_counter == start_counter) {
+      return 0;
+    }
   }
-  return _block_counter++;
+  return _block_counter;
 }
 
 
