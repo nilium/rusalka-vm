@@ -143,6 +143,13 @@ int64_t vm_state::unused_block_id()
 int64_t vm_state::realloc_block_with_flags(int64_t block_id, int64_t size, uint32_t flags)
 {
   void *src = nullptr;
+
+  if (size <= 0) {
+    throw new vm_logic_error("Attempt to allocate block with size <= 0.");
+  } else if (flags == VM_MEM_NO_PERMISSIONS) {
+    throw new vm_memory_permission_error("Attempt to allocate block with no set permissions.");
+  }
+
   if (block_id != 0) {
     memblock_map_t::iterator iter = _blocks.find(block_id);
 
@@ -151,6 +158,10 @@ int64_t vm_state::realloc_block_with_flags(int64_t block_id, int64_t size, uint3
     }
 
     src = iter->second.block;
+
+    if (iter->second.flags & VM_MEM_STATIC) {
+      throw vm_memory_permission_error("Attempt to reallocate static memory block.");
+    }
   } else {
     block_id = unused_block_id();
   }
