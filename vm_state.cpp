@@ -16,6 +16,7 @@
 #include "hash.h"
 
 
+// Null memory block.
 vm_state::memblock const vm_state::NO_BLOCK {
   0,       // size
   0,       // flags
@@ -24,6 +25,9 @@ vm_state::memblock const vm_state::NO_BLOCK {
 
 
 
+/**
+ * Destructor.
+ */
 vm_state::~vm_state()
 {
   release_all_memblocks();
@@ -31,6 +35,9 @@ vm_state::~vm_state()
 
 
 
+/**
+ * Set the VM's unit to a copy of the given unit.
+ */
 void vm_state::set_unit(vm_unit const &unit)
 {
   reset_state();
@@ -40,6 +47,10 @@ void vm_state::set_unit(vm_unit const &unit)
 
 
 
+/**
+ * Pass ownership of the given unit's data to the VM. This invalidates the
+ * original unit.
+ */
 void vm_state::set_unit(vm_unit &&unit)
 {
   reset_state();
@@ -72,6 +83,10 @@ void vm_state::reset_state()
 
 
 
+/**
+ * Prepares the VM for its current unit by allocating static memory blocks and
+ * resizing the callback vector to hold as many callbacks as are needed.
+ */
 void vm_state::prepare_unit()
 {
   _source_size = _unit.instructions.size();
@@ -98,6 +113,18 @@ void vm_state::prepare_unit()
 
 
 
+/**
+ * Binds a predefined named callback to a function.
+ * @param  name     The callback name.
+ * @param  length   The length of the name string.
+ * @param  function The function to bind the callback name to.
+ * @param  context  An opaque context pointer that will always be passed to the
+ *   callback function.
+ * @return          A result indicating whether the function was bound or not.
+ *   If the result's first member (bool) is true, the second (int64_t) is set
+ *   to the callback's instruction pointer (a negative value for callback
+ *   functions).
+ */
 vm_bound_fn_t vm_state::bind_callback(const char *name, int length, vm_callback_t *function, void *context)
 {
   uint64_t name_key = hash64(name, static_cast<size_t>(length));
@@ -113,6 +140,9 @@ vm_bound_fn_t vm_state::bind_callback(const char *name, int length, vm_callback_
 
 
 
+/**
+ * Releases all non-static memory allocated by the VM.
+ */
 void vm_state::release_all_memblocks() noexcept
 {
   for (auto kvpair : _blocks) {
@@ -125,6 +155,12 @@ void vm_state::release_all_memblocks() noexcept
 
 
 
+/**
+ * Yields an unused block ID. Subsequent calls return the same value unless the
+ * ID is consumed by the VM memory allocator.
+ *
+ * Returns zero (0) upon error.
+ */
 int64_t vm_state::unused_block_id()
 {
   auto end = _blocks.end();
@@ -140,6 +176,18 @@ int64_t vm_state::unused_block_id()
 
 
 
+/**
+ * Reallocates a block ID with the given flags. The block may be zero, in which
+ * case the result is a new block.
+ * @param  block_id The block ID to reallocate. May be 0. If block_id points to
+ *   a static memory block, a new block ID will be allocated. For other blocks,
+ *   the block ID may be reused.
+ * @param  size     The size of the block to allocate. Must be greater than zero.
+ * @param  flags    Permissions to allocate the block with.
+ *   May not be VM_MEM_NO_PERMISSIONS.
+ * @return          The block ID for the reallocated block. May be the same as
+ *   the input ID or a new ID.
+ */
 int64_t vm_state::realloc_block_with_flags(int64_t block_id, int64_t size, uint32_t flags)
 {
   void *src = nullptr;
@@ -182,6 +230,10 @@ int64_t vm_state::realloc_block_with_flags(int64_t block_id, int64_t size, uint3
 
 
 
+/**
+ * Simplified realloc_block function. Given a block ID, reallocates the block
+ * (or for block_id 0, allocates a new block) of the given size (> 0).
+ */
 int64_t vm_state::realloc_block(int64_t block_id, int64_t size)
 {
   return realloc_block_with_flags(block_id, size, VM_MEM_WRITABLE | VM_MEM_READABLE);
@@ -189,6 +241,14 @@ int64_t vm_state::realloc_block(int64_t block_id, int64_t size)
 
 
 
+/**
+ * Given a block ID, allocates a new block with read-write permissions and
+ * copies all data from block_id to the new block. Returns the newly allocated
+ * block ID.
+ * @param  block_id The block to copy.
+ * @return          The new block ID. Returns 0 if block_id does not exist or
+ *   could not be copied.
+ */
 int64_t vm_state::duplicate_block(int64_t block_id)
 {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
@@ -206,6 +266,9 @@ int64_t vm_state::duplicate_block(int64_t block_id)
 
 
 
+/**
+ * Returns the size of the given block_id, or 0 if the block does not exist.
+ */
 int64_t vm_state::block_size(int64_t block_id) const
 {
   if (block_id == 0) {
@@ -221,6 +284,11 @@ int64_t vm_state::block_size(int64_t block_id) const
 
 
 
+/**
+ * Frees the given block_id and any memory held by it. It is an error to free a
+ * non-zero block ID that does not exist or a static block ID. Freeing block ID
+ * 0 is a no-op.
+ */
 void vm_state::free_block(int64_t block_id)
 {
   memblock_map_t::const_iterator iter = _blocks.find(block_id);
@@ -236,6 +304,9 @@ void vm_state::free_block(int64_t block_id)
 
 
 
+/**
+ * Attempts to get info for the given block ID.
+ */
 auto vm_state::get_block_info(int64_t block_id) const -> found_memblock_t {
   auto const block_iter = _blocks.find(block_id);
   if (block_iter == _blocks.end()) {
@@ -246,6 +317,15 @@ auto vm_state::get_block_info(int64_t block_id) const -> found_memblock_t {
 
 
 
+/**
+ * Looks up a block by its ID, returning it if it's requested with adequate
+ * permissions. It's an error to request a block without adequate permissions
+ * (e.g., requesting a static block with write permissions is an error).
+ * Requesting a block and specifying no permissions is also an error, as no
+ * block will match this.
+ *
+ * Returns nullptr for blocks that are not found and block ID 0.
+ */
 void *vm_state::get_block(int64_t block_id, uint32_t permissions)
 {
   if (permissions == VM_MEM_NO_PERMISSIONS) {
@@ -266,6 +346,9 @@ void *vm_state::get_block(int64_t block_id, uint32_t permissions)
 
 
 
+/**
+ * Const form of get_block.
+ */
 const void *vm_state::get_block(int64_t block_id, uint32_t permissions) const
 {
   if (permissions == VM_MEM_NO_PERMISSIONS) {
@@ -286,6 +369,9 @@ const void *vm_state::get_block(int64_t block_id, uint32_t permissions) const
 
 
 
+/**
+ * Looks up a function pointer ID by name.
+ */
 vm_found_fn_t vm_state::find_function_pointer(const char *name) const
 {
   uint64_t name_key = hash64(name, std::strlen(name));
@@ -299,6 +385,10 @@ vm_found_fn_t vm_state::find_function_pointer(const char *name) const
 
 
 
+/**
+ * Checks whether an offset with a size are within a block's bounds. Always
+ * returns true for a size and offset of zero.
+ */
 bool vm_state::check_block_bounds(int64_t block_id, int64_t offset, int64_t size) const
 {
   int64_t const bsize = block_size(block_id);
@@ -314,6 +404,10 @@ bool vm_state::check_block_bounds(int64_t block_id, int64_t offset, int64_t size
 
 
 
+/**
+ * Given a thread, takes ownership of its resources and adds it to the VM. The
+ * original thread object is invalidated.
+ */
 void vm_state::load_thread(thread_pointer_t &&thread)
 {
   auto const end = _threads.end();
@@ -328,6 +422,9 @@ void vm_state::load_thread(thread_pointer_t &&thread)
 
 
 
+/**
+ * Destroys the thread at the given index.
+ */
 void vm_state::destroy_thread(int64_t index)
 {
   _threads.at(index).reset(nullptr);
@@ -335,6 +432,9 @@ void vm_state::destroy_thread(int64_t index)
 
 
 
+/**
+ * Gets a thread by its index.
+ */
 vm_thread &vm_state::thread_by_index(int64_t thread_index)
 {
   return *_threads[thread_index];
@@ -342,6 +442,9 @@ vm_thread &vm_state::thread_by_index(int64_t thread_index)
 
 
 
+/**
+ * Const form of thread_by_index.
+ */
 vm_thread const &vm_state::thread_by_index(int64_t thread_index) const
 {
   return *_threads[thread_index];
@@ -349,6 +452,9 @@ vm_thread const &vm_state::thread_by_index(int64_t thread_index) const
 
 
 
+/**
+ * Allocates a new thread with a given initial stack size.
+ */
 vm_thread &vm_state::make_thread(size_t stack_size)
 {
   thread_pointer_t ptr { new vm_thread(*this, stack_size) };
@@ -359,6 +465,10 @@ vm_thread &vm_state::make_thread(size_t stack_size)
 
 
 
+/**
+ * Forks a given thread, returning a reference to the new thread. The returned
+ * thread may be run to resume execution from where it left off.
+ */
 vm_thread &vm_state::fork_thread(vm_thread const &thread)
 {
   if (&thread._process != this) {
