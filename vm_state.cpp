@@ -26,6 +26,27 @@ vm_state::memblock const vm_state::NO_BLOCK {
 
 
 /**
+ * Invokes the defined callback with the given parameters.
+ */
+vm_value vm_state::callback_info::invoke(vm_thread &thread, int argc, vm_value const *argv) const
+{
+  if (!callback) {
+    return vm_value::undefined();
+  }
+
+  vm_value const no_args = vm_value::undefined();
+
+  if (argv == nullptr || argc <= 0) {
+    argv = &no_args;
+    argc = 0;
+  }
+
+  return callback(thread, argc, argv, context);
+}
+
+
+
+/**
  * Destructor.
  */
 vm_state::~vm_state()

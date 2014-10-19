@@ -55,9 +55,7 @@ class vm_state
     vm_callback_t *callback;
     void *context;
 
-    vm_value invoke(vm_thread &thread, int argc, vm_value const *argv) const {
-      return callback(thread, argc, argv, context);
-    }
+    vm_value invoke(vm_thread &thread, int argc, vm_value const *argv) const;
   };
 
   using found_memblock_t = vm_find_result<memblock>;
