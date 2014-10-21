@@ -27,6 +27,9 @@ vm_state::memblock const vm_state::NO_BLOCK {
 
 /**
  * Invokes the defined callback with the given parameters.
+ *
+ * If argc is <= 0 or argv is null, argv is replaced with a single undefined
+ * value and argc is forced to 0.
  */
 vm_value vm_state::callback_info::invoke(vm_thread &thread, int argc, vm_value const *argv) const
 {
