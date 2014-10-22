@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include <cstdint>
+
+
 class vm_op;
 
 
