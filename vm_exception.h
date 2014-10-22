@@ -9,6 +9,7 @@
 #pragma once
 
 #include <exception>
+#include <stdexcept>
 
 
 #define VM_DECLARE_EXCEPTION(KLASSNAME, SUPERKLASSNAME) \
