@@ -38,6 +38,7 @@ struct opcode_arg_types
 };
 
 
+
 template <>
 struct opcode_arg_types<0>
 {
@@ -56,11 +57,13 @@ struct opcode_arg_types<0>
 } // namespace <anon>
 
 
+
 const int32_t g_opcode_argc[OP_COUNT] {
 #define INSTRUCTION(OPCODE, ASM_NAME, CODE, NUM_ARGS, ARG_INFO... ) NUM_ARGS,
 #include "vm_instructions.h"
 #undef INSTRUCTION
 };
+
 
 
 bool opcode_has_litflag(vm_opcode op)
@@ -73,6 +76,7 @@ bool opcode_has_litflag(vm_opcode op)
   default: return false;
   }
 }
+
 
 
 std::ostream &operator << (std::ostream &out, vm_opcode v)

@@ -699,7 +699,6 @@ vm_value &vm_thread::stack(int64_t loc)
 
 
 
-
 void vm_thread::down_frame(int64_t argc)
 {
   call_frame frame {
@@ -876,6 +875,7 @@ vm_value &vm_thread::reg(int64_t off)
     return _stack[off];
   }
 }
+
 
 
 int64_t vm_thread::thread_index() const

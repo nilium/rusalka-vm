@@ -27,4 +27,3 @@ extern const int32_t g_opcode_argc[OP_COUNT];
 
 std::ostream &operator << (std::ostream &out, vm_opcode v);
 bool opcode_has_litflag(vm_opcode op);
-

@@ -16,11 +16,13 @@ struct vm_chunk_header
 };
 
 
+
 struct vm_version_chunk
 {
   vm_chunk_header  header;
   int32_t          version;
 };
+
 
 
 struct vm_table_header
@@ -30,9 +32,9 @@ struct vm_table_header
 };
 
 
+
 struct vm_label
 {
   std::string name;
   int64_t     address;
 };
-

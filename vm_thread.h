@@ -209,4 +209,3 @@ vm_value vm_invoke_function(vm_thread &thread, int64_t pointer, ARGS &&... args)
 {
   return thread.call_function(pointer, std::forward<ARGS>(args)...);
 }
-

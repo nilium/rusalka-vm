@@ -21,6 +21,7 @@ read_string(std::istream &input, int32_t length)
 }
 
 
+
 template <typename T>
 T read_primitive(std::istream &input)
 {
@@ -30,11 +31,13 @@ T read_primitive(std::istream &input)
 }
 
 
+
 template <>
 vm_value read_primitive<vm_value>(std::istream &input)
 {
   return vm_value { read_primitive<double>(input) };
 }
+
 
 
 template <>
@@ -47,6 +50,7 @@ vm_chunk_header read_primitive<vm_chunk_header>(std::istream &input)
 }
 
 
+
 template <>
 vm_table_header read_primitive<vm_table_header>(std::istream &input)
 {
@@ -55,6 +59,7 @@ vm_table_header read_primitive<vm_table_header>(std::istream &input)
     read_primitive<int32_t>(input)
   };
 }
+
 
 
 template <typename Func>
@@ -74,6 +79,7 @@ bool read_table(std::istream &input, vm_chunk_id id, Func &&func)
 }
 
 
+
 template <typename InitFunc, typename Func>
 bool read_table(std::istream &input, vm_chunk_id id, InitFunc &&init, Func &&func)
 {
@@ -91,6 +97,7 @@ bool read_table(std::istream &input, vm_chunk_id id, InitFunc &&init, Func &&fun
 
   return false;
 }
+
 
 
 template <typename Func>
@@ -116,6 +123,7 @@ bool read_table(
 }
 
 
+
 vm_label read_label(std::istream &input)
 {
   int64_t const address = static_cast<int64_t>(read_primitive<int32_t>(input));
@@ -123,6 +131,7 @@ vm_label read_label(std::istream &input)
   std::string name = read_string(input, length);
   return vm_label { std::move(name), address };
 }
+
 
 
 std::string read_lstring(std::istream &input)
@@ -133,4 +142,3 @@ std::string read_lstring(std::istream &input)
   input.read(&result[0], length);
   return result;
 }
-

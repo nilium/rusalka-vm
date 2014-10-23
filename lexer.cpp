@@ -44,6 +44,7 @@ static unsigned xtoi(char const x)
 }
 
 
+
 static constexpr bool is_id_char(char const c, bool first = false)
 {
   return
@@ -54,16 +55,19 @@ static constexpr bool is_id_char(char const c, bool first = false)
 }
 
 
+
 static constexpr bool is_symstr_escape(char const c)
 {
   return c == '\\';
 }
 
 
+
 static constexpr bool is_whitespace(char const c)
 {
   return c == ' ' || c == '\t' || c == '\r';
 }
+
 
 
 lexer::lexer(feed_fn &&feed, digest_fn &&digest)
@@ -73,12 +77,16 @@ lexer::lexer(feed_fn &&feed, digest_fn &&digest)
   _buffer.reserve(MIN_BUFFER_RESERVE);
 }
 
+
+
 lexer::lexer(feed_fn const &feed, digest_fn const &digest)
 : _feed(feed)
 , _digest(digest)
 {
   _buffer.reserve(MIN_BUFFER_RESERVE);
 }
+
+
 
 lexer::lexer(lexer &&other)
 : _feed(std::move(other._feed))
@@ -93,6 +101,7 @@ lexer::lexer(lexer &&other)
 }
 
 
+
 lexer::lexer(lexer const &other)
 : _feed(other._feed)
 , _digest(other._digest)
@@ -103,12 +112,14 @@ lexer::lexer(lexer const &other)
 }
 
 
+
 lexer &lexer::operator = (lexer &&other)
 {
   _feed = std::move(other._feed);
   _digest = std::move(other._digest);
   return *this;
 }
+
 
 
 lexer &lexer::operator = (lexer const &other)
@@ -119,12 +130,14 @@ lexer &lexer::operator = (lexer const &other)
 }
 
 
+
 auto lexer::emit(token_kind const kind) -> emit_result
 {
   return _digest(token_for_kind(kind))
     ? good
     : digest_failure;
 }
+
 
 
 bool lexer::tokenize()
@@ -160,6 +173,7 @@ bool lexer::tokenize()
 
   return true;
 }
+
 
 
 auto lexer::quoted_string(token_kind const kind, char const delimiter) -> emit_result
@@ -211,6 +225,7 @@ auto lexer::quoted_string(token_kind const kind, char const delimiter) -> emit_r
 }
 
 
+
 auto lexer::string() -> emit_result
 {
   if (current() != '"') {
@@ -221,6 +236,7 @@ auto lexer::string() -> emit_result
 }
 
 
+
 auto lexer::symbol() -> emit_result
 {
   if (current() != '\'') {
@@ -229,6 +245,7 @@ auto lexer::symbol() -> emit_result
 
   return quoted_string(token_kind::symbol, '\'');
 }
+
 
 
 auto lexer::numeric() -> emit_result
@@ -272,6 +289,7 @@ auto lexer::numeric() -> emit_result
     return identifier();
   }
 }
+
 
 
 auto lexer::identifier() -> emit_result
@@ -334,6 +352,7 @@ auto lexer::identifier() -> emit_result
 
   return punctuation();
 }
+
 
 
 auto lexer::punctuation() -> emit_result
@@ -453,6 +472,7 @@ auto lexer::punctuation() -> emit_result
 }
 
 
+
 void lexer::whitespace()
 {
   for (; is_whitespace(_buffer.back());) {
@@ -464,10 +484,12 @@ void lexer::whitespace()
 }
 
 
+
 char lexer::current() const
 {
   return _current_char;
 }
+
 
 
 char lexer::next(bool buffer_next)
@@ -497,6 +519,7 @@ char lexer::next(bool buffer_next)
 }
 
 
+
 char lexer::peek()
 {
   if (_next_char_cached) {
@@ -507,6 +530,7 @@ char lexer::peek()
     return _next_char;
   }
 }
+
 
 
 token lexer::token_for_kind(token_kind const kind) const
@@ -524,10 +548,12 @@ token lexer::token_for_kind(token_kind const kind) const
 }
 
 
+
 void lexer::buffer_char(char const input)
 {
   _buffer.push_back(input);
 }
+
 
 
 void lexer::reset_buffer()
@@ -553,16 +579,19 @@ void stored_token::init_data(token const &tok)
 }
 
 
+
 stored_token::stored_token(token const &tok)
 {
   init_data(tok);
 }
 
 
+
 stored_token::stored_token(stored_token const &tok)
 {
   init_data(tok);
 }
+
 
 
 stored_token::stored_token(stored_token &&tok)
@@ -574,11 +603,13 @@ stored_token::stored_token(stored_token &&tok)
 }
 
 
+
 stored_token &stored_token::operator = (const token &tok)
 {
   init_data(tok);
   return *this;
 }
+
 
 
 stored_token &stored_token::operator = (stored_token &&tok)
@@ -591,6 +622,7 @@ stored_token &stored_token::operator = (stored_token &&tok)
   tok.data_end = nullptr;
   return *this;
 }
+
 
 
 // token name

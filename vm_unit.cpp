@@ -24,6 +24,7 @@ static uint64_t string_hash(std::string const &str)
 }
 
 
+
 auto vm_unit::read_relocation_ptr(std::istream &input) -> relocation_ptr
 {
   return relocation_ptr {
@@ -31,6 +32,7 @@ auto vm_unit::read_relocation_ptr(std::istream &input) -> relocation_ptr
     static_cast<uint64_t>(read_primitive<uint32_t>(input))
   };
 }
+
 
 
 // Iterates over each bit in a mask and passes the  of set bits to func.
@@ -48,10 +50,12 @@ each_in_mask(T mask, Func func)
 }
 
 
+
 vm_unit::vm_unit()
 {
   /* nop */
 }
+
 
 
 vm_unit::vm_unit(vm_unit const &m)
@@ -68,6 +72,7 @@ vm_unit::vm_unit(vm_unit const &m)
 {
   /* nop */
 }
+
 
 
 vm_unit::vm_unit(vm_unit &&m)
@@ -88,6 +93,7 @@ vm_unit::vm_unit(vm_unit &&m)
 }
 
 
+
 vm_unit &vm_unit::operator = (vm_unit const &m)
 {
   version                = m.version;
@@ -104,6 +110,7 @@ vm_unit &vm_unit::operator = (vm_unit const &m)
 
   return *this;
 }
+
 
 
 vm_unit &vm_unit::operator = (vm_unit &&m)
@@ -125,6 +132,7 @@ vm_unit &vm_unit::operator = (vm_unit &&m)
 
   return *this;
 }
+
 
 
 void vm_unit::read_instruction(std::istream &input)
@@ -154,6 +162,7 @@ void vm_unit::read_instruction(std::istream &input)
 }
 
 
+
 void vm_unit::read_instructions(std::istream &input)
 {
   read_table(input, CHUNK_INST, [&](int index) {
@@ -161,6 +170,7 @@ void vm_unit::read_instructions(std::istream &input)
     read_instruction(input);
   });
 }
+
 
 
 void vm_unit::read_extern_relocations(
@@ -195,6 +205,7 @@ void vm_unit::read_extern_relocations(
     });
   });
 }
+
 
 
 void vm_unit::read_label_relocations(
@@ -275,6 +286,7 @@ void vm_unit::read_externs(
 }
 
 
+
 void vm_unit::read_imports(std::istream &input, relocation_map_t &relocations)
 {
   read_table(input, CHUNK_IMPT, [&](int index) {
@@ -298,6 +310,7 @@ void vm_unit::read_imports(std::istream &input, relocation_map_t &relocations)
     imports.emplace(name_key, label.address);
   });
 }
+
 
 
 void vm_unit::read_exports(
@@ -326,6 +339,7 @@ void vm_unit::read_exports(
     exports.emplace(name_key, address);
   });
 }
+
 
 
 void vm_unit::resolve_externs()
@@ -381,6 +395,7 @@ void vm_unit::resolve_externs()
 }
 
 
+
 void vm_unit::read_data_table(
   std::istream &input,
   int64_t data_base,
@@ -406,6 +421,7 @@ void vm_unit::read_data_table(
       }
     });
 }
+
 
 
 void vm_unit::read_data_relocations(
@@ -436,6 +452,7 @@ void vm_unit::read_data_relocations(
       _data_relocations.emplace_back(rel);
     });
 }
+
 
 
 void vm_unit::read(std::istream &input)
@@ -562,6 +579,7 @@ bool vm_unit::relocate_static_data(data_id_ary_t const &new_ids)
 }
 
 
+
 void vm_unit::apply_instruction_relocation(
   relocation_ptr rel,
   relocation_map_t const &relocations
@@ -582,6 +600,7 @@ void vm_unit::apply_instruction_relocation(
 }
 
 
+
 void vm_unit::apply_relocation_table(
   relocation_table_t const &table,
   relocation_map_t const &relocations
@@ -593,10 +612,12 @@ void vm_unit::apply_relocation_table(
 }
 
 
+
 vm_op vm_unit::fetch_op(int64_t ip) const
 {
   return vm_op { *this, ip };
 }
+
 
 
 auto vm_unit::value_reader() const -> value_reader_t *
@@ -609,6 +630,7 @@ auto vm_unit::value_reader() const -> value_reader_t *
 }
 
 
+
 vm_value vm_unit::read_value_v8(std::istream &input)
 {
   return vm_value {
@@ -618,6 +640,7 @@ vm_value vm_unit::read_value_v8(std::istream &input)
 }
 
 
+
 vm_value vm_unit::read_value_v9(std::istream &input)
 {
   return vm_value {
@@ -625,4 +648,3 @@ vm_value vm_unit::read_value_v9(std::istream &input)
     read_primitive<uint64_t>(input)
   };
 }
-

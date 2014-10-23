@@ -57,4 +57,3 @@ VM_DECLARE_EXCEPTION(vm_unit_io_error, vm_runtime_error);
 VM_DECLARE_EXCEPTION(vm_unsupported_unit_version, vm_bad_unit);
 
 #undef VM_DECLARE_EXCEPTION
-

@@ -129,4 +129,3 @@ public:
   vm_thread &fork_thread(vm_thread const &thread);
 
 };
-

@@ -51,4 +51,3 @@ vm_value vm_function::operator()(ARGS&&... args)
 {
   return vm_invoke_function(_thread, _pointer, std::forward<ARGS>(args)...);
 }
-

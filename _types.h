@@ -31,4 +31,3 @@ using vm_bound_fn_t = vm_found_fn_t;
 
 /// VM callback -- given a thread, argument count, and array of argument values.
 using vm_callback_t = vm_value (vm_thread &vm, int32_t argc, vm_value const *argv, void *context);
-

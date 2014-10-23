@@ -71,4 +71,3 @@ struct vm_chunk_offsets
   }
 
 };
-

@@ -51,10 +51,12 @@ std::ostream &operator << (std::ostream &out, vm_value v)
 }
 
 
+
 vm_value vm_value::undefined()
 {
   return vm_value { UNDEFINED, 0ull };
 }
+
 
 
 vm_value vm_value::error()
@@ -63,10 +65,12 @@ vm_value vm_value::error()
 }
 
 
+
 vm_value vm_value::nan()
 {
   return vm_value { FLOAT, std::numeric_limits<double>::quiet_NaN() };
 }
+
 
 
 vm_value vm_value::infinity()
@@ -75,10 +79,12 @@ vm_value vm_value::infinity()
 }
 
 
+
 vm_value vm_value::epsilon()
 {
   return vm_value { FLOAT, std::numeric_limits<double>::epsilon() };
 }
+
 
 
 double vm_value::f64() const
@@ -93,6 +99,7 @@ double vm_value::f64() const
 }
 
 
+
 int64_t vm_value::i64() const
 {
   switch (type) {
@@ -105,6 +112,7 @@ int64_t vm_value::i64() const
 }
 
 
+
 uint64_t vm_value::ui64() const
 {
   switch (type) {
@@ -115,6 +123,7 @@ uint64_t vm_value::ui64() const
   case FLOAT: return static_cast<uint64_t>(f64_);
   }
 }
+
 
 
 vm_value vm_value::as(int32_t new_type) const {
@@ -153,6 +162,7 @@ vm_value vm_value::as(int32_t new_type) const {
 }
 
 
+
 vm_value &vm_value::convert(int32_t new_type)
 {
   if (type != new_type) {
@@ -160,6 +170,7 @@ vm_value &vm_value::convert(int32_t new_type)
   }
   return *this;
 }
+
 
 
 auto vm_value::fcmp(vm_value other, double epsilon) const -> fcmp_result {
@@ -181,11 +192,13 @@ auto vm_value::fcmp(vm_value other, double epsilon) const -> fcmp_result {
 }
 
 
+
 auto vm_value::fcmp(vm_value other) const -> fcmp_result {
   // Note: this currently just aliases fcmp(other, epsilon) but may be replaced
   // down the line with something that can be inlined more easily.
   return fcmp(other, vm_value::EPSILON);
 }
+
 
 
 vm_value vm_value::operator + (vm_value rhs) const
@@ -196,12 +209,14 @@ vm_value vm_value::operator + (vm_value rhs) const
 }
 
 
+
 vm_value vm_value::operator - (vm_value rhs) const
 {
   vm_value lhs = *this;
   lhs -= rhs;
   return lhs;
 }
+
 
 
 vm_value vm_value::operator * (vm_value rhs) const
@@ -212,12 +227,14 @@ vm_value vm_value::operator * (vm_value rhs) const
 }
 
 
+
 vm_value vm_value::operator % (vm_value rhs) const
 {
   vm_value lhs = *this;
   lhs %= rhs;
   return lhs;
 }
+
 
 
 vm_value vm_value::operator & (vm_value rhs) const
@@ -228,12 +245,14 @@ vm_value vm_value::operator & (vm_value rhs) const
 }
 
 
+
 vm_value vm_value::operator | (vm_value rhs) const
 {
   vm_value lhs = *this;
   lhs |= rhs;
   return lhs;
 }
+
 
 
 vm_value vm_value::operator ^ (vm_value rhs) const
@@ -244,6 +263,7 @@ vm_value vm_value::operator ^ (vm_value rhs) const
 }
 
 
+
 vm_value vm_value::operator << (vm_value rhs) const
 {
   vm_value lhs = *this;
@@ -252,12 +272,14 @@ vm_value vm_value::operator << (vm_value rhs) const
 }
 
 
+
 vm_value vm_value::operator >> (vm_value rhs) const
 {
   vm_value lhs = *this;
   lhs >>= rhs;
   return lhs;
 }
+
 
 
 vm_value &vm_value::operator += (vm_value rhs)
@@ -275,6 +297,7 @@ vm_value &vm_value::operator += (vm_value rhs)
 }
 
 
+
 vm_value &vm_value::operator -= (vm_value rhs)
 {
   auto new_type = std::max(type, rhs.type);
@@ -288,6 +311,7 @@ vm_value &vm_value::operator -= (vm_value rhs)
   }
   return *this;
 }
+
 
 
 vm_value &vm_value::operator *= (vm_value rhs)
@@ -305,6 +329,7 @@ vm_value &vm_value::operator *= (vm_value rhs)
 }
 
 
+
 vm_value &vm_value::operator %= (vm_value rhs)
 {
   auto new_type = std::max(type, rhs.type);
@@ -320,6 +345,7 @@ vm_value &vm_value::operator %= (vm_value rhs)
 }
 
 
+
 vm_value &vm_value::operator &= (vm_value rhs)
 {
   convert(UNSIGNED);
@@ -331,6 +357,7 @@ vm_value &vm_value::operator &= (vm_value rhs)
 }
 
 
+
 vm_value &vm_value::operator |= (vm_value rhs)
 {
   convert(UNSIGNED);
@@ -340,6 +367,7 @@ vm_value &vm_value::operator |= (vm_value rhs)
   }
   return *this;
 }
+
 
 
 vm_value &vm_value::operator ^= (vm_value rhs)
@@ -358,6 +386,7 @@ vm_value &vm_value::operator ^= (vm_value rhs)
   }
   return *this;
 }
+
 
 
 vm_value &vm_value::operator <<= (vm_value rhs)
@@ -383,6 +412,7 @@ vm_value &vm_value::operator <<= (vm_value rhs)
 }
 
 
+
 vm_value &vm_value::operator >>= (vm_value rhs)
 {
   auto new_type = std::min(
@@ -406,6 +436,7 @@ vm_value &vm_value::operator >>= (vm_value rhs)
 }
 
 
+
 vm_value vm_value::operator - () const
 {
   switch (type) {
@@ -415,6 +446,7 @@ vm_value vm_value::operator - () const
   default: return undefined();
   }
 }
+
 
 
 vm_value vm_value::operator ~ () const
@@ -429,6 +461,7 @@ vm_value vm_value::operator ~ () const
     return undefined();
   }
 }
+
 
 
 template <template <typename T> class Predicate, bool is_equality_test>
@@ -456,10 +489,12 @@ static bool logical_compare_value(vm_value lhs, vm_value rhs)
 }
 
 
+
 bool vm_value::operator <= (vm_value rhs) const
 {
   return logical_compare_value<std::less_equal, false>(*this, rhs);
 }
+
 
 
 bool vm_value::operator < (vm_value rhs) const
@@ -468,10 +503,12 @@ bool vm_value::operator < (vm_value rhs) const
 }
 
 
+
 bool vm_value::operator >= (vm_value rhs) const
 {
   return logical_compare_value<std::greater_equal, false>(*this, rhs);
 }
+
 
 
 bool vm_value::operator > (vm_value rhs) const
@@ -480,10 +517,12 @@ bool vm_value::operator > (vm_value rhs) const
 }
 
 
+
 bool vm_value::operator == (vm_value rhs) const
 {
   return logical_compare_value<std::equal_to, true>(*this, rhs);
 }
+
 
 
 bool vm_value::operator != (vm_value rhs) const
@@ -492,16 +531,19 @@ bool vm_value::operator != (vm_value rhs) const
 }
 
 
+
 bool vm_value::operator == (std::nullptr_t) const
 {
   return type >= MIN_COMPARABLE && type != FLOAT && u64_ == 0;
 }
 
 
+
 bool vm_value::operator != (std::nullptr_t) const
 {
   return type >= MIN_COMPARABLE && type != FLOAT && u64_ != 0;
 }
+
 
 
 bool vm_value::operator ! () const
@@ -518,6 +560,7 @@ bool vm_value::operator ! () const
 }
 
 
+
 vm_value::operator bool () const
 {
   switch (type) {
@@ -532,10 +575,12 @@ vm_value::operator bool () const
 }
 
 
+
 bool vm_value::is_nan() const
 {
   return type == FLOAT && std::isnan(f64_);
 }
+
 
 
 bool vm_value::is_infinity() const
