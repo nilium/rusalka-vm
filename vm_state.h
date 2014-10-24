@@ -117,10 +117,7 @@ public:
   vm_found_fn_t find_function_pointer(const char *name) const;
 
   vm_bound_fn_t bind_callback(const char *name, int length, vm_callback_t *function, void *context = nullptr);
-  vm_bound_fn_t bind_callback(const char *name, vm_callback_t *function, void *context = nullptr)
-  {
-    return bind_callback(name, std::strlen(name), function, context);
-  }
+  vm_bound_fn_t bind_callback(const char *name, vm_callback_t *function, void *context = nullptr);
 
   vm_thread &thread_by_index(int64_t thread_index);
   vm_thread const &thread_by_index(int64_t thread_index) const;

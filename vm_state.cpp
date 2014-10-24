@@ -8,6 +8,7 @@
 
 #include <cfenv>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <iomanip>
 
@@ -162,6 +163,24 @@ vm_bound_fn_t vm_state::bind_callback(const char *name, int length, vm_callback_
   return  vm_bound_fn_t { false, 0 };
 }
 
+
+
+/**
+ * Binds a predefined name callback to a function. Length of name is determined
+ * using std::strlen.
+ * @param  name     The callback name.
+ * @param  function The function to bind the callback name to.
+ * @param  context  An opaque context pointer that will always be passed to the
+ *   callback function.
+ * @return          A result indicating whether the function was bound or not.
+ *   If the result's first member (bool) is true, the second (int64_t) is set
+ *   to the callback's instruction pointer (a negative value for callback
+ *   functions).
+ */
+vm_bound_fn_t vm_state::bind_callback(const char *name, vm_callback_t *function, void *context)
+{
+  return bind_callback(name, std::strlen(name), function, context);
+}
 
 
 /**
