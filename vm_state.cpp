@@ -14,6 +14,7 @@
 
 #include "vm_exception.h"
 #include "vm_state.h"
+#include "vm_thread.h"
 #include "hash.h"
 
 

@@ -8,21 +8,11 @@
 
 #pragma once
 
-#include <climits>
-#include <cstdlib>
-#include <cstdint>
-#include <algorithm>
 #include <map>
-#include <memory>
 #include <vector>
 
 #include "_types.h"
-#include "vm_op.h"
-#include "vm_value.h"
-#include "vm_opcode.h"
-#include "vm_function.h"
 #include "vm_unit.h"
-#include "vm_thread.h"
 
 
 class vm_thread;
