@@ -181,7 +181,7 @@ public:
 class lexer
 {
 public:
-  using feed_fn = std::function<char(void)>;
+  using feed_fn   = std::function<char(void)>;
   using digest_fn = std::function<bool(token const &)>;
 
   /**

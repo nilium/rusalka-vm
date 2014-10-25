@@ -365,7 +365,7 @@ struct vm_value final
 };
 
 using vm_fcmp_result = typename vm_value::fcmp_result;
-using vm_value_type = typename vm_value::value_type;
+using vm_value_type  = typename vm_value::value_type;
 
 
 std::ostream &operator << (std::ostream &out, vm_value v);

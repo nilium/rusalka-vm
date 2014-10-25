@@ -64,7 +64,7 @@ class vm_thread
   };
 
 
-  using stack_t = std::vector<vm_value>;
+  using stack_t     = std::vector<vm_value>;
   using call_frames = std::vector<call_frame>;
 
   vm_state &_process;
