@@ -665,8 +665,10 @@ vm_value vm_thread::call_function_nt(int64_t pointer, int64_t argc, const vm_val
 vm_value vm_thread::call_function_nt(int64_t pointer, int64_t num_args)
 {
   exec_call(pointer, num_args);
-  while (!run()) {
-    /* nop */
+  if (pointer >= 0) {
+    while (!run()) {
+      /* nop */
+    }
   }
   return rp();
 }
