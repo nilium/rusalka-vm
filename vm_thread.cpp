@@ -72,7 +72,7 @@ static int32_t const MEMOP_SIZE[MEMOP_MAX] {
 
 
 
-/*
+/**
   Sets the rounding mode and then calls func; the previous rounding mode is
   restored after the call completes.
 */
@@ -87,6 +87,9 @@ static void with_rounding(int const round_mode, FN &&func) noexcept
 
 
 
+/**
+ * Constructs a new thread for the given process with the stack size provided.
+ */
 vm_thread::vm_thread(vm_state &process, size_t stack_size)
 : _process(process)
 {
@@ -99,6 +102,10 @@ vm_thread::vm_thread(vm_state &process, size_t stack_size)
 
 
 
+/**
+ * Looks up a function by name and returns a vm_function object bound to the
+ * receiving thread to call that function.
+ */
 vm_function vm_thread::function(const char *name)
 {
   const auto pointer = find_function_pointer(name);
@@ -108,6 +115,11 @@ vm_function vm_thread::function(const char *name)
 
 
 
+/**
+ * Returns a vm_function object bound to the current thread for the given
+ * instruction pointer. The instruction pointer is not checked for whether it
+ * is actually the start of a function.
+ */
 vm_function vm_thread::function(int64_t pointer)
 {
   return vm_function { *this, pointer };
@@ -115,6 +127,11 @@ vm_function vm_thread::function(int64_t pointer)
 
 
 
+/**
+ * Fetches the instruction pointer to be executed next and advances the
+ * instruction pointer (as such, the IP returned and the IP register values
+ * are different).
+ */
 int64_t vm_thread::fetch()
 {
   const int64_t next_instr = ip();
@@ -127,6 +144,12 @@ int64_t vm_thread::fetch()
 
 
 
+/**
+ * Runs the VM thread from the given instruction pointer onward. The IP must be
+ * a valid pointer into the unit and may not be bound callback (from_ip >= 0).
+ *
+ * Returns false if a TRAP was encountered, true otherwise.
+ */
 bool vm_thread::run(int64_t from_ip)
 {
   ip() = from_ip;
@@ -135,6 +158,11 @@ bool vm_thread::run(int64_t from_ip)
 
 
 
+/**
+ * Runs the VM thread from its current instruction pointer.
+ *
+ * Returns false if a TRAP was encountered, true otherwise.
+ */
 bool vm_thread::run()
 {
   const int64_t term_sequence = _sequence++;
@@ -149,6 +177,10 @@ bool vm_thread::run()
 
 
 
+/**
+ * Dereferences an input value as either a constant or register, depending on
+ * the provided flags and mask.
+ */
 vm_value vm_thread::deref(vm_value input, uint64_t flag, uint64_t mask) const
 {
   return (flag & mask) ? input : reg(input);
@@ -156,6 +188,9 @@ vm_value vm_thread::deref(vm_value input, uint64_t flag, uint64_t mask) const
 
 
 
+/**
+ * Convenience function for performing a bitwise shift against a numeric value.
+ */
 template <typename T>
 constexpr T vm_shift(T num, int64_t shift)
 {
@@ -167,6 +202,9 @@ constexpr T vm_shift(T num, int64_t shift)
 
 
 
+/**
+ * Executes the given vm_op against this vm_thread.
+ */
 void vm_thread::exec(const vm_op &op)
 {
   vm_value value;
@@ -626,6 +664,9 @@ void vm_thread::exec(const vm_op &op)
 
 
 
+/**
+ * Looks up a function's instruction pointer by name.
+ */
 vm_found_fn_t vm_thread::find_function_pointer(const char *name) const
 {
   return _process.find_function_pointer(name);
@@ -633,6 +674,11 @@ vm_found_fn_t vm_thread::find_function_pointer(const char *name) const
 
 
 
+/**
+ * Executes a CALL with a function's instruction pointer by name and returns
+ * the result. The function must exist. The function is called without
+ * arguments.
+ */
 vm_value vm_thread::call_function(const char *name)
 {
   const auto pointer = find_function_pointer(name);
@@ -643,6 +689,10 @@ vm_value vm_thread::call_function(const char *name)
 
 
 
+/**
+ * Calls a function by name with the given argument count and argument array
+ * and returns the result.
+ */
 vm_value vm_thread::call_function_nt(const char *name, int64_t argc, const vm_value *argv)
 {
   const auto pointer = find_function_pointer(name);
@@ -652,6 +702,9 @@ vm_value vm_thread::call_function_nt(const char *name, int64_t argc, const vm_va
 
 
 
+/**
+ * Calls a function by its instruction pointer and returns the result.
+ */
 vm_value vm_thread::call_function_nt(int64_t pointer, int64_t argc, const vm_value *argv)
 {
   for (int64_t arg_index = 0; arg_index < argc; ++arg_index) {
@@ -662,6 +715,13 @@ vm_value vm_thread::call_function_nt(int64_t pointer, int64_t argc, const vm_val
 
 
 
+/**
+ * Calls a function pointer by its instruction pointer and returns the result
+ * with the given number of arguments to be popped from the stack. num_args
+ * may not be less than zero.
+ *
+ * The given instruction pointer may be a bound callback.
+ */
 vm_value vm_thread::call_function_nt(int64_t pointer, int64_t num_args)
 {
   exec_call(pointer, num_args);
@@ -675,6 +735,11 @@ vm_value vm_thread::call_function_nt(int64_t pointer, int64_t num_args)
 
 
 
+/**
+ * Returns a copy of a value on the stack at the given location.
+ *
+ * Stack locations given are absolute, not relative to EBP or ESP.
+ */
 vm_value vm_thread::stack(int64_t loc) const
 {
   if (loc < 0) {
@@ -688,6 +753,11 @@ vm_value vm_thread::stack(int64_t loc) const
 
 
 
+/**
+ * Returns a write-able reference to a value on the stack at the given location.
+ *
+ * Stack locations given are absolute, not relative to EBP or ESP.
+ */
 vm_value &vm_thread::stack(int64_t loc)
 {
   if (loc < 0) {
@@ -701,6 +771,11 @@ vm_value &vm_thread::stack(int64_t loc)
 
 
 
+/**
+ * Descends a stack frame, keeping the given number of arguments (argc) inside
+ * the new stack frame.
+ * @param argc [description]
+ */
 void vm_thread::down_frame(int64_t argc)
 {
   call_frame frame {
@@ -724,6 +799,10 @@ void vm_thread::down_frame(int64_t argc)
 
 
 
+/**
+ * Ascends a stack frame, copying value_count values off the stack and pushing
+ * them back onto the stack after leaving the current frame.
+ */
 void vm_thread::up_frame(int64_t value_count)
 {
   if (value_count < 0) {
@@ -752,6 +831,12 @@ void vm_thread::up_frame(int64_t value_count)
 
 
 
+/**
+ * Drops the current stack frame entirely, making no modifications to thread
+ * state other than dropping the frame.
+ *
+ * Currently unused.
+ */
 void vm_thread::drop_frame()
 {
   if (_frames.size() == 0) {
@@ -764,6 +849,16 @@ void vm_thread::drop_frame()
 
 
 
+/**
+ * Executes a function call. All function calls descend a frame, popping argc
+ * values off the stack to be used as arguments for the function call.
+ *
+ * Optimized calls that don't leave the VM may optionally pass arguments via
+ * registers. Stack-passed arguments are required for bound callbacks.
+ *
+ * The result of a bound callback always overwrites the RP register, whereas
+ * VM functions are not required to modify RP.
+ */
 void vm_thread::exec_call(int64_t pointer, int64_t argc)
 {
   if (argc < 0) {
@@ -796,6 +891,9 @@ void vm_thread::exec_call(int64_t pointer, int64_t argc)
 
 
 
+/**
+ * Pushes a value onto the stack and increments the ESP register.
+ */
 void vm_thread::push(vm_value value)
 {
   stack(esp()) = value;
@@ -804,6 +902,11 @@ void vm_thread::push(vm_value value)
 
 
 
+/**
+ * Pops a value off the stack, decrementing the ESP register. If copy_only is
+ * true, neither the stack nor ESP are modified and only the topmost value on
+ * the stack is returned.
+ */
 vm_value vm_thread::pop(bool copy_only)
 {
   int64_t stack_top = esp().i64() - 1;
@@ -821,6 +924,10 @@ vm_value vm_thread::pop(bool copy_only)
 
 
 
+/**
+ * Debugging function. Logs the contents of the first `count` registers to
+ * std::clog.
+ */
 void vm_thread::dump_registers(size_t count) const
 {
   size_t index = 0;
@@ -832,6 +939,10 @@ void vm_thread::dump_registers(size_t count) const
 
 
 
+/**
+ * Debugging function. Logs the contents of the stack from index 0 to `until`
+ * to std::clog.
+ */
 void vm_thread::dump_stack(size_t until) const
 {
   size_t index = 0;
@@ -844,6 +955,11 @@ void vm_thread::dump_stack(size_t until) const
 
 
 
+/**
+ * Returns a copy of the given register at `off`. If `off` is negative, it's a
+ * value from the top of the stack downward (ESP + off, so -1 is the top of the
+ * stack).
+ */
 vm_value vm_thread::reg(int64_t off) const
 {
   if (off >= 0) {
@@ -862,6 +978,10 @@ vm_value vm_thread::reg(int64_t off) const
 
 
 
+/**
+ * Returns a write-able reference for the given register at `off`. If `off` is
+ * negative, it's a value from the top of the stack downward.
+ */
 vm_value &vm_thread::reg(int64_t off)
 {
   if (off >= 0) {
@@ -880,6 +1000,13 @@ vm_value &vm_thread::reg(int64_t off)
 
 
 
+/**
+ * Looks up this thread's index in the VM process. Thread indices are not
+ * guaranteed to be constant, so this value should not be relied upon as
+ * unchanging.
+ *
+ * @todo Add a unique identifier for thread lookup.
+ */
 int64_t vm_thread::thread_index() const
 {
   auto const start = _process._threads.cbegin();
