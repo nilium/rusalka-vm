@@ -24,12 +24,14 @@ module Colors
   WHITE    = '[37;m'
   NO_COLOR = '[0;m'
 
-  def self.white(*bits)  ; "#{self.colored  ? WHITE   : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.grey(*bits)   ; "#{self.colored  ? GREY    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.red(*bits)    ; "#{self.colored  ? RED     : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.green(*bits)  ; "#{self.colored  ? GREEN   : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.yellow(*bits) ; "#{self.colored  ? YELLOW  : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.blue(*bits)   ; "#{self.colored  ? BLUE    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.purple(*bits) ; "#{self.colored  ? PURPLE  : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
-  def self.cyan(*bits)   ; "#{self.colored  ? CYAN    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def white(*bits)  ; "#{self.colored  ? WHITE   : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def grey(*bits)   ; "#{self.colored  ? GREY    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def red(*bits)    ; "#{self.colored  ? RED     : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def green(*bits)  ; "#{self.colored  ? GREEN   : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def yellow(*bits) ; "#{self.colored  ? YELLOW  : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def blue(*bits)   ; "#{self.colored  ? BLUE    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def purple(*bits) ; "#{self.colored  ? PURPLE  : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+  def cyan(*bits)   ; "#{self.colored  ? CYAN    : '' }#{ bits.join }#{ self.colored ? NO_COLOR : '' }" ; end
+
+  extend self
 end
