@@ -22,7 +22,8 @@ enum class token_kind
   error,                 // No valid associated data
 
   // Compounds (string-backed tokens)
-  id,                    // :=  [_a-zA-Z] [_a-zA-Z0-9]*
+  id,                    // See is_id_char (lexer.cpp) for what is and is not
+                         // considered an identifier character.
   string,                // :=  '"' (string_char | string_escape)* '"'
   numeric,               // :=  ([1-9]\d* | 0) ('.' \d+)? ([eE] [+-]? [1-9] \d*)?
   symbol,                // :=  '\'' (string_char | string_escape)* '\''
