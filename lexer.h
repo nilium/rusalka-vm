@@ -107,6 +107,7 @@ enum class token_kind
   tilde,                 // :=  '~'
   backtick,              // :=  '`'
   back_slash,            // :=  '\'
+  underscore,            // :=  '_'
 
   // Comparisons
   less,                  // :=  '<'

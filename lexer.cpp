@@ -45,13 +45,40 @@ static unsigned xtoi(char const x)
 
 
 
-static constexpr bool is_id_char(char const c, bool first = false)
+static bool is_id_char(char const c, bool first = false)
 {
-  return
-    (c == '_') ||
-    ('a' <= c && c <= 'z') ||
-    ('A' <= c && c <= 'Z') ||
-    (first == false && '0' <= c && c <= '9');
+  switch (c) {
+  // Characters that can occur anywhere in a token
+  // a-z
+  case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
+  // A-Z
+  case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
+  // A few punctuation characters may begin identifiers, but they cannot be the
+  // identifier themselves. As such, $ is not an identifier, but $$ is. This
+  // includes _, which is also considered punctuation.
+  case '#':
+  case '$':
+  case '_':
+  case '~':
+    return true;
+
+  // Characters that can only occur after the first character of a token
+  case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+  // Some, but not all, punctuation can be used in identifiers.
+  case '!':
+  case '*':
+  case '+':
+  case '-':
+  case '/':
+  case '?':
+  case '^':
+    return !first;
+
+  // TODO: Permit UTF-8 in identifiers
+
+  default:
+    return false;
+  }
 }
 
 
@@ -300,6 +327,12 @@ auto lexer::identifier() -> emit_result
     }
     size_t len = _buffer.size();
     switch (len) {
+    case 1: {
+      char const buffered = _buffer[0];
+      if (buffered == '~' || buffered == '#' || buffered == '_' || buffered == '$') {
+        return punctuation();
+      }
+    } break;
     case 2:
       if (strncmp(&_buffer[0], "if", len) == 0) {
         return emit(token_kind::if_kw);
@@ -448,6 +481,7 @@ auto lexer::punctuation() -> emit_result
     }
   case '`': return emit(token_kind::backtick);
   case '\\': return emit(token_kind::back_slash);
+  case '_': return emit(token_kind::underscore);
   case '<':
     switch (peek()) {
     case '=': next(); return emit(token_kind::less_equal);
@@ -699,6 +733,7 @@ const char *token_name(vm::token_kind const kind)
   case vm::token_kind::tilde:                 return "tilde";
   case vm::token_kind::backtick:              return "backtick";
   case vm::token_kind::back_slash:            return "back_slash";
+  case vm::token_kind::underscore:            return "underscore";
   case vm::token_kind::less:                  return "less";
   case vm::token_kind::shift_left:            return "shift_left";
   case vm::token_kind::less_equal:            return "less_equal";
