@@ -25,7 +25,8 @@ enum class token_kind
   id,                    // See is_id_char (lexer.cpp) for what is and is not
                          // considered an identifier character.
   string,                // :=  '"' (string_char | string_escape)* '"'
-  numeric,               // :=  ([1-9]\d* | 0) ('.' \d+)? ([eE] [+-]? [1-9] \d*)?
+  numeric,               // :=  ([1-9]\d* | 0) ('.' \d+)? ([eE] [+-]? [1-9] \d*)? # Decimal
+                         //     | '0' [xX] [0-9a-fA-F]+                           # Hex
   symbol,                // :=  '\'' (string_char | string_escape)* '\''
 
   // Keywords
