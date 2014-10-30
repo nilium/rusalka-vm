@@ -160,7 +160,9 @@ REG_RP  = RegisterRef[3].freeze
 # (i.e., local, export, and import).
 #
 class Label
-  attr_reader :name, :mangled, :kind
+  attr_reader :name
+  attr_reader :mangled
+  attr_reader :kind
 
   class << self
     alias_method :[], :new
