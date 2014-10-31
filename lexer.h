@@ -294,13 +294,13 @@ private:
   size_t _next_column;
 
   // Whether _next_char is set.
-  bool _next_char_cached = false;
+  mutable bool _next_char_cached = false;
   // The character currently being read.
   char _current_char = '\0';
   // The next character in the stream. Only set if peek() is called, in which
   // case the next character is stored here and copied to _current_char on
   // next().
-  char _next_char = '\0';
+  mutable char _next_char = '\0';
 
   /**
    * Emits a token to the digest function and returns a resulting status code.
@@ -326,7 +326,7 @@ private:
    * Reads the next character from _feed() and caches it, returning it for
    * all subsequent calls to peek() until the next call to next().
    */
-  char peek();
+  char peek() const;
 
   /**
    * Returns a token for the kind given with the rest of its members variables

@@ -554,7 +554,7 @@ char lexer::next(bool buffer_next)
 
 
 
-char lexer::peek()
+char lexer::peek() const
 {
   if (_next_char_cached) {
     return _next_char;
