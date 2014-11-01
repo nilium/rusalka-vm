@@ -284,14 +284,14 @@ private:
   digest_fn _digest;
 
   // Starting line for current token.
-  size_t _line;
+  size_t _line = 1;
   // Starting column for current token.
-  size_t _column;
+  size_t _column = 1;
 
   // Next line. Copied to _line upon token digest.
-  size_t _next_line;
+  size_t _next_line = 1;
   // Next column. Copied to _column upon token digest.
-  size_t _next_column;
+  size_t _next_column = 1;
 
   // Whether _next_char is set.
   mutable bool _next_char_cached = false;
