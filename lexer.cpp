@@ -327,12 +327,16 @@ auto lexer::identifier() -> emit_result
     }
     size_t len = _buffer.size();
     switch (len) {
-    case 1: {
-      char const buffered = _buffer[0];
-      if (buffered == '~' || buffered == '#' || buffered == '_' || buffered == '$') {
+    case 1:
+      switch (_buffer[0]) {
+      case '~':
+      case '#':
+      case '_':
+      case '$':
         return punctuation();
+      default:
+        return emit(token_kind::id);
       }
-    } break;
     case 2:
       if (strncmp(&_buffer[0], "if", len) == 0) {
         return emit(token_kind::if_kw);
