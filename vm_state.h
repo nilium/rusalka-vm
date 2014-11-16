@@ -34,10 +34,26 @@ constexpr int64_t VM_NULL_BLOCK = 0;
 
 class vm_state
 {
+  /**
+   * A memory block for a particular VM state. Only encodes the block's size,
+   * pointer, and read/write flags to determine thread permissions for the
+   * block.
+   */
   struct memblock
   {
+    /** The size, in bytes, of the memory block. */
     int64_t size;
-    uint32_t flags; // todo: reorder to remove padding bytes
+    /**
+     * Read/write flags associated with the block.
+     * @see vm_memblock_flags.
+     */
+    uint32_t flags;
+    /**
+     * Read-write pointer to the memory block.
+     *
+     * Memory may not actually be writable, but must be when stored in the
+     * memblock to quell the heart of C++.
+     */
     void *block;
   };
 
