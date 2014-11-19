@@ -32,6 +32,16 @@ enum vm_memblock_flags : uint32_t
 constexpr int64_t VM_NULL_BLOCK = 0;
 
 
+/**
+ * The all-encompassing state object for a Rusalka VM instance. Multiple of
+ * these may exist at any given time, and within them they may contain multiple
+ * threads of execution (VM threads, not host OS threads).
+ *
+ * A VM state is used to handle memory allocation, unit storage and access,
+ * and callback loading (if used). Beyond that, vm_thread covers actual Rusalka
+ * execution. A vm_thread is always owned by a vm_state, as a vm_thread cannot
+ * exist without a vm_unit and a means of allocating memory.
+ */
 class vm_state
 {
   /**
@@ -120,11 +130,6 @@ public:
   vm_state() = default;
   ~vm_state();
 
-  /**
-    Sets the VM's source object. Must be called before running the VM and must
-    not be called afterward. The VM takes ownership of the source data -- the
-    object is moved and the original object is invalid.
-  */
   void set_unit(vm_unit const &unit);
   void set_unit(vm_unit &&unit);
 
