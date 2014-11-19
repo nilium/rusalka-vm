@@ -57,26 +57,52 @@ class vm_state
     void *block;
   };
 
+  /**
+   * Per-callback info. Stories only a VM callback and a context to pass to the
+   * callback.
+   */
   struct callback_info
   {
     vm_callback_t *callback;
     void *context;
 
+    /**
+     * Invokes the callback on the given thread with argc number of arguments
+     * from argv.
+     * @param  thread The thread to call the function on.
+     * @param  argc   Number of arguments. Must be > 0.
+     * @param  argv   Arguments. Must be a pointer to an array of `argc`
+     *                vm_value objects if argc > 0, otherwise may be null. Its
+     *                values will be copied.
+     * @return        The value returned by the invoked function via the RP
+     *                register.
+     */
     vm_value invoke(vm_thread &thread, int argc, vm_value const *argv) const;
   };
 
+  /** The result of searching for a memblock. */
   using found_memblock_t = vm_find_result<memblock>;
+  /** A map of memblock names (integers) to their memblock info. */
   using memblock_map_t   = std::map<int64_t, memblock>;
+  /** Collection used for the stack. Currently a vector of values. */
   using stack_t          = std::vector<vm_value>;
+  /** Collection used for storing callback info. */
   using callbacks_t      = std::vector<callback_info>;
+  /** A pointer to a thread allocated for a state. */
   using thread_pointer_t = std::unique_ptr<vm_thread>;
+  /** A collection of thread pointers allocated for a state. */
   using thread_stores_t  = std::vector<thread_pointer_t>;
 
+  /** The zero or null block constant. Has a null pointer and zero size. */
   static memblock const NO_BLOCK;
 
+  /** All threads allocated to the state. */
   thread_stores_t _threads {};
+  /** All callbacks allocated to the state. */
   callbacks_t _callbacks {};
+  /** All memory blocks allocated to the state. */
   memblock_map_t _blocks {};
+  /** Internal block name counter used for allocations. */
   int64_t _block_counter = 1;
 
   int64_t unused_block_id();
