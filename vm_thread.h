@@ -33,6 +33,7 @@ class vm_thread
 
   friend class vm_state;
 
+  /** Register declarations / info. */
   enum
   {
 
@@ -45,18 +46,31 @@ class vm_thread
       2 -> esp
       3 -> return value
     **/
+    /** The instruction pointer register. */
     R_IP = 0,
+    /** The stack base pointer register. Always <= ESP. */
     R_EBP = 1,
+    /** The stack top pointer register. Always >= EBP. */
     R_ESP = 2,
+    /** The return value register. Considered volatile. */
     R_RP = 3,
 
+    /** The index of the first nonvolatile register. */
     R_FIRST_NONVOLATILE,
+    /** The index of the last non-volatile register. */
     R_LAST_NONVOLATILE = R_FIRST_NONVOLATILE + (R_NONVOLATILE_REGISTERS - 1),
 
+    /**
+     * The index of the first volatile register.
+     *
+     * All register numbers >= this are volatile.
+     */
     R_FIRST_VOLATILE,
 
+    /** The total number of registers. */
     REGISTER_COUNT = 256,
 
+    /** The total number of volatile registers. */
     R_VOLATILE_REGISTERS = REGISTER_COUNT - R_FIRST_VOLATILE,
   };
 
