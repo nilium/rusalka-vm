@@ -20,6 +20,14 @@ class vm_op;
 class vm_state;
 
 
+/**
+ * vm_thread represents a single thread of execution in a Rusalka VM instance.
+ * It is owned by a vm_state, and must be allocated via a vm_state (in order to
+ * ensure it's properly bound to one).
+ *
+ * It provides access to thread-bound callbacks and the thread's set of
+ * registers and its stack.
+ */
 class vm_thread
 {
 
