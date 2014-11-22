@@ -74,6 +74,15 @@ class vm_thread
     R_VOLATILE_REGISTERS = REGISTER_COUNT - R_FIRST_VOLATILE,
   };
 
+  /**
+   * A single call-frame.
+   *
+   * Slightly different from a stack frame in that a stack frame is simply the
+   * result of pushing EBP and ESP and setting EBP to ESP. A call frame may
+   * have preserved register values in order to ensure non-volatile registers
+   * are not stomped by a function call. These register values are not stored
+   * as part of the associated stack frame.
+   */
   struct call_frame
   {
     // Always-preserved registers.
@@ -89,6 +98,7 @@ class vm_thread
   using stack_t     = std::vector<vm_value>;
   using call_frames = std::vector<call_frame>;
 
+  /** The underlying VM state (or VM process). */
   vm_state &_process;
   int64_t _sequence = 0;
   int64_t _trap = 0;
