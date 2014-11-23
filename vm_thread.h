@@ -85,25 +85,34 @@ class vm_thread
    */
   struct call_frame
   {
-    // Always-preserved registers.
     int64_t from_ip; // Instruction to return to.
+    /** EBP at the time of the call. */
     int64_t ebp;
+    /** ESP at the time of the call. */
     int64_t esp;
+    /** Thread sequence at the time of the call. Required for unwinding. */
     int64_t sequence;
-    // Optionally-preserved volatile registers (may be 0).
+    /** One or more non-volatile registers stored till the frame is dropped. */
     vm_value registers[R_NONVOLATILE_REGISTERS];
   };
 
 
+  /** The VM thread stack collection type. */
   using stack_t     = std::vector<vm_value>;
+  /** The VM thread's call frame collection type. */
   using call_frames = std::vector<call_frame>;
 
   /** The underlying VM state (or VM process). */
   vm_state &_process;
+  /** A sequence counter used to determine call and run depth. */
   int64_t _sequence = 0;
+  /** Trap counter. Used to drop out of a frame or VM run. */
   int64_t _trap = 0;
+  /** The thread's stack. */
   stack_t _stack;
+  /** The thread's call frames. */
   call_frames _frames;
+  /** The thread's registers. */
   vm_value _registers[REGISTER_COUNT] {};
 
   template <class T, class... ARGS>
