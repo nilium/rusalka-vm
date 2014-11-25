@@ -12,8 +12,18 @@
 #include "vm_unit+chunk_types.inl"
 
 
+/**
+ * Chunk offsets, used to jump to and get the offset of specific areas of a
+ * unit file.
+ *
+ * Can jump to any chunk offset provided there is a valid OFFS chunk to read
+ * the offsets from.
+ */
 struct vm_chunk_offsets
 {
+  /**
+   * A chunk offset. Contains the chunk name and its offset in the unit file.
+   */
   struct chunk_offset
   {
     vm_chunk_id  id;
