@@ -35,6 +35,10 @@ struct vm_chunk_offsets
   std::vector<chunk_offset>   offsets;
 
 
+  /**
+   * Constructor. Given an input stream starting at a unit's OFFS chunk, it
+   * reads the OFFS chunk from the stream and caches all offsets as needed.
+   */
   explicit vm_chunk_offsets(std::istream &input)
   {
     read_table(input, CHUNK_OFFS, header, [&](int32_t index) {
@@ -47,6 +51,7 @@ struct vm_chunk_offsets
   }
 
 
+  /** Returns an offset for a defined chunk ID. */
   int32_t offset_for(vm_chunk_id id) const
   {
     for (chunk_offset const &chunk_off : offsets) {
@@ -58,9 +63,13 @@ struct vm_chunk_offsets
   }
 
 
-  // Returns true if the seek went through. May need to check eof bit on the
-  // stream, however, as this only returns input.good() in case the seek is
-  // successful.
+  /**
+   * Seeks to a defined chunk ID's offset in the stream, if known.
+   *
+   * @return True if the seek went through. May need to check eof bit on the
+   * stream, however, as this only returns input.good() in case the seek is
+   * successful.
+   */
   bool seek_to_offset(
     std::istream &input,
     vm_chunk_id id,
