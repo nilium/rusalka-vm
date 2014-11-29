@@ -12,6 +12,15 @@
 #include <iostream>
 
 
+/**
+ * vm_value is the sole value type used in Rusalka.
+ *
+ * It may be one of several primitive types, including an error code type, a
+ * 64-bit unsigned or signed integer, a 64-bit float, a static data reference,
+ * or possibly any other not-yet-defined type. In addition, a value may be
+ * undefined, in which case any operations on it are either an error or also
+ * undefined.
+ */
 struct vm_value final
 {
   static constexpr double EPSILON = 1.0e-17;
