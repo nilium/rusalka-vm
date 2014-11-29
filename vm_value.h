@@ -23,8 +23,10 @@
  */
 struct vm_value final
 {
+  /** The epsilon used in fcmp tests. */
   static constexpr double EPSILON = 1.0e-17;
 
+  /** The result of calling vm_value::fcmp. */
   enum fcmp_result : int
   {
     LESS = -1,
@@ -32,27 +34,38 @@ struct vm_value final
     GREATER = 1,
   };
 
-
+  /** All possible vm_value types and some related info constants. */
   enum value_type : int32_t
   {
+    /** An error code type code. */
     ERROR                 = -1, // currently unused -- has no defined behavior yet
+    /** An undefined value type code. */
     UNDEFINED             = 0,  // type set for undefined operations/conversions
 
     // Arithmetic types
+    /** Unsigned 64-bit integer type code. */
     UNSIGNED              = 1,
+    /** Signed 64-bit integer type code. */
     SIGNED                = 2,
+    /** 64-bit floating point type code. */
     FLOAT                 = 3,
 
     // Memory type
+    /** Data reference type code. */
     DATA                  = 4,
 
+    /** The minimum type supported for arithmetic. */
     MIN_ARITHMETIC        = UNSIGNED,
+    /** The maximum type supported for arithmetic. */
     MAX_ARITHMETIC        = FLOAT,
 
+    /** The minimum type supported for comparisons (all >= are comparable). */
     MIN_COMPARABLE        = UNSIGNED,
 
     // Range of reserved values for built-in types
+    /** The minimum inclusive type code for built-in types. */
     MIN_BUILTIN           = -(1 << 16),
+    /** The maximum inclusive type code for built-in types. */
     MAX_BUILTIN           = 1 << 16,
   };
 
