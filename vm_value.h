@@ -408,6 +408,9 @@ vm_value make_value(T &&x)
 }
 
 
+// A few static assertions so some guarantees can be made about the vm_value
+// type, since it needs to have a few particular attributes (e.g., memcpy-able,
+// trivial, and so on -- it cannot be too expensive to allocate its storage).
 static_assert(std::is_trivial<vm_value>::value,
   "Value must be trivial");
 
