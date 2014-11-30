@@ -394,6 +394,12 @@ std::ostream &operator << (std::ostream &out, vm_value v);
 
 
 
+/**
+ * Convenience function to construct a vm_value from an arithmetic type.
+ *
+ * This function may be overloaded as needed to provide vm_value objects for
+ * various other types.
+ */
 template <
   typename T,
   typename Decayed = typename std::decay<T>::type,
