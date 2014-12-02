@@ -94,8 +94,6 @@ class vm_state
   using found_memblock_t = vm_find_result<memblock>;
   /** A map of memblock names (integers) to their memblock info. */
   using memblock_map_t   = std::map<int64_t, memblock>;
-  /** Collection used for the stack. Currently a vector of values. */
-  using stack_t          = std::vector<vm_value>;
   /** Collection used for storing callback info. */
   using callbacks_t      = std::vector<callback_info>;
   /** A pointer to a thread allocated for a state. */
