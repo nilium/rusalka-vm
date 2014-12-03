@@ -30,8 +30,18 @@ enum vm_opcode : uint16_t
 };
 
 
+/**
+ * Constant list of how many operands a given opcode takes.
+ *
+ * Indexed by vm_opcode.
+ */
 extern const int32_t g_opcode_argc[OP_COUNT];
 
 
+/**
+ * Writes an opcode's name to the output stream.
+ */
 std::ostream &operator << (std::ostream &out, vm_opcode v);
+
+/** Returns whether a given opcode takes a litflag. */
 bool opcode_has_litflag(vm_opcode op);
