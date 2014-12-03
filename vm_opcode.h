@@ -13,6 +13,14 @@
 
 
 /* _L -> reg op literal */
+/**
+ * vm_opcode defines all opcodes used in the Rusalka VM as unsigned 16-bit
+ * integers.
+ *
+ * It's not expected that Rusalka will ever exceed 16 bits for an opcode.
+ *
+ * Depends on `vm_instructions.h`.
+ */
 enum vm_opcode : uint16_t
 {
 #define INSTRUCTION(OPCODE, ASM_NAME, CODE, NUM_ARGS, ARG_INFO... ) OPCODE = CODE,
