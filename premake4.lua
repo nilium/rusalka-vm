@@ -24,3 +24,8 @@ console_app {
   files = { 'vm_test.cpp' },
   links = { 'rusalka' },
 }
+
+console_app {
+  'value_test',
+  files = { 'value_test.cpp' },
+}
