@@ -19,6 +19,13 @@ class vm_state;
 struct vm_value;
 
 
+/**
+ * Generic find result type.
+ *
+ * If a value was found, ok is true and value is defined. If no value was
+ * found, ok is false and the value has an undefined value (accessing it should
+ * be considered undefined behavior at that point).
+ */
 template <typename T>
 struct vm_find_result {
   bool ok;
