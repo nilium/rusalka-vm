@@ -34,8 +34,10 @@
  */
 
 
+/** Defined unit chunk names. */
 enum vm_chunk_id : int32_t
 {
+  // TODO: Stop using four-char integers.
   CHUNK_VERS = 'SREV',
   CHUNK_OFFS = 'SFFO',
   CHUNK_EREL = 'LERE',
