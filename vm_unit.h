@@ -51,21 +51,6 @@ enum vm_chunk_id : int32_t
 };
 
 
-struct vm_instruction
-{
-  const vm_value *argv;
-  vm_opcode opcode;
-  // Pointer to argv data for the opcode. Opcodes have a fixed number of
-  // arguments, so it's imperative that you never read more arguments than
-  // are provided by the instruction/for the opcode.
-
-  // Convenience member operator for vm_op compatibility.
-  vm_value operator[] (int index) const { return argv[index]; }
-
-  operator vm_opcode () const { return opcode; }
-};
-
-
 class vm_unit
 {
   friend class vm_op;
@@ -208,8 +193,6 @@ public:
   void debug_write_instructions(std::ostream &out) const;
 
   void merge_unit(const vm_unit &unit);
-
-  vm_instruction instruction(int32_t pointer) const;
 
   vm_op fetch_op(int64_t ip) const;
 
