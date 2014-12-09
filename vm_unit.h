@@ -51,11 +51,25 @@ enum vm_chunk_id : int32_t
 };
 
 
+
+/**
+ * vm_unit is a unit of loaded Rusalka bytecode. It defines all instructions,
+ * operands, relocations, and static data needed to execute arbitrary Rusalka
+ * bytecode. It also handles loading said bytecode from a stream.
+ *
+ * A unit may be the collation of one or more actual bytecode units (as read
+ * from a stream). Each subsequently-loaded unit has its data relocated as
+ * needed.
+ */
 class vm_unit
 {
   friend class vm_op;
   friend class vm_state;
 
+  /**
+   * A relocation marker. Defines which instruction needs relocation and which
+   * operands (arguments) must be relocated.
+   */
   struct relocation_ptr
   {
     // Index of the instruction to relocate relative to the instructions
@@ -66,6 +80,11 @@ class vm_unit
   };
   static relocation_ptr read_relocation_ptr(std::istream &);
 
+  /**
+   * An instruction in the unit. Contains the opcode of the instruction, which
+   * operands are constant values, and a pointer to the first operand of the
+   * instruction in the unit's value array.
+   */
   struct instruction_ptr
   {
     vm_opcode opcode;
@@ -73,7 +92,10 @@ class vm_unit
     int64_t   arg_pointer;
   };
 
-
+  /**
+   * A static data block in the unit. Has a predefined ID, an offset, and the
+   * size of the data block.
+   */
   struct data_block
   {
     int64_t id;
@@ -81,6 +103,13 @@ class vm_unit
     int64_t size;   // size in bytes of the block
   };
 
+  /**
+   * An extern relocation marker. The pointer is the thing to be relocated,
+   * resolved is whether the relocation has been resolved.
+   *
+   * An extern is defined as a reference to any outside operand that is defined
+   * in a unit other than the one currently being loaded into the vm_unit.
+   */
   struct extern_relocation
   {
     vm_value pointer;
