@@ -228,8 +228,6 @@ public:
 
   void debug_write_instructions(std::ostream &out) const;
 
-  void merge_unit(const vm_unit &unit);
-
   vm_op fetch_op(int64_t ip) const;
 
   template <typename Func>
