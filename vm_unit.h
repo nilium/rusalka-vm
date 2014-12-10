@@ -131,10 +131,17 @@ class vm_unit
   using label_table_t        = std::map<uint64_t, int64_t>;
   using data_id_ary_t        = std::vector<int64_t>;
 
+  /** The last version code the unit was loaded with. Currently unused. */
   int32_t version;
   int64_t last_import = 0;
 
+  /** The instructions contained by the unit. */
   instruction_ptrs_t instructions;
+  /**
+   * All operand constants used by the unit. This includes both constant
+   * values, register numbers, instruction pointers, data references, and so
+   * on -- anything that is an operand to an instruction.
+   */
   instruction_argv_t instruction_argv;
 
   label_table_t imports;
