@@ -218,18 +218,46 @@ public:
   vm_unit &operator = (vm_unit const &m);
   vm_unit &operator = (vm_unit &&m);
 
-  // Reads a unit and links it into this unit.
+  /**
+   * Reads a unit and links it into this unit. This is effectively the closest
+   * thing to making vm_unit act as a linker, since it will resolve references
+   * and relocations as units are read.
+   */
   void read(std::istream &input);
 
+  /**
+   * Returns whether the unit valid. A valid unit has no unresolved relocations
+   * or externs -- so, it is fully linked and ready to use if valid. If there
+   * were any unresolved parts of the unit, it would work up until it hit those
+   * unresolve points, and then it would likely begin subtly failing in weird
+   * ways.
+   * @return Whether the unit is valid.
+   */
   bool is_valid() const
   {
     return externs.size() == 0 && unresolved_relocations.size() == 0;
   }
 
+  /**
+   * Debugging utility function to write all instructions in the unit to the
+   * given output stream, in semi-human-readable format. The output is not
+   * valid Rusalka assembly or anything that can be reloaded into the VM.
+   */
   void debug_write_instructions(std::ostream &out) const;
 
+  /**
+   * Fetches an instruction's op by its instruction pointer.
+   */
   vm_op fetch_op(int64_t ip) const;
 
+  /**
+   * Iterates over all static data defined by the unit and passes its data to
+   * that function.
+   *
+   * Func is of the type `void(int index, int64_t block, void const *data, bool &stop)`.
+   * The enumerator function may not modify the block, but it is permitted to
+   * do anything else its beady little heart desires.
+   */
   template <typename Func>
   void each_data(Func &&fn) const;
 };
