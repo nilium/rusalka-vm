@@ -245,6 +245,18 @@ int64_t vm_thread::load_registers(int64_t index, T &&first)
 
 
 
+/**
+ * @internal
+ * Invokes a VM function on the given thread with a variable number of
+ * arguments. The function to be invoked is located at `pointer`, which may
+ * or may not be an actual function starting point -- this is irrelevant
+ * provided there is a return instruction executed at some point to end the
+ * call frame of this invocation.
+ *
+ * Forwards to the thread's call_function implementation.
+ *
+ * @see vm_thread::call_function
+ */
 template <class... ARGS>
 vm_value vm_invoke_function(vm_thread &thread, int64_t pointer, ARGS &&... args)
 {
