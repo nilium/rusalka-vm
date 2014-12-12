@@ -26,6 +26,7 @@ enum vm_opcode : uint16_t
 #define INSTRUCTION(OPCODE, ASM_NAME, CODE, NUM_ARGS, ARG_INFO... ) OPCODE = CODE,
 #include "vm_instructions.h"
 #undef INSTRUCTION
+  /** The total number of opcodes defined by Rusalka. */
   OP_COUNT
 };
 
