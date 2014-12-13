@@ -23,6 +23,8 @@ The following sections will describe each chunk in a unit and their contents. Th
 
 All but the first two chunks are always in the same order. There is no requirement that other chunks be presented in the same order or contiguously in a unit, provided the version and offsets table are the first two chunks and follow one after the other. You can use the offsets table, in turn, to seek to different chunks.
 
+Chunk sizes and names will likely become 64-bit in future iterations of the Rusalka bytecode.
+
 > __Rationale for preferring signed integers:__ although unsigned integers grant you the one extra bit, it's a pain in the neck to mix signed and unsigned integers in the same program. As such, it seems simpler to mandate that signed integers be preferred unless the integer is _only_ to be used for bitwise operations. If the range of 32-bit signed integers becomes an issue at some point, it'll be switched to 64-bit and the bytecode version will change.
 
 
