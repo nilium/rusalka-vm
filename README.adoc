@@ -1,0 +1,54 @@
+Rusalka Virtual Machine
+=======================
+
+The Rusalka VM is a small personal project of mine to implement a fairly simple
+register-based process virtual machine.
+
+Rusalka is implemented in C++11. Currently, it supports
+
+- Executing a limited instruction set
+- Loading and executing Rusalka bytecode
+  footnote:[Assembled via 'asm2bc'.]
+- Importing host functions into the VM
+- Exporting VM functions as callable C++ objects
+- Working with typed values
+  footnote:[Specifically `uint64_t`, `int64_t`, and `double`.]
+- Keeping concurrent threads of execution per VM process
+  footnote:[Not yet thread-safe for the host process.]
+
+Once the Rusalka language is fleshed out and implemented on top of the Rusalka
+VM, there will likely be more to say about what it does and does not support,
+but for now it's a fairly bare-bones virtual machine. The upside is that it's
+fairly easy to produce bytecode for or to compile to Rusalka assembly.
+
+In all likelihood, Rusalka assembly will be abandoned as a core part of the VM,
+as it's only in there for testing at the moment and building an assembler into
+the VM probably isn't a great use of resources.
+
+Finally, if you want to read a lot of very dry writing about Rusalka's design
+and implementation, see my blog post over on Spifftastic:
+http://spifftastic.net/post/2014/07/on-the-rusalka-virtual-machine/.
+footnote:[One large difference between the blog post and the current state of
+Rusalka is that values are no longer strictly 64-bit floats, but are typed as
+integers, floats, and other data types depending on the value and the result
+type of an instruction.]
+
+
+Contributing
+------------
+
+If you want to contribute to Rusalka's development, it's simplest to create a
+patch and submit it via a pull request on link:{github-repo}[Rusalka's GitHub
+repository]. Please include a decent explanation of your changes to help folks
+read them (i.e., walk me through why you made the change, what it does, etc.).
+
+
+License
+-------
+
+The Rusalka VM is licensed under the Boost Software License, Version 1.0.
+The license can be read in full in the accompanying link:LICENSE_1_0.txt[] file
+or at <http://www.boost.org/LICENSE_1_0.txt>.
+
+
+:github-repo: https://github.com/nilium/rusalka-vm
