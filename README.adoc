@@ -1,5 +1,6 @@
 Rusalka Virtual Machine
 =======================
+:github-repo: https://github.com/nilium/rusalka-vm
 
 The Rusalka VM is a small personal project of mine to implement a fairly simple
 register-based process virtual machine.
@@ -49,6 +50,3 @@ License
 The Rusalka VM is licensed under the Boost Software License, Version 1.0.
 The license can be read in full in the accompanying link:LICENSE_1_0.txt[] file
 or at <http://www.boost.org/LICENSE_1_0.txt>.
-
-
-:github-repo: https://github.com/nilium/rusalka-vm
