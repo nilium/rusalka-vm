@@ -1,0 +1,314 @@
+Rusalka Bytecode Format
+=======================
+
+This document intends to describe the structure of the Rusalka bytecode format.
+There's no accepted extension for bytecode, though each compiled bytecode file
+is considered a single unit, so I'll use "unit" to refer to bytecode files.
+
+Chunks
+------
+
+Units are comprised of a series of chunks, and most chunks are comprised mainly
+of signed 32-bit little endian integers. The only exception to this rule is
+when dealing with masks, but they only occur in one particular chunk, so I'll
+get to that in due time. Unless stated otherwise, assume all integers are
+signed, 32-bit, and little-endian.
+
+Chunks are simple structures, and can be easily represented in C like so:
+
+[source,c]
+----
+    struct chunk {
+        int32_t name;
+        int32_t size_bytes;
+        char    data[size_bytes - 8];
+    };
+----
+
+As such, every chunk has a four-byte integer name and a four-byte size measured
+in bytes. The size includes both the size_bytes and name members themselves,
+hence the size_bytes - 8 in the data member above.
+
+The following sections will describe each chunk in a unit and their contents.
+The heading for each section will contain the long name and the short name.
+The short name is the sequence of bytes that comprise the name in the above
+structure. In C, for example, if the short name is `VERS`, you can represent it
+as an integer with a multi-character literal: `'SREV'` (though you might want
+to use something that isn't implementation-defined).
+
+All but the first two chunks are always in the same order. There is no
+requirement that other chunks be presented in the same order or contiguously in
+a unit, provided the version and offsets table are the first two chunks and
+follow one after the other. You can use the offsets table, in turn, to seek to
+different chunks.
+
+Chunk sizes and names will likely become 64-bit in future iterations of the
+Rusalka bytecode.
+
+[NOTE]
+.Rationale for preferring signed integers
+--
+Although unsigned integers grant you the one extra bit, it's a pain in the neck
+to mix signed and unsigned integers in the same program. As such, it seems
+simpler to mandate that signed integers be preferred unless the integer is
+_only_ to be used for bitwise operations. If the range of 32-bit signed
+integers becomes an issue at some point, it'll be switched to 64-bit and the
+bytecode version will change.
+
+The switch to 64-bit integers is partially in progress already, so it likely
+won't be long before everything else that needs to follow will.
+--
+
+
+Tables
+~~~~~~
+
+A brief aside on tables: all table chunks are prefixed with a length integer
+for the number of entries they contain. A table with a count of 62, for
+example, contains 62 of whatever that table holds (e.g., instructions).
+
+
+`VERS` — Bytecode Version
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The `VERS` chunk contains a single integer with the unit's bytecode version
+number. Right now this is ignored because the bytecode hasn't stabilized,
+though future implementations of Rusalka or anything working with units may
+wish to consider differences in versions (i.e., higher versions than those
+supported are unloadable and previous versions may require optional padding
+arguments for specific instructions). In general, though, I'd like to avoid any
+significant changes to the bytecode once this is stable.
+
+At the moment, the bytecode version is always `8`.
+
+
+`OFFS` — Chunk Offsets
+^^^^^^^^^^^^^^^^^^^^^^
+
+The offsets table contains `count` name-offset pairs. Each name refers to a
+chunk in the unit and the offset is relative to the start of the unit. Because
+all further chunks are not required to be in the order below, you should use
+the offsets in this chunk to always end up at the start of the chunk you want
+to read.
+
+As such, each pair in the chunk can be represented as follows:
+
+[source,c]
+----
+    struct chunk_offset {
+        int32_t chunk_name;
+        int32_t offset_from_start;
+    };
+----
+
+Entries in this chunk are ordered according to the chunks in the unit. As such,
+the VERS and OFFS chunks are always the first two entries, then each chunk
+after those in the order they are in the unit.
+
+This chunk may contain more entries than there are chunks currently supported
+by the bytecode. If they're not chunks you care about, you can ignore their
+offsets since they won't be of any use. All entries must have unique names and
+offsets, otherwise you can consider the unit corrupt.
+
+
+`DATA` - Data Blocks Table
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The data table contains `count` entries describing data blocks in the unit.
+These blocks are to be treated as read-only by the VM.
+
+Each entry can be represented as such:
+
+[source,c]
+----
+    struct data_block_entry {
+        int32_t data_size_bytes;
+        char    data[data_size_bytes];
+    };
+----
+
+The data ID is the one-based index of the block in the data table. Data entries
+from additional units will need to be relocated to ensure their IDs do not
+overlap (unless the VM tries to remove duplicate entries).
+
+The data itself is a string of `data_size_bytes`. The data is not required to
+contain anything and is not required to be null-terminated.
+
+
+`INST` — Instructions Table
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The instructions table contains `count` instructions. Each instruction is an
+integer opcode followed by its operands.
+
+[source,c]
+----
+    enum value_type {
+        ERROR     = -1, /* Error object */
+        UNDEFINED = 0,  /* Undefined value */
+        UNSIGNED  = 1,  /* Unsigned integer */
+        SIGNED    = 2,  /* Signed integer */
+        FLOAT     = 3,  /* 64-bit float (double) */
+        DATA      = 4,  /* Data ID */
+    };
+
+    struct value /* packed */ {
+        int32_t type;
+        uint64_t data;
+    };
+
+    struct instruction_entry {
+        uint16_t opcode;
+        uint16_t litflag;
+        value operands[ARGC];
+    };
+----
+
+Because each opcode has a fixed number of arguments, there is no operand count
+provided for each instruction. In the case of operands which take a litflag,
+the litflag is technically considered an operand but is provided as an unsigned
+16-bit bitmask. As such, it does not count towards the argument count for an
+instruction.
+
+Litflags are simply bitmasks where each bit represents an operand. If the bit
+is set, the operand is a literal or constant (i.e., does not refer to a
+register). If the bit is unset, the operand refers to a register. All output
+operands are registers regardless of whether the operand's litflag bit is set.
+
+All operands are represented by a 32-bit type ID and 64-bit value data (a
+64-bit unsigned int in the `value` struct above, but may be any data that fits
+into 8 bytes). The type ID and value data may be anything, and the in-memory
+layout and such of the actual value is defined by the VM (i.e., it is not
+necessarily the same as the bytecode representation). Well-defined types are
+those defined in the above value_type enum. Any type in the range of -65536
+through 65536 is considered a built-in type and these IDs are reserved if
+defined. Type IDs outside this range are user- or implementation-defined.
+
+Value types and data are to be stored in little-endian byte order.
+
+
+`IMPT` — Imports Table
+^^^^^^^^^^^^^^^^^^^^^^
+
+The imports table contains `count` entries with the addresses and names of
+imported labels referenced in the unit. These may need to be relocated.
+
+Each entry is structured as such:
+
+[source,c]
+----
+    struct label_table_entry {
+        int32_t address;
+        int32_t name_size_bytes;
+        char    name[name_size_bytes];
+    };
+----
+
+The address is always negative and count downwards, though may not be in order.
+
+Imported label names are not null-terminated.
+
+
+`EXPT` — Exports Table
+^^^^^^^^^^^^^^^^^^^^^^
+
+The exports table contains `count` entries with the addresses and names of
+exported labels defined in the unit. This does not include extern labels as
+they are considered undefined until another unit provides the required labels.
+As such, these are only labels _in_ the unit. They may require relocation.
+
+Entries in this table are structured the same as the imports table (`IMPT`).
+See the `label_table_entry` definition.
+
+The address of exported labels is always zero or greater. A label with address
+0 points to the first instruction in the unit, for example, while an address of
+8 points to the 7th instruction.
+
+Exported label names are not null-terminated.
+
+
+`EXTS` — Externs Table
+^^^^^^^^^^^^^^^^^^^^^^
+
+The externs table contains `count` entries with the names of extern labels that
+are not defined in this unit. Until all entries in this table are provided by
+other units, the unit with the externs has invalid instruction operands.
+
+Each entry in the table is structured as a size-in-bytes integer followed by a
+sequence of characters for the name.
+
+The index (by counting) of each extern label is used as the placeholder for the
+label's value in the instruction table and must be relocated at load time.
+
+Extern label names are not null-terminated.
+
+
+Relocation Tables
+~~~~~~~~~~~~~~~~~
+
+All relocation tables follow the same format: they contain `count` instruction
+pointers and an unsigned 32-bit little-endian integer mask describing which
+operands of the instruction need to be relocated. How they're relocated depends
+on the table.
+
+As such, all relocation table entries are represented in C as such:
+
+[source,c]
+----
+    struct relocation_entry {
+        int32_t instruction_pointer;
+        uint32_t operands_mask;
+    };
+----
+
+The instruction pointer is the zero-based offset, measured in instructions,
+into the unit's instructions relative to the start of the instructions for that
+unit. So, a pointer of 30 is the 31st instruction in the unit.
+
+The operands mask is the 32-bit unsigned little-endian integer mask for which
+operands need to be set. Each bit corresponds to an operand of the intruction.
+If the first bit in it is set, the first operand needs relocation. If the fifth
+bit is set, the fifth operand needs relocation. Fairly simple.
+
+
+`LREL` — Label Relocations Table
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The label relocations table contains `count` entries describing which operands
+reference a label _defined in the unit_. As such, they are already known
+positions in the instruction set and must be relocated if the unit is being
+linked with another unit.
+
+The labels referenced may either be imported or exported. If the label has a
+negative value, it is an import label and, as such, a host function. Import
+labels only need relocation if a previously-loaded unit defined the import
+label with a different position, otherwise it's considered a new import and may
+be given its own value according to the `IMPT` table.
+
+
+`EREL` — Extern Relocations Table
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The externs relocation table contains `count` instruction pointers and a
+bitmask of which operands must be relocated once an extern exported label is
+made available.
+
+All extern labels are invalid values in the unit and must be filled out before
+the unit is considered valid. Extern label references in the instruction set,
+those that require relocation, have values the same as the extern label's index
+in the `EXTS` table.
+
+Relocation may happen at link time or the extern label operands can be updated
+as units are loaded. There's no requirement for _when_ it happens, only that
+the instructions with incomplete operands be treated as invalid. What that
+means for the Rusalka VM is up to the implementation.
+
+
+`DREL` - Data Relocations Table
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The data relocations table contains `count` entries describing which operands
+reference data blocks defined in the unit. Each unit gets its own data blocks,
+so these must always be relocated if the unit isn't to be loaded. VM
+implementations aren't required to deduplicate data blocks, though it may be
+useful to do as part of a linker stage. Depends on the size of the data block.
